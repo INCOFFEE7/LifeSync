@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@drawable/widget_bg">
+
+    <!-- Header row: label + refresh -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Pengingat"
+            android:textSize="11sp"
+            android:textColor="#9CA3AF"
+            android:textStyle="bold"
+            android:layout_centerVertical="true" />
+        <TextView
+            android:id="@+id/r_refresh_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="&#8635;"
+            android:textSize="16sp"
+            android:textColor="#2563EB"
+            android:padding="4dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true" />
+    </RelativeLayout>
+
+    <!-- Slot 0 -->
+    <LinearLayout
+        android:id="@+id/rslot0"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:visibility="gone">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="&#128276;"
+            android:textSize="18sp"
+            android:gravity="center_vertical"
+            android:layout_marginEnd="10dp" />
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/r0_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textStyle="bold"
+                android:textSize="13sp"
+                android:textColor="#1F2937"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:text="" />
+            <TextView
+                android:id="@+id/r0_date"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="11sp"
+                android:textColor="#6B7280"
+                android:layout_marginTop="1dp"
+                android:text="" />
+            <TextView
+                android:id="@+id/r0_time"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="11sp"
+                android:textColor="#2563EB"
+                android:textStyle="bold"
+                android:layout_marginTop="1dp"
+                android:text="" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/rdivider0"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#F0F0F0"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:visibility="gone" />
+
+    <!-- Slot 1 -->
+    <LinearLayout
+        android:id="@+id/rslot1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:visibility="gone">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="&#128276;"
+            android:textSize="18sp"
+            android:gravity="center_vertical"
+            android:layout_marginEnd="10dp" />
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/r1_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textStyle="bold"
+                android:textSize="13sp"
+                android:textColor="#1F2937"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:text="" />
+            <TextView
+                android:id="@+id/r1_date"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="11sp"
+                android:textColor="#6B7280"
+                android:layout_marginTop="1dp"
+                android:text="" />
+            <TextView
+                android:id="@+id/r1_time"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="11sp"
+                android:textColor="#2563EB"
+                android:textStyle="bold"
+                android:layout_marginTop="1dp"
+                android:text="" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/rdivider1"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#F0F0F0"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:visibility="gone" />
+
+    <!-- Slot 2 -->
+    <LinearLayout
+        android:id="@+id/rslot2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:visibility="gone">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="&#128276;"
+            android:textSize="18sp"
+            android:gravity="center_vertical"
+            android:layout_marginEnd="10dp" />
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/r2_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textStyle="bold"
+                android:textSize="13sp"
+                android:textColor="#1F2937"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:text="" />
+            <TextView
+                android:id="@+id/r2_date"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="11sp"
+                android:textColor="#6B7280"
+                android:layout_marginTop="1dp"
+                android:text="" />
+            <TextView
+                android:id="@+id/r2_time"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="11sp"
+                android:textColor="#2563EB"
+                android:textStyle="bold"
+                android:layout_marginTop="1dp"
+                android:text="" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Empty state -->
+    <TextView
+        android:id="@+id/r_empty_text"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:text="Buka LifeSync, lalu pin pengingat"
+        android:textSize="12sp"
+        android:textColor="#9CA3AF"
+        android:visibility="visible" />
+
+</LinearLayout>
