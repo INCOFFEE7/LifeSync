@@ -70,23 +70,17 @@ class IsarBillRepository {
   Future<int> saveBill(Bill bill) async {
     if (kIsWeb) return 0;
 
-    // Otomatis tentukan status paid jika realizationAmount >= amount
-    if (bill.realizationAmount != null && bill.amount > 0 && bill.realizationAmount! >= bill.amount) {
-      bill.isPaid = true;
-      bill.paidAt ??= DateTime.now();
-    } else if (bill.realizationAmount != null && bill.realizationAmount! < bill.amount && !bill.isPaid) {
-      bill.isPaid = false;
-    }
-
     bill.updatedAt = DateTime.now();
+    if (bill.isPaid) {
+      bill.paidAt ??= DateTime.now();
+    } else {
+      bill.paidAt = null;
+    }
     
     final id = await _dbService.db.writeTxn(() async {
       return await _dbService.db.bills.put(bill);
     });
     bill.id = id;
-
-    // KETENTUAN BARU: TIDAK ADA lagi pemanggilan otomatis _syncBillToFinancialRecords!
-    // Pencatatan ke Keuangan dilakukan secara eksplisit oleh pengguna melalui menu "+ Catatan Baru" -> Transaksi Tagihan.
 
     // Schedule or cancel notification
     await _scheduleBillNotification(bill);
@@ -102,7 +96,6 @@ class IsarBillRepository {
         bill.deleted = true;
         bill.updatedAt = DateTime.now();
         await _dbService.db.bills.put(bill);
-        // TIDAK MENGHAPUS catatan keuangan lama milik pengguna!
       }
     });
     // Cancel notification using bill id offset
@@ -139,7 +132,7 @@ class IsarBillRepository {
       return;
     }
 
-    // Determine scheduled time using exact dueDate (year, month, day, hour, minute)
+    // Determine scheduled time using exact dueDate
     final targetDate = bill.dueDate;
     DateTime scheduledDate;
     if (bill.reminderDaysBefore == 0) {
@@ -158,7 +151,6 @@ class IsarBillRepository {
         'dueDate': bill.dueDate.toIso8601String(),
       });
 
-      // Pass sound: 'silent' so bill notification displays silently without alarm song/ringtone!
       await _notifService.scheduleNotification(
         id: notifId,
         title: 'Tagihan Jatuh Tempo: ${bill.name}',

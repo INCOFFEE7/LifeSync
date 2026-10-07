@@ -3,6 +3,7 @@ import 'package:lifesync_app/domain/entities/reminder.dart';
 import 'package:lifesync_app/domain/repositories/reminder_repository.dart';
 import 'package:lifesync_app/core/database/database_service.dart';
 import 'package:lifesync_app/core/services/home_widget_service.dart';
+import 'package:lifesync_app/core/notifications/notification_service.dart';
 
 class IsarReminderRepository implements ReminderRepository {
   final DatabaseService _dbService;
@@ -40,6 +41,12 @@ class IsarReminderRepository implements ReminderRepository {
         await _dbService.db.reminders.put(reminder);
       }
     });
+    // Cancel scheduled notification immediately
+    try {
+      await NotificationService().cancelNotification(id);
+    } catch (e) {
+      print('Error cancelling reminder notification: $e');
+    }
   }
 
   @override

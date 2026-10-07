@@ -6,6 +6,7 @@ import 'package:lifesync_app/domain/entities/menstruation_record.dart';
 import 'package:lifesync_app/presentation/providers/beebee_providers.dart';
 import 'package:lifesync_app/presentation/providers/localization_provider.dart';
 import 'package:lifesync_app/core/utils/translations.dart';
+import 'package:lifesync_app/config/app_variant.dart';
 
 class BeebeeCalendarPage extends ConsumerStatefulWidget {
   const BeebeeCalendarPage({super.key});
@@ -21,21 +22,40 @@ class _BeebeeCalendarPageState extends ConsumerState<BeebeeCalendarPage> {
   @override
   Widget build(BuildContext context) {
     final lang = ref.watch(localeProvider).languageCode;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8F9FA),
+        backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8F9FA),
         appBar: AppBar(
-          title: Text(AppTranslations.get(lang, 'menstrual_tracker_title'), style: const TextStyle(fontWeight: FontWeight.bold)),
-          backgroundColor: Colors.white,
-          elevation: 0,
-          foregroundColor: const Color(0xFF333333),
+          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          elevation: 2,
+          shadowColor: Colors.pink.withOpacity(0.08),
+          automaticallyImplyLeading: false,
+          titleSpacing: 20,
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset(
+                AppEnvironment.config.getLogoFullPath(isDark),
+                width: 120,
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
+                errorBuilder: (c, e, s) => const Text('BeeNest', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFE91E8C))),
+              ),
+              const Text(
+                "Beebee's little private space.",
+                style: TextStyle(fontSize: 10, color: Colors.grey, fontStyle: FontStyle.italic),
+              ),
+            ],
+          ),
           bottom: TabBar(
             indicatorColor: const Color(0xFFE91E8C),
             indicatorWeight: 3,
             labelColor: const Color(0xFFE91E8C),
-            labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+            labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             unselectedLabelColor: Colors.grey,
             tabs: [
               Tab(text: AppTranslations.get(lang, 'kalender')),
@@ -45,159 +65,191 @@ class _BeebeeCalendarPageState extends ConsumerState<BeebeeCalendarPage> {
         ),
         body: TabBarView(
           children: [
-            _buildCalendarTab(context, lang),
-            _buildHistoryTab(context, lang),
+            _buildCalendarTab(context, lang, isDark),
+            _buildHistoryTab(context, lang, isDark),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCalendarTab(BuildContext context, String lang) {
+  Widget _buildCalendarTab(BuildContext context, String lang, bool isDark) {
     final recordsAsync = ref.watch(menstruationRecordsProvider);
     final statsAsync = ref.watch(menstrualStatsProvider);
     final qadhaAsync = ref.watch(qadhaRecordsProvider);
 
-    return Column(
-      children: [
-        Container(
-          margin: const EdgeInsets.all(16),
-          padding: const EdgeInsets.only(bottom: 16, top: 8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.pink.withOpacity(0.06),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: TableCalendar(
-            firstDay: DateTime.utc(2020, 10, 16),
-            lastDay: DateTime.utc(2030, 3, 14),
-            focusedDay: _focusedDay,
-            selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-            availableCalendarFormats: const {CalendarFormat.month: 'Month'},
-            headerStyle: const HeaderStyle(
-              formatButtonVisible: false,
-              titleCentered: true,
-              titleTextStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF333333)),
-              leftChevronIcon: Icon(Icons.chevron_left, color: Color(0xFFE91E8C)),
-              rightChevronIcon: Icon(Icons.chevron_right, color: Color(0xFFE91E8C)),
-            ),
-            onDaySelected: (selectedDay, focusedDay) {
-              setState(() {
-                _selectedDay = selectedDay;
-                _focusedDay = focusedDay;
-              });
-            },
-            calendarStyle: CalendarStyle(
-              outsideDaysVisible: false,
-              weekendTextStyle: const TextStyle(color: Colors.redAccent),
-              todayDecoration: BoxDecoration(
-                color: const Color(0xFFE91E8C).withOpacity(0.15),
-                shape: BoxShape.circle,
-              ),
-              todayTextStyle: const TextStyle(color: Color(0xFFE91E8C), fontWeight: FontWeight.bold),
-              selectedDecoration: BoxDecoration(
-                color: const Color(0xFFE91E8C),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(color: const Color(0xFFE91E8C).withOpacity(0.4), blurRadius: 6, offset: const Offset(0, 3))
-                ],
-              ),
-            ),
-            eventLoader: (day) {
-              List<String> events = [];
-
-              if (recordsAsync.value != null) {
-                for (var record in recordsAsync.value!) {
-                  if (day.isAfter(record.startDate.subtract(const Duration(days: 1))) && 
-                      day.isBefore(record.endDate.add(const Duration(days: 1)))) {
-                    events.add('Haid');
-                    break;
-                  }
-                }
-              }
-
-              if (statsAsync.value?.nextPrediction != null) {
-                if (isSameDay(day, statsAsync.value!.nextPrediction!)) {
-                  events.add('Prediksi');
-                }
-              }
-
-              if (qadhaAsync.value != null) {
-                for (var qadha in qadhaAsync.value!) {
-                  if (isSameDay(day, qadha.date)) {
-                    events.add('Qadha');
-                    break;
-                  }
-                }
-              }
-
-              return events;
-            },
-            calendarBuilders: CalendarBuilders(
-              markerBuilder: (context, date, events) {
-                if (events.isEmpty) return const SizedBox();
-
-                return Positioned(
-                  bottom: 4,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: events.map((event) {
-                      Color color;
-                      if (event == 'Haid') color = const Color(0xFFE91E8C);
-                      else if (event == 'Prediksi') color = const Color(0xFFC77DFF);
-                      else color = Colors.green; // Qadha
-
-                      return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 2),
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: color,
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(24),
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          Container(
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.only(bottom: 16, top: 8),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: const Color(0xFFFDE8E9), width: 1.5),
               boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, -5))
+                BoxShadow(
+                  color: Colors.pink.withOpacity(0.06),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: TableCalendar(
+              firstDay: DateTime.utc(2020, 10, 16),
+              lastDay: DateTime.utc(2030, 3, 14),
+              focusedDay: _focusedDay,
+              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+              availableCalendarFormats: const {CalendarFormat.month: 'Month'},
+              headerStyle: HeaderStyle(
+                formatButtonVisible: false,
+                titleCentered: true,
+                titleTextStyle: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF333333)),
+                leftChevronIcon: const Icon(Icons.chevron_left, color: Color(0xFFE91E8C)),
+                rightChevronIcon: const Icon(Icons.chevron_right, color: Color(0xFFE91E8C)),
+              ),
+              onDaySelected: (selectedDay, focusedDay) {
+                setState(() {
+                  _selectedDay = selectedDay;
+                  _focusedDay = focusedDay;
+                });
+              },
+              calendarStyle: CalendarStyle(
+                outsideDaysVisible: false,
+                weekendTextStyle: const TextStyle(color: Colors.redAccent),
+                defaultTextStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
+                todayDecoration: BoxDecoration(
+                  color: const Color(0xFFE91E8C).withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                todayTextStyle: const TextStyle(color: Color(0xFFE91E8C), fontWeight: FontWeight.bold),
+                selectedDecoration: BoxDecoration(
+                  color: const Color(0xFFE91E8C),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(color: const Color(0xFFE91E8C).withOpacity(0.4), blurRadius: 6, offset: const Offset(0, 3))
+                  ],
+                ),
+              ),
+              eventLoader: (day) {
+                List<String> events = [];
+
+                if (recordsAsync.value != null) {
+                  for (var record in recordsAsync.value!) {
+                    if (day.isAfter(record.startDate.subtract(const Duration(days: 1))) && 
+                        day.isBefore(record.endDate.add(const Duration(days: 1)))) {
+                      events.add('Haid');
+                      break;
+                    }
+                  }
+                }
+
+                if (statsAsync.value?.nextPrediction != null) {
+                  if (isSameDay(day, statsAsync.value!.nextPrediction!)) {
+                    events.add('Prediksi');
+                  }
+                }
+
+                if (qadhaAsync.value != null) {
+                  for (var qadha in qadhaAsync.value!) {
+                    if (isSameDay(day, qadha.date)) {
+                      events.add('Qadha');
+                      break;
+                    }
+                  }
+                }
+
+                return events;
+              },
+              calendarBuilders: CalendarBuilders(
+                markerBuilder: (context, date, events) {
+                  if (events.isEmpty) return const SizedBox();
+
+                  return Positioned(
+                    bottom: 4,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: events.map((event) {
+                        Color color;
+                        if (event == 'Haid') color = const Color(0xFFE91E8C);
+                        else if (event == 'Prediksi') color = const Color(0xFFC77DFF);
+                        else color = const Color(0xFF10B981); // Qadha
+
+                        return Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 2),
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: color,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.pink.shade50),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))
               ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(AppTranslations.get(lang, 'legenda_kalender'), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF333333))),
-                const SizedBox(height: 20),
-                _buildLegendRow(const Color(0xFFE91E8C), AppTranslations.get(lang, 'hari_menstruasi')),
-                const SizedBox(height: 12),
-                _buildLegendRow(const Color(0xFFC77DFF), AppTranslations.get(lang, 'prediksi_haid_berikutnya')),
-                const SizedBox(height: 12),
-                _buildLegendRow(Colors.green, AppTranslations.get(lang, 'pembayaran_puasa_qadha')),
+                Row(
+                  children: [
+                    const Icon(Icons.favorite_border, color: Color(0xFFE91E8C), size: 22),
+                    const SizedBox(width: 8),
+                    Text(
+                      AppTranslations.get(lang, 'legenda_kalender'),
+                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: isDark ? Colors.white : const Color(0xFF333333)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildLegendCard(const Color(0xFFE91E8C), AppTranslations.get(lang, 'hari_menstruasi'), Icons.water_drop, isDark),
+                const SizedBox(height: 10),
+                _buildLegendCard(const Color(0xFFC77DFF), AppTranslations.get(lang, 'prediksi_haid_berikutnya'), Icons.calendar_month, isDark),
+                const SizedBox(height: 10),
+                _buildLegendCard(const Color(0xFF10B981), AppTranslations.get(lang, 'pembayaran_puasa_qadha'), Icons.check_circle_outline, isDark),
               ],
             ),
           ),
-        ),
-      ],
+          const SizedBox(height: 24),
+        ],
+      ),
     );
   }
 
-  Widget _buildHistoryTab(BuildContext context, String lang) {
+  Widget _buildLegendCard(Color color, String text, IconData icon, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 12),
+          Text(text, style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : const Color(0xFF444444), fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHistoryTab(BuildContext context, String lang, bool isDark) {
     final recordsAsync = ref.watch(menstruationRecordsProvider);
 
     return recordsAsync.when(
@@ -207,9 +259,9 @@ class _BeebeeCalendarPageState extends ConsumerState<BeebeeCalendarPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.history, size: 64, color: Colors.grey),
+                Icon(Icons.history, size: 64, color: Colors.grey.shade400),
                 const SizedBox(height: 16),
-                Text(AppTranslations.get(lang, 'belum_ada_riwayat_haid'), style: const TextStyle(color: Colors.grey, fontSize: 16)),
+                Text(AppTranslations.get(lang, 'belum_ada_riwayat_haid'), style: TextStyle(color: Colors.grey.shade600, fontSize: 16, fontWeight: FontWeight.bold)),
               ],
             ),
           );
@@ -220,9 +272,9 @@ class _BeebeeCalendarPageState extends ConsumerState<BeebeeCalendarPage> {
           itemBuilder: (context, index) {
             final record = records[index];
             return Container(
-              margin: const EdgeInsets.only(bottom: 16),
+              margin: const EdgeInsets.only(bottom: 14),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
@@ -243,23 +295,23 @@ class _BeebeeCalendarPageState extends ConsumerState<BeebeeCalendarPage> {
                         color: const Color(0xFFFDE8E9),
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: const Icon(Icons.water_drop, color: Color(0xFFE91E8C), size: 30),
+                      child: const Icon(Icons.water_drop, color: Color(0xFFE91E8C), size: 28),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             '${DateFormat('dd MMM yyyy').format(record.startDate)} - ${DateFormat('dd MMM yyyy').format(record.endDate)}',
-                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF333333)),
+                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: isDark ? Colors.white : const Color(0xFF333333)),
                           ),
                           const SizedBox(height: 6),
                           Row(
                             children: [
                               const Icon(Icons.access_time, size: 14, color: Colors.grey),
                               const SizedBox(width: 4),
-                              Text('${AppTranslations.get(lang, 'durasi_label')}: ${record.duration} ${AppTranslations.get(lang, 'hari')}', style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                              Text('${AppTranslations.get(lang, 'durasi_label')}: ${record.duration} ${AppTranslations.get(lang, 'hari')}', style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w600)),
                             ],
                           ),
                           if (record.notes != null && record.notes!.isNotEmpty) ...[
@@ -269,7 +321,7 @@ class _BeebeeCalendarPageState extends ConsumerState<BeebeeCalendarPage> {
                           if (record.isRamadan) ...[
                             const SizedBox(height: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
                                 color: Colors.orange.withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(8),
@@ -291,11 +343,11 @@ class _BeebeeCalendarPageState extends ConsumerState<BeebeeCalendarPage> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.edit_note, color: Colors.blueAccent, size: 26),
+                          icon: const Icon(Icons.edit_note, color: Colors.blueAccent, size: 24),
                           onPressed: () => _showEditHaidDialog(context, lang, record),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.delete_sweep, color: Colors.redAccent, size: 26),
+                          icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 24),
                           onPressed: () async {
                             final confirm = await showDialog<bool>(
                               context: context,
@@ -463,26 +515,6 @@ class _BeebeeCalendarPageState extends ConsumerState<BeebeeCalendarPage> {
           );
         },
       ),
-    );
-  }
-
-  Widget _buildLegendRow(Color color, String text) {
-    return Row(
-      children: [
-        Container(
-          width: 14,
-          height: 14,
-          decoration: BoxDecoration(
-            color: color, 
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(color: color.withOpacity(0.4), blurRadius: 4, offset: const Offset(0, 2))
-            ]
-          ),
-        ),
-        const SizedBox(width: 12),
-        Text(text, style: const TextStyle(fontSize: 14, color: Color(0xFF555555), fontWeight: FontWeight.w500)),
-      ],
     );
   }
 }

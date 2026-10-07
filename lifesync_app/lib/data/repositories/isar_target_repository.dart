@@ -4,6 +4,7 @@ import 'package:lifesync_app/domain/entities/daily_income_record.dart';
 import 'package:lifesync_app/domain/repositories/target_repository.dart';
 import 'package:lifesync_app/core/database/database_service.dart';
 import 'package:lifesync_app/core/services/home_widget_service.dart';
+import 'package:lifesync_app/core/notifications/notification_service.dart';
 
 class IsarTargetRepository implements TargetRepository {
   final DatabaseService _dbService;
@@ -41,6 +42,11 @@ class IsarTargetRepository implements TargetRepository {
         await _dbService.db.incomeTargets.put(target);
       }
     });
+    try {
+      await NotificationService().cancelNotification(id + 700000);
+    } catch (e) {
+      print('Error cancelling target notification: $e');
+    }
   }
 
   @override
@@ -57,7 +63,6 @@ class IsarTargetRepository implements TargetRepository {
   Future<int> saveRecord(DailyIncomeRecord record) async {
     return await _dbService.db.writeTxn(() async {
       final id = await _dbService.db.dailyIncomeRecords.put(record);
-      // Touch target updatedAt agar stream watchTargets() memicu update realtime di Dashboard!
       final target = await _dbService.db.incomeTargets.get(record.targetId);
       if (target != null) {
         target.updatedAt = DateTime.now();
@@ -79,7 +84,6 @@ class IsarTargetRepository implements TargetRepository {
         record.syncStatus = 'pending';
         await _dbService.db.dailyIncomeRecords.put(record);
 
-        // Touch target updatedAt agar stream watchTargets() memicu update realtime di Dashboard!
         final target = await _dbService.db.incomeTargets.get(record.targetId);
         if (target != null) {
           target.updatedAt = DateTime.now();

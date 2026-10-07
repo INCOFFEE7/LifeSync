@@ -19,16 +19,27 @@ class BeebeeDashboardPage extends ConsumerWidget {
     final statsAsync = ref.watch(menstrualStatsProvider);
     final activeHaid = ref.watch(activeHaidProvider);
     final lang = ref.watch(localeProvider).languageCode;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
-        title: Image.asset(
-          AppEnvironment.config.logoFullPath,
-          width: 140,
-          cacheWidth: 420,
-          fit: BoxFit.contain,
-          filterQuality: FilterQuality.high,
-          errorBuilder: (c, e, s) => const Text('LifeSync for Beebee', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              AppEnvironment.config.getLogoFullPath(isDark),
+              width: 130,
+              cacheWidth: 390,
+              fit: BoxFit.contain,
+              filterQuality: FilterQuality.high,
+              errorBuilder: (c, e, s) => const Text('BeeNest', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFE91E8C))),
+            ),
+            const Text(
+              "Beebee's little private space.",
+              style: TextStyle(fontSize: 10, color: Colors.grey, fontStyle: FontStyle.italic),
+            ),
+          ],
         ),
         actions: [
           IconButton(

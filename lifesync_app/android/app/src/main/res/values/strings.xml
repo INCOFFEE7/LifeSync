@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">LifeSync</string>
-    <string name="widget_target_label">LifeSync Target Nabung</string>
+    <string name="app_name">LifeHaven</string>
+    <string name="widget_target_label">LifeHaven Target Nabung</string>
     <string name="widget_target_description">Tampilkan progress target nabung Anda di layar utama</string>
-    <string name="widget_reminder_label">LifeSync Pengingat Kegiatan</string>
+    <string name="widget_reminder_label">LifeHaven Pengingat Kegiatan</string>
     <string name="widget_reminder_description">Tampilkan pengingat mendatang Anda di layar utama</string>
 </resources>

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:lifesync_app/core/utils/thousands_formatter.dart';
 import 'package:lifesync_app/domain/entities/bill.dart';
 import 'package:lifesync_app/presentation/providers/repository_providers.dart';
 import 'package:lifesync_app/presentation/widgets/calculator_input_dialog.dart';
@@ -19,15 +18,11 @@ class AddEditBillPage extends ConsumerStatefulWidget {
 class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
-  final _realizationController = TextEditingController();
 
   late String _name;
   late double _amount;
-  double? _realizationAmount;
-  double? _prePaymentRealization;
   late String _month;
   late DateTime _dueDate;
-  late bool _isPaid;
   late int _reminderDaysBefore;
   String? _notes;
   bool _isSaving = false;
@@ -43,38 +38,25 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
       final b = widget.existingBill!;
       _name = b.name;
       _amount = b.amount;
-      _isPaid = b.isPaid;
-      _realizationAmount = b.realizationAmount;
-      _prePaymentRealization = b.prePaymentRealization ?? (_isPaid ? b.amount : b.realizationAmount);
       _month = b.month;
       _dueDate = b.dueDate;
       _reminderDaysBefore = b.reminderDaysBefore;
       _notes = b.notes;
 
       if (_amount > 0) _amountController.text = currencyFmt.format(_amount.toInt());
-      if (_realizationAmount != null && _realizationAmount! > 0) {
-        _realizationController.text = currencyFmt.format(_realizationAmount!.toInt());
-      } else {
-        _realizationController.text = '';
-      }
     } else {
       _name = '';
       _amount = 0.0;
-      _realizationAmount = 0.0;
-      _prePaymentRealization = 0.0;
       _month = defaultMonth;
       _dueDate = DateTime(now.year, now.month, now.day, 8, 0);
-      _isPaid = false;
       _reminderDaysBefore = 0; // Hari H
       _notes = null;
-      _realizationController.text = '';
     }
   }
 
   @override
   void dispose() {
     _amountController.dispose();
-    _realizationController.dispose();
     super.dispose();
   }
 
@@ -123,11 +105,6 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
     try {
       final repo = ref.read(billRepositoryProvider);
 
-      // Otomatis tandai Sudah Dibayar jika realisasi >= amount
-      if (_realizationAmount != null && _amount > 0 && _realizationAmount! >= _amount) {
-        _isPaid = true;
-      }
-
       // Check duplicate in month
       final isDup = await repo.checkDuplicateBill(_name.trim(), _month, excludeId: widget.existingBill?.id);
       if (isDup && mounted) {
@@ -152,14 +129,18 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
       bill
         ..name = _name.trim()
         ..amount = _amount
-        ..realizationAmount = _realizationAmount
-        ..prePaymentRealization = _isPaid ? (_prePaymentRealization ?? _amount) : _realizationAmount
         ..month = _month
         ..dueDate = _dueDate
-        ..isPaid = _isPaid
-        ..paidAt = _isPaid ? (bill.paidAt ?? DateTime.now()) : null
         ..reminderDaysBefore = _reminderDaysBefore
-        ..notes = _notes?.trim().isEmpty == true ? null : _notes?.trim();
+        ..notes = _notes?.trim().isEmpty == true ? null : _notes?.trim()
+        ..createdAt = bill.createdAt
+        ..updatedAt = DateTime.now();
+
+      if (widget.existingBill == null) {
+        bill.isPaid = false;
+        bill.realizationAmount = 0.0;
+        bill.paidAt = null;
+      }
 
       await repo.saveBill(bill);
 
@@ -234,7 +215,7 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
                   });
                 }
               },
-              decoration: _inputDecoration('Nominal Tagihan / Amount (Rp)').copyWith(
+              decoration: _inputDecoration('Nominal Rencana Tagihan (Rp)').copyWith(
                 prefixText: 'Rp ',
                 suffixIcon: const Icon(Icons.calculate, color: Color(0xFF2563EB)),
               ),
@@ -243,40 +224,6 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
                 if (_amount <= 0) return 'Nominal harus > 0';
                 return null;
               },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _realizationController,
-              readOnly: true,
-              onTap: () async {
-                final val = await showCalculatorInputDialog(
-                  context: context,
-                  title: 'Input Realisasi Pembayaran',
-                  initialValue: _realizationAmount ?? 0.0,
-                );
-                if (val != null && mounted) {
-                  setState(() {
-                    _realizationAmount = val;
-                    // Jika realisasi >= amount, otomatis ubah status ke Sudah Dibayar!
-                    if (val >= _amount && _amount > 0) {
-                      _isPaid = true;
-                    } else if (val < _amount) {
-                      _isPaid = false;
-                    }
-
-                    if (val > 0) {
-                      _realizationController.text = currencyFmt.format(val.toInt());
-                    } else {
-                      _realizationController.text = '';
-                    }
-                  });
-                }
-              },
-              decoration: _inputDecoration('Nominal Realisasi / Pembayaran (Rp)').copyWith(
-                prefixText: 'Rp ',
-                suffixIcon: const Icon(Icons.calculate, color: Color(0xFF10B981)),
-              ),
-              style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
             ),
             const SizedBox(height: 16),
             Container(
@@ -309,32 +256,6 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
                 DropdownMenuItem(value: 7, child: Text('7 Hari Sebelumnya')),
               ],
               onChanged: (val) => setState(() => _reminderDaysBefore = val!),
-            ),
-            const SizedBox(height: 16),
-            SwitchListTile(
-              title: const Text('Status Pembayaran', style: TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text(_isPaid ? 'Sudah Dibayar' : 'Belum Dibayar', style: TextStyle(color: _isPaid ? const Color(0xFF10B981) : const Color(0xFFEF4444), fontWeight: FontWeight.bold)),
-              value: _isPaid,
-              activeColor: const Color(0xFF10B981),
-              onChanged: (val) {
-                setState(() {
-                  _isPaid = val;
-                  if (_isPaid) {
-                    _prePaymentRealization = _realizationAmount ?? 0.0;
-                    _realizationAmount = _amount;
-                    if (_amount > 0) {
-                      _realizationController.text = currencyFmt.format(_amount.toInt());
-                    }
-                  } else {
-                    _realizationAmount = _prePaymentRealization ?? 0.0;
-                    if (_realizationAmount! > 0) {
-                      _realizationController.text = currencyFmt.format(_realizationAmount!.toInt());
-                    } else {
-                      _realizationController.text = '';
-                    }
-                  }
-                });
-              },
             ),
             const SizedBox(height: 16),
             TextFormField(

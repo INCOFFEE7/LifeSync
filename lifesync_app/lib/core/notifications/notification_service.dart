@@ -175,23 +175,10 @@ class NotificationService {
 
     final now = DateTime.now();
 
-    // Jika waktu yang dijadwalkan sudah lewat sedikit (dalam kurun 5 menit terakhir),
-    // langsung bunyikan notifikasi & pemicu popup agar tidak terlewat!
-    if (scheduledTime.isBefore(now)) {
-      final diff = now.difference(scheduledTime);
-      if (diff.inMinutes <= 5) {
-        debugPrint(
-            '[NotifService] Deadline recently passed (${diff.inSeconds}s ago), triggering immediate notification & popup: $title');
-        await showImmediateNotification(title: title, body: body, sound: sound);
-        if (payload != null && payload.isNotEmpty) {
-          _handlePayload(payload);
-        }
-        return true;
-      } else {
-        debugPrint(
-            '[NotifService] Skipped past notification: $title at $scheduledTime');
-        return false;
-      }
+    // Jika waktu yang dijadwalkan sudah lewat, abaikan (jangan pernah jadikan notifikasi baru atau bunyikan instan)
+    if (scheduledTime.isBefore(now) || scheduledTime.isAtSameMomentAs(now)) {
+      debugPrint('[NotifService] Skipped past/expired notification: $title at $scheduledTime');
+      return false;
     }
 
     try {

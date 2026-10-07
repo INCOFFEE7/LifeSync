@@ -7,6 +7,7 @@ import 'package:lifesync_app/presentation/providers/dashboard_provider.dart';
 import 'package:lifesync_app/presentation/pages/create_target_page.dart';
 import 'package:lifesync_app/presentation/pages/target_detail_page.dart';
 import 'package:lifesync_app/core/services/home_widget_service.dart';
+import 'package:lifesync_app/config/app_variant.dart';
 import 'package:intl/intl.dart';
 
 class TargetsPage extends ConsumerWidget {
@@ -16,22 +17,35 @@ class TargetsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final targetsAsync = ref.watch(targetsStreamProvider);
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
-      appBar: _buildHeader(),
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF9FAFB),
+      appBar: _buildHeader(context),
       body: targetsAsync.when(
         data: (targets) {
           if (targets.isEmpty) {
             return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.savings_outlined, size: 80, color: Colors.grey.shade400),
-                  const SizedBox(height: 16),
-                  Text('Belum ada target nabung.', style: TextStyle(color: Colors.grey.shade700, fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  const Text('Buat target nabung pertama Anda untuk mulai menabung!'),
-                ],
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Icon(Icons.savings_outlined, size: 80, color: Colors.grey.shade400),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Belum ada target nabung.',
+                      style: TextStyle(color: Colors.grey.shade700, fontSize: 18, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Buat target nabung pertama Anda untuk mulai menabung!',
+                      style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ),
             );
           }
@@ -63,23 +77,24 @@ class TargetsPage extends ConsumerWidget {
 
   }
 
-  PreferredSizeWidget _buildHeader() {
+  PreferredSizeWidget _buildHeader(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       elevation: 4,
       shadowColor: Colors.black.withOpacity(0.1),
-      surfaceTintColor: Colors.white,
+      surfaceTintColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       scrolledUnderElevation: 4,
       titleSpacing: 20,
       title: Image.asset(
-        'assets/images/logofull.png',
+        AppEnvironment.config.getLogoFullPath(isDark),
         width: 140,
         cacheWidth: 420,
         fit: BoxFit.contain,
         filterQuality: FilterQuality.high,
-        errorBuilder: (c, e, s) => const Text(
-          'LifeSync',
-          style: TextStyle(
+        errorBuilder: (c, e, s) => Text(
+          AppEnvironment.config.appName,
+          style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w800,
             color: Color(0xFF2563EB),

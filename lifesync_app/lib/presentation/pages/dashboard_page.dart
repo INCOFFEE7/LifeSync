@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lifesync_app/presentation/pages/settings_page.dart';
 import 'package:lifesync_app/core/utils/translations.dart';
 import 'package:lifesync_app/presentation/providers/localization_provider.dart';
+import 'package:lifesync_app/config/app_variant.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
@@ -356,22 +357,23 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   }
 
   PreferredSizeWidget _buildHeader() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       elevation: 4,
       shadowColor: Colors.black.withOpacity(0.1),
-      surfaceTintColor: Colors.white,
+      surfaceTintColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       scrolledUnderElevation: 4,
       titleSpacing: 20,
       title: Image.asset(
-        'assets/images/logofull.png',
+        AppEnvironment.config.getLogoFullPath(isDark),
         width: 140,
         cacheWidth: 420,
         fit: BoxFit.contain,
         filterQuality: FilterQuality.high,
-        errorBuilder: (c, e, s) => const Text(
-          'LifeSync',
-          style: TextStyle(
+        errorBuilder: (c, e, s) => Text(
+          AppEnvironment.config.appName,
+          style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w800,
             color: Color(0xFF2563EB),

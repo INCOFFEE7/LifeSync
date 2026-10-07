@@ -9,6 +9,21 @@ import 'package:lifesync_app/presentation/screens/cloud_backup_settings_screen.d
 import 'package:file_picker/file_picker.dart';
 import 'package:lifesync_app/core/services/home_widget_service.dart';
 import 'package:lifesync_app/config/app_variant.dart';
+import 'package:lifesync_app/core/providers/core_providers.dart';
+import 'package:lifesync_app/core/notifications/notification_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:home_widget/home_widget.dart';
+import 'package:lifesync_app/domain/entities/reminder.dart';
+import 'package:lifesync_app/domain/entities/income_target.dart';
+import 'package:lifesync_app/domain/entities/daily_income_record.dart';
+import 'package:lifesync_app/domain/entities/financial_record.dart';
+import 'package:lifesync_app/domain/entities/financial_note.dart';
+import 'package:lifesync_app/domain/entities/financial_item.dart';
+import 'package:lifesync_app/domain/entities/bill.dart';
+import 'package:lifesync_app/domain/entities/fasting_debt.dart';
+import 'package:lifesync_app/domain/entities/qadha_record.dart';
+import 'package:lifesync_app/domain/entities/menstruation_record.dart';
+import 'package:lifesync_app/domain/entities/app_settings.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -196,6 +211,85 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Gagal: $e')),
                   );
+                }
+              }
+            },
+          ),
+          const Divider(),
+          Text(
+            'Zona Berbahaya',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.red),
+          ),
+          const SizedBox(height: 8),
+          ListTile(
+            leading: const Icon(Icons.delete_forever, color: Colors.red),
+            title: const Text('Hapus Seluruh Data', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            subtitle: const Text('Hapus semua Reminder, Finance, dan Savings'),
+            trailing: const Icon(Icons.chevron_right, color: Colors.red),
+            onTap: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  title: const Text('Hapus Seluruh Data?', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+                  content: const Text('Semua Reminder, Finance, dan Savings akan dihapus. Tindakan ini tidak dapat dibatalkan.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+                    ),
+                    FilledButton(
+                      style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Hapus'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirm == true) {
+                try {
+                  final dbService = ref.read(databaseServiceProvider);
+                  await dbService.db.writeTxn(() async {
+                    await dbService.db.reminders.clear();
+                    await dbService.db.incomeTargets.clear();
+                    await dbService.db.dailyIncomeRecords.clear();
+                    await dbService.db.financialRecords.clear();
+                    await dbService.db.financialNotes.clear();
+                    await dbService.db.financialItems.clear();
+                    await dbService.db.bills.clear();
+                    await dbService.db.fastingDebts.clear();
+                    await dbService.db.qadhaRecords.clear();
+                    await dbService.db.menstruationRecords.clear();
+                    await dbService.db.appSettings.clear();
+                  });
+
+                  await NotificationService().cancelAll();
+                  try {
+                    await HomeWidget.saveWidgetData('pinned_target_ids', '');
+                    await HomeWidget.saveWidgetData('pinned_reminder_ids', '');
+                    await HomeWidget.updateWidget(androidName: 'com.example.lifesync_app.TargetWidgetProvider');
+                    await HomeWidget.updateWidget(androidName: 'com.example.lifesync_app.ReminderWidgetProvider');
+                  } catch (_) {}
+
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setBool('has_deleted_all', true);
+                  await prefs.setBool('is_first_installation_complete', true);
+
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Seluruh data berhasil dihapus.'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Gagal menghapus data: $e'), backgroundColor: Colors.red),
+                    );
+                  }
                 }
               }
             },

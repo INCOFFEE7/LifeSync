@@ -10,7 +10,7 @@ import 'package:lifesync_app/presentation/providers/repository_providers.dart';
 import 'package:lifesync_app/presentation/providers/financial_note_providers.dart';
 import 'package:lifesync_app/presentation/pages/add_edit_financial_note_page.dart';
 import 'package:lifesync_app/presentation/pages/financial_note_detail_page.dart';
-import 'package:lifesync_app/presentation/pages/bills_page.dart';
+import 'package:lifesync_app/config/app_variant.dart';
 
 class FinancialRecordsHomePage extends ConsumerStatefulWidget {
   const FinancialRecordsHomePage({super.key});
@@ -359,35 +359,20 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
         elevation: 4,
         shadowColor: Colors.black.withAlpha(25),
         surfaceTintColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        scrolledUnderElevation: 4,
+        automaticallyImplyLeading: false,
         titleSpacing: 20,
         title: Image.asset(
-          'assets/images/logofull.png',
+          AppEnvironment.config.getLogoFullPath(isDark),
           width: 140,
           cacheWidth: 420,
           fit: BoxFit.contain,
           filterQuality: FilterQuality.high,
-          errorBuilder: (_, __, ___) => const Text(
-            'LifeSync',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Color(0xFF2563EB), letterSpacing: -0.5),
+          errorBuilder: (_, __, ___) => Text(
+            AppEnvironment.config.appName,
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Color(0xFF2563EB), letterSpacing: -0.5),
           ),
         ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12.0),
-            child: TextButton.icon(
-              style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF2563EB),
-                backgroundColor: const Color(0xFF2563EB).withAlpha(15),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const BillsPage()));
-              },
-              icon: const Icon(Icons.receipt_long, size: 20),
-              label: const Text('Tagihan', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-          ),
-        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'financial_note_fab',

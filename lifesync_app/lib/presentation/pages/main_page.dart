@@ -44,12 +44,7 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
         _showInAppReminderDialog(data);
       }
     });
-
-    // Cek pengingat & tagihan jatuh tempo secara berkala (setiap 10 detik) dan saat app dibuka
-    _checkDueRemindersAndBills();
-    _dueCheckTimer = Timer.periodic(const Duration(seconds: 10), (_) {
-      _checkDueRemindersAndBills();
-    });
+    _startDueCheckTimer();
   }
 
   @override
@@ -63,124 +58,61 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _checkDueRemindersAndBills();
+      _checkDueItems();
     }
   }
 
-  Future<void> _checkDueRemindersAndBills() async {
+  void _startDueCheckTimer() {
+    _dueCheckTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      _checkDueItems();
+    });
+  }
+
+  Future<void> _checkDueItems() async {
     try {
+      final reminders = await ref.read(reminderRepositoryProvider).getAllReminders();
       final now = DateTime.now();
 
-      // 1. Cek Pengingat Agenda
-      final repo = ref.read(reminderRepositoryProvider);
-      final allReminders = await repo.getAllReminders();
-
-      for (var r in allReminders) {
-        if (r.deleted) continue;
-        if (r.targetDateTime.isBefore(now) || r.targetDateTime.isAtSameMomentAs(now)) {
-          final diff = now.difference(r.targetDateTime);
-          if (diff.inHours <= 24 && !_triggeredPopupIds.contains(r.id)) {
+      for (var r in reminders) {
+        if (!r.deleted && r.realtimeStatus == 'Sedang Berjalan') {
+          if (!_triggeredPopupIds.contains(r.id)) {
             _triggeredPopupIds.add(r.id);
+            final notifId = r.id.hashCode & 0x7FFFFFFF;
+
             NotificationService().triggerInAppPopup({
               'id': r.id,
-              'title': 'Pengingat: ${r.title}',
-              'body': (r.description != null && r.description!.isNotEmpty) 
-                  ? r.description! 
-                  : 'Waktu pengingat Anda telah tiba!',
+              'title': r.title,
+              'body': r.description ?? 'Agenda Anda sedang berlangsung.',
               'startTime': r.targetDateTime.toIso8601String(),
               'endTime': r.effectiveEndTime.toIso8601String(),
               'type': 'reminder',
             });
-            NotificationService().showImmediateNotification(
-              title: 'LifeSync Pengingat: ${r.title}',
-              body: (r.description != null && r.description!.isNotEmpty) 
-                  ? r.description! 
-                  : 'Waktu pengingat Anda telah tiba!',
-              sound: r.customSound,
+
+            NotificationService().showSystemNotification(
+              id: notifId,
+              title: 'Pengingat Agenda: ${r.title}',
+              body: 'Agenda Anda sedang berlangsung saat ini.',
             );
           }
         }
       }
 
-      // 2. Cek Tagihan Belum Dibayar (Jatuh tempo hari ini / terlewat)
-      final billRepo = ref.read(billRepositoryProvider);
-      final monthKey = DateFormat('yyyy-MM').format(now);
-      final bills = await billRepo.getBillsByMonth(monthKey);
+      final targets = await ref.read(targetRepositoryProvider).getAllTargets();
+      for (var t in targets) {
+        if (!t.deleted && t.mode == 'fixed' && t.fixedDailyAmount > 0) {
+          final todayKey = DateFormat('yyyy-MM-dd').format(now);
+          final records = await ref.read(targetRepositoryProvider).getRecordsForTarget(t.id);
+          final hasSavedToday = records.any((rec) => DateFormat('yyyy-MM-dd').format(rec.date) == todayKey);
 
-      final unpaidDueBills = bills.where((b) {
-        if (b.deleted || b.isPaid) return false;
-        return b.dueDate.isBefore(now) || b.dueDate.isAtSameMomentAs(now);
-      }).toList();
-
-      if (unpaidDueBills.isNotEmpty) {
-        final batchId = 888888;
-        if (!_triggeredPopupIds.contains(batchId)) {
-          _triggeredPopupIds.add(batchId);
-
-          final currencyFmt = NumberFormat('#,###', 'id_ID');
-          if (unpaidDueBills.length == 1) {
-            final b = unpaidDueBills.first;
-            final remaining = (b.amount - (b.realizationAmount ?? 0.0)).clamp(0.0, double.infinity);
-            NotificationService().triggerInAppPopup({
-              'id': b.id,
-              'title': 'Tagihan Jatuh Tempo: ${b.name}',
-              'body': 'Tagihan ${b.name} sebesar Rp ${currencyFmt.format(remaining.toInt())} belum dibayar.',
-              'startTime': b.dueDate.toIso8601String(),
-              'type': 'bill',
-            });
-            NotificationService().showSystemNotification(
-              id: batchId,
-              title: 'Tagihan Jatuh Tempo: ${b.name}',
-              body: 'Tagihan ${b.name} sebesar Rp ${currencyFmt.format(remaining.toInt())} belum dibayar.',
-            );
-          } else {
-            // Gabungkan lebih dari satu tagihan menjadi satu list di notifikasi sistem!
-            final buffer = StringBuffer('Terdapat ${unpaidDueBills.length} tagihan belum dibayar:\n');
-            for (var b in unpaidDueBills) {
-              final remaining = (b.amount - (b.realizationAmount ?? 0.0)).clamp(0.0, double.infinity);
-              buffer.writeln('• ${b.name}: Rp ${currencyFmt.format(remaining.toInt())}');
-            }
-
-            NotificationService().triggerInAppPopup({
-              'id': batchId,
-              'title': 'Tagihan Jatuh Tempo (${unpaidDueBills.length})',
-              'body': buffer.toString(),
-              'type': 'bill',
-            });
-            NotificationService().showSystemNotification(
-              id: batchId,
-              title: 'Tagihan Jatuh Tempo (${unpaidDueBills.length})',
-              body: buffer.toString(),
-            );
-          }
-        }
-      }
-
-      // 3. Cek Target Nominal Tetap (Pengingat Jam 20:00 jika belum nabung hari ini)
-      final targetRepo = ref.read(targetRepositoryProvider);
-      final allTargets = await targetRepo.getAllTargets();
-
-      for (var t in allTargets) {
-        if (t.deleted || t.mode != 'fixed') continue;
-
-        final normToday = DateTime(now.year, now.month, now.day);
-        final normStart = DateTime(t.startDate.year, t.startDate.month, t.startDate.day);
-        final normEnd = DateTime(t.endDate.year, t.endDate.month, t.endDate.day);
-
-        if (!normToday.isBefore(normStart) && !normToday.isAfter(normEnd)) {
-          final records = await targetRepo.getRecordsForTarget(t.id!);
-          bool savedToday = records.any((r) => r.date.year == now.year && r.date.month == now.month && r.date.day == now.day);
-
-          final notifId = t.id! + 700000;
-          if (!savedToday && now.hour >= 20) {
+          if (!hasSavedToday && now.hour >= 18) {
+            final notifId = (t.id + 9999).hashCode & 0x7FFFFFFF;
             if (!_triggeredPopupIds.contains(notifId)) {
               _triggeredPopupIds.add(notifId);
-              final currencyFmt = NumberFormat('#,###', 'id_ID');
 
               NotificationService().triggerInAppPopup({
                 'id': t.id,
                 'title': 'Belum Nabung Hari Ini',
-                'body': 'Kamu belum menyelesaikan tabungan "${t.name}" hari ini.\nNominal Harian: Rp ${currencyFmt.format(t.fixedDailyAmount.toInt())}',
+                'body': 'Kamu belum menyelesaikan tabungan "${t.name}" hari ini.',
                 'type': 'fixed_target',
               });
 
@@ -220,15 +152,22 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
         }
 
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           title: Row(
             children: [
-              const Icon(Icons.notifications_active, color: Color(0xFF2563EB), size: 28),
-              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2563EB).withAlpha(25),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.notifications_active, color: Color(0xFF2563EB), size: 24),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -238,27 +177,42 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (timeDisplay.isNotEmpty) ...[
-                Row(
-                  children: [
-                    Icon(Icons.access_time, size: 16, color: Colors.grey.shade600),
-                    const SizedBox(width: 6),
-                    Text(timeDisplay, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
-                  ],
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.access_time_filled, size: 16, color: Color(0xFF2563EB)),
+                      const SizedBox(width: 8),
+                      Text(timeDisplay, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
               ],
               if (body.toString().isNotEmpty)
                 Text(
                   body.toString(),
-                  style: const TextStyle(fontSize: 14),
+                  style: const TextStyle(fontSize: 14, color: Color(0xFF334155)),
                 ),
             ],
           ),
+          actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
           actions: [
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx),
-              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2563EB)),
-              child: const Text('Tutup'),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF2563EB),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Tutup', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+              ),
             ),
           ],
         );
@@ -285,7 +239,7 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withAlpha(15),
               blurRadius: 20,
               offset: const Offset(0, -5),
             ),

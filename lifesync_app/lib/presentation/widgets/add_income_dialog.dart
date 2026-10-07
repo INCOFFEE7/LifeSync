@@ -90,7 +90,24 @@ class _AddIncomeDialogState extends ConsumerState<AddIncomeDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Catat Nabung'),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      title: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2563EB).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(Icons.savings, color: Color(0xFF2563EB), size: 24),
+          ),
+          const SizedBox(width: 12),
+          const Text(
+            'Catat Nabung',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
       content: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -102,12 +119,16 @@ class _AddIncomeDialogState extends ConsumerState<AddIncomeDialog> {
                 decoration: InputDecoration(
                   labelText: 'Jumlah (Rp)',
                   prefixText: 'Rp ',
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.calculate, color: Color(0xFF2563EB)),
                     tooltip: 'Buka Kalkulator',
                     onPressed: _openCalculator,
                   ),
                 ),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF2563EB)),
                 keyboardType: TextInputType.number,
                 inputFormatters: [ThousandsFormatter()],
                 validator: (val) {
@@ -119,17 +140,25 @@ class _AddIncomeDialogState extends ConsumerState<AddIncomeDialog> {
                 },
                 onSaved: (val) => _amount = double.parse(val!.replaceAll('.', '')),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Date'),
-                subtitle: Text(DateFormat('dd MMM yyyy').format(_date)),
-                trailing: const Icon(Icons.calendar_today),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: BorderSide(color: Colors.grey.shade300),
+                ),
+                title: const Text('Tanggal', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                subtitle: Text(DateFormat('dd MMMM yyyy', 'id_ID').format(_date), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                trailing: const Icon(Icons.calendar_today, color: Color(0xFF2563EB), size: 20),
                 onTap: _selectDate,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               TextFormField(
-                decoration: const InputDecoration(labelText: 'Notes (Optional)'),
+                decoration: InputDecoration(
+                  labelText: 'Catatan (Opsional)',
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                ),
                 maxLines: 2,
                 onSaved: (val) => _notes = val ?? '',
               ),
@@ -137,14 +166,34 @@ class _AddIncomeDialogState extends ConsumerState<AddIncomeDialog> {
           ),
         ),
       ),
+      actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: _saveIncome,
-          child: const Text('Save'),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  side: BorderSide(color: Colors.grey.shade300),
+                ),
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Batal', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF2563EB),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: _saveIncome,
+                child: const Text('Simpan', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
         ),
       ],
     );

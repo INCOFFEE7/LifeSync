@@ -10,6 +10,7 @@ import 'package:lifesync_app/core/database/database_service.dart';
 
 import 'package:lifesync_app/domain/entities/financial_record.dart';
 import 'package:lifesync_app/domain/repositories/financial_record_repository.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SyncUseCase {
   final GoogleSheetsService sheetsService;
@@ -27,6 +28,11 @@ class SyncUseCase {
   });
 
   Future<void> performTwoWaySync() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool('has_deleted_all') == true) {
+      return;
+    }
+
     final isConnected = await sheetsService.init();
     if (!isConnected) {
       throw Exception('Google Sheets API tidak terkonfigurasi atau kredensial salah.');

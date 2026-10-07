@@ -27,11 +27,18 @@ class _CalculatorDialogContent extends StatefulWidget {
 
 class _CalculatorDialogContentState extends State<_CalculatorDialogContent> {
   late String calcExpr;
+  late bool _isInitialValue;
 
   @override
   void initState() {
     super.initState();
-    calcExpr = widget.initialValue > 0 ? widget.initialValue.toInt().toString() : '0';
+    if (widget.initialValue > 0) {
+      calcExpr = widget.initialValue.toInt().toString();
+      _isInitialValue = true;
+    } else {
+      calcExpr = '0';
+      _isInitialValue = false;
+    }
   }
 
   double _evaluateExpr(String expr) {
@@ -76,15 +83,28 @@ class _CalculatorDialogContentState extends State<_CalculatorDialogContent> {
     setState(() {
       if (k == 'C') {
         calcExpr = '0';
+        _isInitialValue = false;
         return;
       }
-      if (calcExpr == '0' && k != '.' && k != '+' && k != '-' && k != '×' && k != '÷') {
+
+      final isOp = (String c) => c == '+' || c == '-' || c == '×' || c == '÷';
+
+      if (_isInitialValue) {
+        _isInitialValue = false;
+        if (!isOp(k) && k != '.') {
+          // Ketik angka pertama langsung menggantikan nilai default!
+          calcExpr = k;
+          return;
+        }
+      }
+
+      if (calcExpr == '0' && !isOp(k) && k != '.') {
         calcExpr = k;
         return;
       }
+
       final last = calcExpr[calcExpr.length - 1];
-      final isOp = (String c) => c == '+' || c == '-' || c == '×' || c == '÷' || c == '.';
-      if (isOp(k) && isOp(last)) {
+      if ((isOp(k) || k == '.') && (isOp(last) || last == '.')) {
         calcExpr = calcExpr.substring(0, calcExpr.length - 1) + k;
         return;
       }
@@ -94,6 +114,12 @@ class _CalculatorDialogContentState extends State<_CalculatorDialogContent> {
 
   void _onDelete() {
     setState(() {
+      if (_isInitialValue) {
+        _isInitialValue = false;
+        calcExpr = '0';
+        return;
+      }
+
       if (calcExpr.length > 1) {
         calcExpr = calcExpr.substring(0, calcExpr.length - 1);
       } else {
@@ -104,6 +130,7 @@ class _CalculatorDialogContentState extends State<_CalculatorDialogContent> {
 
   void _onEquals() {
     setState(() {
+      _isInitialValue = false;
       calcExpr = _evaluateExpr(calcExpr).toInt().toString();
     });
   }

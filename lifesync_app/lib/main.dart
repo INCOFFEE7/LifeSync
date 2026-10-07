@@ -9,7 +9,7 @@ import 'package:lifesync_app/core/notifications/notification_rescheduler.dart';
 import 'package:lifesync_app/core/providers/core_providers.dart';
 import 'package:lifesync_app/core/theme/app_theme.dart';
 import 'package:lifesync_app/presentation/screens/beebee_splash_screen.dart';
-import 'package:lifesync_app/presentation/screens/animated_splash_screen.dart';
+import 'package:lifesync_app/presentation/screens/lifesync_splash_screen.dart';
 import 'package:lifesync_app/core/services/home_widget_service.dart';
 import 'package:lifesync_app/core/services/midnight_sync_service.dart';
 import 'package:lifesync_app/core/sync/background_sync.dart';
@@ -26,9 +26,11 @@ void main() async {
   } else {
     AppEnvironment.setup(AppConfig(
       variant: AppVariant.lifesync,
-      appName: 'LifeSync',
-      logoPath: 'assets/images/logoandroid.png',
-      logoFullPath: 'assets/images/logofull.png',
+      appName: 'LifeHaven',
+      logoPath: 'assets/images/LifeHavenApk.png',
+      logoFullPath: 'assets/images/LifeHavenFull.png',
+      logoDarkPath: 'assets/images/LifeHavenDarkBG.png',
+      logoDarkFullPath: 'assets/images/LifeHavenDarkBG.png',
       lightTheme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       enabledModules: ['finance_tracker', 'goals_tracker', 'reminders'],
@@ -60,7 +62,7 @@ void main() async {
       try {
         await notificationService.requestPermissions();
         final rescheduler = NotificationRescheduler(dbService, notificationService);
-        await rescheduler.rescheduleAll();
+        await rescheduler.reconcileNotifications();
       } catch (e) {
         debugPrint('Notification rescheduler error: $e');
       }
@@ -124,7 +126,7 @@ class LifeSyncApp extends ConsumerWidget {
       ],
       home: AppEnvironment.config.variant == AppVariant.beebee 
           ? const BeebeeSplashScreen() 
-          : const AnimatedSplashScreen(),
+          : const LifeHavenSplashScreen(),
     );
   }
 }

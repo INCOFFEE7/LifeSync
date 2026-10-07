@@ -4,9 +4,11 @@ import 'package:lifesync_app/core/theme/beebee_theme.dart';
 class BeebeeConfig {
   static AppConfig get config => AppConfig(
         variant: AppVariant.beebee,
-        appName: 'LifeSync for Beebee',
+        appName: 'BeeNest',
         logoPath: 'assets/images/logobeebee.png',
-        logoFullPath: 'assets/images/logolifesyncbeebeefull.png',
+        logoFullPath: 'assets/images/BeeNestLightBG.png',
+        logoDarkPath: 'assets/images/logobeebee.png',
+        logoDarkFullPath: 'assets/images/BeeNestDarkBG.png',
         lightTheme: BeebeeTheme.lightTheme,
         darkTheme: BeebeeTheme.darkTheme,
         enabledModules: [

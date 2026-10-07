@@ -12,6 +12,7 @@ import 'package:lifesync_app/domain/entities/financial_record.dart';
 import 'package:lifesync_app/domain/entities/financial_note.dart';
 import 'package:lifesync_app/domain/entities/financial_item.dart';
 import 'package:lifesync_app/domain/entities/bill.dart';
+import 'package:lifesync_app/domain/entities/shopping_item.dart';
 import 'package:lifesync_app/data/migrations/isar_migration_service.dart';
 
 class DatabaseService {
@@ -50,6 +51,7 @@ class DatabaseService {
         FinancialNoteSchema,
         FinancialItemSchema,
         BillSchema,
+        ShoppingItemSchema,
       ],
       directory: dirPath,
     );

@@ -1,34 +1,64 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:isar/isar.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lifesync_app/core/database/database_service.dart';
 import 'package:lifesync_app/core/notifications/notification_service.dart';
 import 'package:lifesync_app/domain/entities/reminder.dart';
+import 'package:lifesync_app/domain/entities/bill.dart';
 
-/// Service untuk menjadwalkan ulang semua notifikasi aktif
-/// Dipanggil saat aplikasi dibuka atau setelah HP restart
+/// Service untuk menjadwalkan ulang dan merekonsiliasi semua notifikasi aktif
+/// Dipanggil saat aplikasi dibuka atau setelah APK update / HP restart
 class NotificationRescheduler {
   final DatabaseService _dbService;
   final NotificationService _notifService;
 
   NotificationRescheduler(this._dbService, this._notifService);
 
+  /// Rekonsiliasi lengkap setelah APK update atau app startup
+  Future<void> reconcileNotifications() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lastVersion = prefs.getString('last_app_version') ?? '';
+      final info = await PackageInfo.fromPlatform();
+      final currentVersion = '${info.version}+${info.buildNumber}';
+
+      debugPrint('[NotificationRescheduler] Starting notification reconciliation (version: $currentVersion, last: $lastVersion)');
+
+      // 1. Re-schedule active valid future reminders & cancel expired/deleted ones
+      await rescheduleAll();
+
+      // 2. Reconcile bills
+      await reconcileBills();
+
+      if (lastVersion != currentVersion) {
+        await prefs.setString('last_app_version', currentVersion);
+        debugPrint('[NotificationRescheduler] Version updated, reconciliation completed.');
+      }
+    } catch (e, stack) {
+      debugPrint('[NotificationRescheduler] Reconciliation error: $e\n$stack');
+    }
+  }
+
   /// Re-schedule semua pengingat yang masih aktif dan belum lewat waktunya
   Future<void> rescheduleAll({String defaultSound = 'notif'}) async {
     try {
-      // Gunakan Isar raw query untuk kompatibilitas penuh
+      final now = DateTime.now();
       final List<Reminder> allReminders =
           await _dbService.db.reminders.where().findAll();
 
-      // Filter di Dart: hanya yang belum dihapus dan belum selesai
-      final reminders = allReminders
-          .where((r) => !r.deleted && r.realtimeStatus != 'Selesai')
-          .toList();
-
       int scheduled = 0;
-      int skipped = 0;
+      int cancelled = 0;
 
-      for (final reminder in reminders) {
+      for (final reminder in allReminders) {
+        // Jika sudah dihapus, selesai, atau waktu target/end sudah lewat -> PASTIKAN dibatalkan
+        if (reminder.deleted || reminder.realtimeStatus == 'Selesai' || reminder.effectiveEndTime.isBefore(now)) {
+          await _notifService.cancelNotification(reminder.id);
+          cancelled++;
+          continue;
+        }
+
         // Hitung waktu notifikasi yang sesungguhnya
         DateTime scheduledTime;
         if (reminder.isAllDay) {
@@ -45,9 +75,10 @@ class NotificationRescheduler {
           );
         }
 
-        // Lewati jika waktu sudah lewat
-        if (scheduledTime.isBefore(DateTime.now())) {
-          skipped++;
+        // Jika waktu notifikasi sudah lewat -> batalkan dan jangan jadwalkan
+        if (scheduledTime.isBefore(now)) {
+          await _notifService.cancelNotification(reminder.id);
+          cancelled++;
           continue;
         }
 
@@ -66,7 +97,7 @@ class NotificationRescheduler {
 
         final success = await _notifService.scheduleNotification(
           id: reminder.id,
-          title: 'LifeSync: ${reminder.title}',
+          title: 'LifeHaven: ${reminder.title}',
           body: _buildBody(reminder),
           scheduledTime: scheduledTime,
           sound: sound,
@@ -77,9 +108,25 @@ class NotificationRescheduler {
       }
 
       debugPrint(
-          '[Rescheduler] Selesai: $scheduled dijadwalkan, $skipped dilewati (sudah lewat)');
+          '[Rescheduler] Reminders: $scheduled dijadwalkan, $cancelled dibatalkan (expired/deleted/selesai)');
     } catch (e, stack) {
-      debugPrint('[Rescheduler] Error: $e\n$stack');
+      debugPrint('[Rescheduler] Error rescheduling reminders: $e\n$stack');
+    }
+  }
+
+  Future<void> reconcileBills() async {
+    try {
+      final now = DateTime.now();
+      final List<Bill> allBills = await _dbService.db.bills.where().findAll();
+
+      for (final bill in allBills) {
+        final notifId = bill.id + 800000;
+        if (bill.deleted || bill.isPaid || bill.dueDate.isBefore(now)) {
+          await _notifService.cancelNotification(notifId);
+        }
+      }
+    } catch (e) {
+      debugPrint('[Rescheduler] Bill reconciliation error: $e');
     }
   }
 

@@ -62,9 +62,34 @@ class _BeebeeSplashScreenState extends State<BeebeeSplashScreen> with SingleTick
       body: Stack(
         children: [
           Center(
-            child: Image.asset(
-              'assets/images/Hexa.png',
-              width: 150,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset(
+                  'assets/images/Hexa.png',
+                  width: 150,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'BeeNest',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFE91E8C),
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  "Beebee's little private space.",
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF888888),
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
             ),
           ),
           AnimatedBuilder(
