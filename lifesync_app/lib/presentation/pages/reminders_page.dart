@@ -14,6 +14,7 @@ import 'package:lifesync_app/presentation/pages/add_edit_bill_page.dart';
 import 'package:lifesync_app/presentation/pages/create_shopping_page.dart';
 import 'package:lifesync_app/presentation/widgets/circular_fab_menu.dart';
 import 'package:lifesync_app/presentation/widgets/month_day_picker_widget.dart';
+import 'package:lifesync_app/presentation/widgets/calculator_input_dialog.dart';
 import 'package:lifesync_app/config/app_variant.dart';
 import 'package:intl/intl.dart';
 
@@ -202,7 +203,20 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
                                     activeColor: const Color(0xFF2563EB),
                                     value: item.isChecked,
                                     onChanged: (val) async {
-                                      item.isChecked = val ?? false;
+                                      bool isChecked = val ?? false;
+                                      if (isChecked) {
+                                        final pickedDate = await showDatePicker(
+                                          context: context,
+                                          initialDate: DateTime.now(),
+                                          firstDate: DateTime(2020),
+                                          lastDate: DateTime(2035),
+                                          helpText: 'Pilih Tanggal Dibeli',
+                                        );
+                                        if (pickedDate != null) {
+                                          item.purchaseDate = pickedDate;
+                                        }
+                                      }
+                                      item.isChecked = isChecked;
                                       item.updatedAt = DateTime.now();
                                       final dbService = ref.read(databaseServiceProvider);
                                       if (!kIsWeb) {

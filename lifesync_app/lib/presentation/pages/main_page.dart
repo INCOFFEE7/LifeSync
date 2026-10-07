@@ -7,6 +7,8 @@ import 'package:lifesync_app/presentation/providers/localization_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lifesync_app/core/notifications/notification_service.dart';
 import 'package:lifesync_app/presentation/providers/repository_providers.dart';
+import 'package:lifesync_app/presentation/providers/shopping_providers.dart';
+import 'package:table_calendar/table_calendar.dart';
 
 import 'package:lifesync_app/presentation/pages/financial_records_home_page.dart';
 
@@ -121,6 +123,26 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
                 title: 'Belum Nabung Hari Ini',
                 body: 'Jangan lupa menyelesaikan tabungan ${t.name} hari ini.',
               );
+            }
+          }
+        }
+      }
+
+      final shoppingItems = await ref.read(shoppingItemsProvider.future);
+      for (var s in shoppingItems) {
+        if (!s.deleted && !s.isChecked && s.purchaseDate != null) {
+          if (now.isAfter(s.purchaseDate!) || isSameDay(now, s.purchaseDate!)) {
+            final notifId = (s.id + 88888).hashCode & 0x7FFFFFFF;
+            if (!_triggeredPopupIds.contains(notifId)) {
+              _triggeredPopupIds.add(notifId);
+
+              // Popup TANPA suara musik/alarm
+              NotificationService().triggerInAppPopup({
+                'id': s.id,
+                'title': 'Pengingat Belanjaan',
+                'body': 'Ada barang di catatan "${s.name}" yang belum dibeli!',
+                'type': 'shopping',
+              });
             }
           }
         }

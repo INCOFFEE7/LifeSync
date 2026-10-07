@@ -6,34 +6,32 @@ import 'package:intl/intl.dart';
 import 'package:lifesync_app/core/providers/core_providers.dart';
 import 'package:lifesync_app/domain/entities/shopping_item.dart';
 import 'package:lifesync_app/presentation/providers/shopping_providers.dart';
-import 'package:lifesync_app/presentation/widgets/calculator_input_dialog.dart';
-import 'package:lifesync_app/core/utils/thousands_formatter.dart';
 
 class SubShoppingItem {
   String name;
-  double price;
-  DateTime boughtDate;
   bool isChecked;
+  DateTime? boughtDate;
+  double price;
 
   SubShoppingItem({
     required this.name,
-    this.price = 0.0,
-    required this.boughtDate,
     this.isChecked = false,
+    this.boughtDate,
+    this.price = 0.0,
   });
 
   Map<String, dynamic> toJson() => {
         'name': name,
-        'price': price,
-        'boughtDate': boughtDate.toIso8601String(),
         'isChecked': isChecked,
+        'boughtDate': boughtDate?.toIso8601String(),
+        'price': price,
       };
 
   factory SubShoppingItem.fromJson(Map<String, dynamic> json) => SubShoppingItem(
         name: json['name'] ?? '',
-        price: (json['price'] as num?)?.toDouble() ?? 0.0,
-        boughtDate: DateTime.tryParse(json['boughtDate'] ?? '') ?? DateTime.now(),
         isChecked: json['isChecked'] ?? false,
+        boughtDate: json['boughtDate'] != null ? DateTime.tryParse(json['boughtDate']) : null,
+        price: (json['price'] as num?)?.toDouble() ?? 0.0,
       );
 }
 
@@ -49,10 +47,8 @@ class CreateShoppingPage extends ConsumerStatefulWidget {
 class _CreateShoppingPageState extends ConsumerState<CreateShoppingPage> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
-  final _priceController = TextEditingController();
   
   DateTime _reminderDate = DateTime.now();
-  double _totalPrice = 0.0;
   List<SubShoppingItem> _subItems = [];
 
   @override
@@ -61,8 +57,6 @@ class _CreateShoppingPageState extends ConsumerState<CreateShoppingPage> {
     if (widget.existingItem != null) {
       final item = widget.existingItem!;
       _titleController.text = item.name;
-      _totalPrice = item.price;
-      _priceController.text = NumberFormat('#,###', 'id_ID').format(_totalPrice.toInt());
       _reminderDate = item.purchaseDate ?? DateTime.now();
 
       if (item.itemsList.isNotEmpty) {
@@ -70,115 +64,78 @@ class _CreateShoppingPageState extends ConsumerState<CreateShoppingPage> {
           try {
             return SubShoppingItem.fromJson(jsonDecode(str));
           } catch (_) {
-            return SubShoppingItem(name: str, boughtDate: DateTime.now());
+            return SubShoppingItem(name: str);
           }
         }).toList();
       }
     }
   }
 
+  // Tambah Barang - CUMA INPUT NAMA (tanpa harga/tanggal)
   void _addSubItem() {
     final subNameController = TextEditingController();
-    double subPrice = 0.0;
-    DateTime subDate = DateTime.now();
 
     showDialog(
       context: context,
       builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setDlgState) {
-            final currencyFmt = NumberFormat('#,###', 'id_ID');
-            return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              title: const Text('Tambah Barang Belanjaan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: subNameController,
-                      decoration: InputDecoration(
-                        labelText: 'Nama Barang',
-                        hintText: 'e.g. Minyak Goreng, Beras',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      readOnly: true,
-                      controller: TextEditingController(text: currencyFmt.format(subPrice.toInt())),
-                      onTap: () async {
-                        final val = await showCalculatorInputDialog(
-                          context: ctx,
-                          title: 'Input Harga Beli',
-                          initialValue: subPrice,
-                        );
-                        if (val != null) {
-                          setDlgState(() => subPrice = val);
-                        }
-                      },
-                      decoration: InputDecoration(
-                        labelText: 'Harga Beli (Rp)',
-                        prefixText: 'Rp ',
-                        suffixIcon: const Icon(Icons.calculate, color: Color(0xFF2563EB)),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Tanggal Dibeli', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                      subtitle: Text(DateFormat('dd MMMM yyyy', 'id_ID').format(subDate), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                      trailing: const Icon(Icons.calendar_today, color: Color(0xFF2563EB), size: 18),
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: ctx,
-                          initialDate: subDate,
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime(2035),
-                        );
-                        if (picked != null) setDlgState(() => subDate = picked);
-                      },
-                    ),
-                  ],
-                ),
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Tambah Barang Belanjaan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          content: TextField(
+            controller: subNameController,
+            autofocus: true,
+            decoration: InputDecoration(
+              labelText: 'Nama Barang',
+              hintText: 'e.g. Minyak Goreng, Beras, Telur',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal', style: TextStyle(color: Colors.grey))),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2563EB),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal', style: TextStyle(color: Colors.grey))),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563EB),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  onPressed: () {
-                    final name = subNameController.text.trim();
-                    if (name.isNotEmpty) {
-                      setState(() {
-                        _subItems.add(SubShoppingItem(name: name, price: subPrice, boughtDate: subDate));
-                        _recalculateTotalPrice();
-                      });
-                      Navigator.pop(ctx);
-                    }
-                  },
-                  child: const Text('Tambah'),
-                ),
-              ],
-            );
-          },
+              onPressed: () {
+                final name = subNameController.text.trim();
+                if (name.isNotEmpty) {
+                  setState(() {
+                    _subItems.add(SubShoppingItem(name: name));
+                  });
+                  Navigator.pop(ctx);
+                }
+              },
+              child: const Text('Tambah'),
+            ),
+          ],
         );
       },
     );
   }
 
-  void _recalculateTotalPrice() {
-    double sum = 0.0;
-    for (var item in _subItems) {
-      sum += item.price;
-    }
-    if (sum > 0) {
-      _totalPrice = sum;
-      _priceController.text = NumberFormat('#,###', 'id_ID').format(_totalPrice.toInt());
+  void _toggleCheckSubItem(SubShoppingItem item) async {
+    if (!item.isChecked) {
+      // Prompt untuk Tanggal Dibeli saat menceklis
+      final pickedDate = await showDatePicker(
+        context: context,
+        initialDate: DateTime.now(),
+        firstDate: DateTime(2020),
+        lastDate: DateTime(2035),
+        helpText: 'Pilih Tanggal Dibeli untuk "${item.name}"',
+      );
+      if (pickedDate != null) {
+        setState(() {
+          item.isChecked = true;
+          item.boughtDate = pickedDate;
+        });
+      }
+    } else {
+      setState(() {
+        item.isChecked = false;
+        item.boughtDate = null;
+      });
     }
   }
 
@@ -187,6 +144,7 @@ class _CreateShoppingPageState extends ConsumerState<CreateShoppingPage> {
 
     final title = _titleController.text.trim();
     final serializedList = _subItems.map((item) => jsonEncode(item.toJson())).toList();
+    final isAllBought = _subItems.isNotEmpty && _subItems.every((item) => item.isChecked);
 
     final dbService = ref.read(databaseServiceProvider);
     if (!kIsWeb) {
@@ -194,7 +152,7 @@ class _CreateShoppingPageState extends ConsumerState<CreateShoppingPage> {
         if (widget.existingItem == null) {
           final newItem = ShoppingItem()
             ..name = title
-            ..price = _totalPrice
+            ..isChecked = isAllBought
             ..purchaseDate = _reminderDate
             ..itemsList = serializedList
             ..createdAt = DateTime.now()
@@ -203,7 +161,7 @@ class _CreateShoppingPageState extends ConsumerState<CreateShoppingPage> {
         } else {
           final item = widget.existingItem!;
           item.name = title;
-          item.price = _totalPrice;
+          item.isChecked = isAllBought;
           item.purchaseDate = _reminderDate;
           item.itemsList = serializedList;
           item.updatedAt = DateTime.now();
@@ -216,7 +174,7 @@ class _CreateShoppingPageState extends ConsumerState<CreateShoppingPage> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Pengingat belanja "$title" berhasil disimpan!'),
+          content: Text('Catatan belanja "$title" berhasil disimpan!'),
           backgroundColor: Colors.green,
         ),
       );
@@ -227,7 +185,7 @@ class _CreateShoppingPageState extends ConsumerState<CreateShoppingPage> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currencyFmt = NumberFormat('#,###', 'id_ID');
+    final boughtCount = _subItems.where((i) => i.isChecked).length;
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
@@ -247,7 +205,7 @@ class _CreateShoppingPageState extends ConsumerState<CreateShoppingPage> {
               TextFormField(
                 controller: _titleController,
                 decoration: InputDecoration(
-                  labelText: 'Judul Catatan / Pengingat Belanja',
+                  labelText: 'Judul Catatan Belanja',
                   hintText: 'e.g. Belanja Bulanan, Dapur',
                   filled: true,
                   fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
@@ -289,44 +247,37 @@ class _CreateShoppingPageState extends ConsumerState<CreateShoppingPage> {
                   }
                 },
               ),
-              const SizedBox(height: 16),
-
-              // Total Harga Beli (Rp)
-              TextFormField(
-                controller: _priceController,
-                readOnly: true,
-                onTap: () async {
-                  final val = await showCalculatorInputDialog(
-                    context: context,
-                    title: 'Input Total Estimasi Harga Beli',
-                    initialValue: _totalPrice,
-                  );
-                  if (val != null) {
-                    setState(() {
-                      _totalPrice = val;
-                      _priceController.text = currencyFmt.format(_totalPrice.toInt());
-                    });
-                  }
-                },
-                decoration: InputDecoration(
-                  labelText: 'Estimasi Total Harga Beli (Rp)',
-                  prefixText: 'Rp ',
-                  suffixIcon: const Icon(Icons.calculate, color: Color(0xFF2563EB)),
-                  filled: true,
-                  fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF2563EB)),
-              ),
               const SizedBox(height: 24),
 
-              // Sub-items List Header
+              // Sub-items List Header dengan Progres
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Daftar Barang (${_subItems.length})',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF1F2937)),
+                  Row(
+                    children: [
+                      Text(
+                        'Daftar Barang',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF1F2937)),
+                      ),
+                      if (_subItems.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: boughtCount == _subItems.length ? Colors.green.withOpacity(0.1) : const Color(0xFF2563EB).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '$boughtCount / ${_subItems.length} Dibeli',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: boughtCount == _subItems.length ? Colors.green : const Color(0xFF2563EB),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   TextButton.icon(
                     onPressed: _addSubItem,
@@ -347,7 +298,7 @@ class _CreateShoppingPageState extends ConsumerState<CreateShoppingPage> {
                   ),
                   child: Center(
                     child: Text(
-                      'Belum ada barang di catatan ini. Klik "+ Tambah Barang".',
+                      'Belum ada barang. Klik "+ Tambah Barang".',
                       style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
                       textAlign: TextAlign.center,
                     ),
@@ -368,11 +319,7 @@ class _CreateShoppingPageState extends ConsumerState<CreateShoppingPage> {
                         leading: Checkbox(
                           activeColor: const Color(0xFF2563EB),
                           value: sub.isChecked,
-                          onChanged: (val) {
-                            setState(() {
-                              sub.isChecked = val ?? false;
-                            });
-                          },
+                          onChanged: (_) => _toggleCheckSubItem(sub),
                         ),
                         title: Text(
                           sub.name,
@@ -382,16 +329,14 @@ class _CreateShoppingPageState extends ConsumerState<CreateShoppingPage> {
                             color: sub.isChecked ? Colors.grey : (isDark ? Colors.white : Colors.black87),
                           ),
                         ),
-                        subtitle: Text(
-                          'Harga: Rp ${currencyFmt.format(sub.price.toInt())} • Tanggal: ${DateFormat('dd/MM/yy').format(sub.boughtDate)}',
-                          style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-                        ),
+                        subtitle: sub.boughtDate != null
+                            ? Text('Dibeli: ${DateFormat('dd MMM yyyy', 'id_ID').format(sub.boughtDate!)}', style: const TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.bold))
+                            : const Text('Belum dibeli', style: TextStyle(fontSize: 11, color: Colors.grey)),
                         trailing: IconButton(
                           icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
                           onPressed: () {
                             setState(() {
                               _subItems.removeAt(idx);
-                              _recalculateTotalPrice();
                             });
                           },
                         ),
@@ -410,7 +355,7 @@ class _CreateShoppingPageState extends ConsumerState<CreateShoppingPage> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
                 onPressed: _saveShoppingReminder,
-                child: const Text('Simpan Pengingat Belanja', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                child: const Text('Simpan Catatan Belanja', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               ),
             ],
           ),
