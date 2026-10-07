@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -47,6 +48,155 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
     if (state == AppLifecycleState.resumed) {
       setState(() {});
     }
+  }
+
+  // Pop-up Ceklist Barang Satu Per Satu + Input Tanggal Dibeli
+  Future<void> _showChecklistItemsDialog(ShoppingItem item) async {
+    List<SubShoppingItem> subItems = [];
+    if (item.itemsList.isNotEmpty) {
+      subItems = item.itemsList.map((str) {
+        try {
+          return SubShoppingItem.fromJson(jsonDecode(str));
+        } catch (_) {
+          return SubShoppingItem(name: str);
+        }
+      }).toList();
+    }
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            final isDark = Theme.of(ctx).brightness == Brightness.dark;
+            final boughtCount = subItems.where((i) => i.isChecked).length;
+
+            return Container(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+                top: 24, left: 24, right: 24,
+              ),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.name,
+                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF1F2937)),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                subItems.isEmpty ? 'Belum ada daftar barang' : '$boughtCount / ${subItems.length} Barang Dibeli',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: boughtCount == subItems.length && subItems.isNotEmpty ? Colors.green : const Color(0xFF2563EB)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    if (subItems.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Text(
+                          'Tidak ada daftar barang di catatan ini.\nEdit catatan untuk menambah barang.',
+                          style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                          textAlign: TextAlign.center,
+                        ),
+                      )
+                    else
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: subItems.length,
+                        itemBuilder: (context, idx) {
+                          final sub = subItems[idx];
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            child: ListTile(
+                              leading: Checkbox(
+                                activeColor: const Color(0xFF2563EB),
+                                value: sub.isChecked,
+                                onChanged: (val) async {
+                                  bool isChecked = val ?? false;
+                                  if (isChecked) {
+                                    final pickedDate = await showDatePicker(
+                                      context: ctx,
+                                      initialDate: DateTime.now(),
+                                      firstDate: DateTime(2020),
+                                      lastDate: DateTime(2035),
+                                      helpText: 'Pilih Tanggal Dibeli untuk "${sub.name}"',
+                                    );
+                                    if (pickedDate != null) {
+                                      setModalState(() {
+                                        sub.isChecked = true;
+                                        sub.boughtDate = pickedDate;
+                                      });
+                                    }
+                                  } else {
+                                    setModalState(() {
+                                      sub.isChecked = false;
+                                      sub.boughtDate = null;
+                                    });
+                                  }
+
+                                  // Update Isar database
+                                  item.itemsList = subItems.map((i) => jsonEncode(i.toJson())).toList();
+                                  item.isChecked = subItems.isNotEmpty && subItems.every((i) => i.isChecked);
+                                  item.updatedAt = DateTime.now();
+
+                                  final dbService = ref.read(databaseServiceProvider);
+                                  if (!kIsWeb) {
+                                    await dbService.db.writeTxn(() async {
+                                      await dbService.db.shoppingItems.put(item);
+                                    });
+                                    ref.invalidate(shoppingItemsProvider);
+                                  }
+                                },
+                              ),
+                              title: Text(
+                                sub.name,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  decoration: sub.isChecked ? TextDecoration.lineThrough : null,
+                                  color: sub.isChecked ? Colors.grey : (isDark ? Colors.white : Colors.black87),
+                                ),
+                              ),
+                              subtitle: sub.boughtDate != null
+                                  ? Text('Dibeli: ${DateFormat('dd MMM yyyy', 'id_ID').format(sub.boughtDate!)}', style: const TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.bold))
+                                  : const Text('Belum dibeli', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                            ),
+                          );
+                        },
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -101,10 +251,10 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
           children: [
             TabBarView(
               children: [
-                // ── Tab 0: Dashboard Pengingat 7 Hari Ke Depan (Langsung Tampil Tanpa Pilih Waktu)
+                // ── Tab 0: Dashboard Pengingat 7 Hari Ke Depan
                 _buildRemindersDashboard7Days(remindersAsync, billsAsync, shoppingAsync, isDark, currencyFmt),
 
-                // ── Tab 1: Agenda ───────────────────────────────────────────
+                // ── Tab 1: Agenda
                 Column(
                   children: [
                     MonthDayPickerWidget(
@@ -133,7 +283,7 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
                   ],
                 ),
 
-                // ── Tab 2: Tagihan (Bills Hub) ─────────────────────────────
+                // ── Tab 2: Tagihan
                 Column(
                   children: [
                     MonthDayPickerWidget(
@@ -183,7 +333,7 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
                   ],
                 ),
 
-                // ── Tab 3: Belanja (Shopping Checklist Hub) ─────────────────
+                // ── Tab 3: Belanja (Shopping Checklist Hub)
                 Column(
                   children: [
                     MonthDayPickerWidget(
@@ -222,7 +372,13 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
                             itemCount: filtered.length,
                             itemBuilder: (context, index) {
                               final item = filtered[index];
-                              final subCount = item.itemsList.length;
+                              List<SubShoppingItem> subItems = [];
+                              if (item.itemsList.isNotEmpty) {
+                                subItems = item.itemsList.map((s) {
+                                  try { return SubShoppingItem.fromJson(jsonDecode(s)); } catch (_) { return SubShoppingItem(name: s); }
+                                }).toList();
+                              }
+                              final boughtCount = subItems.where((i) => i.isChecked).length;
 
                               return Card(
                                 margin: const EdgeInsets.only(bottom: 12),
@@ -230,33 +386,13 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                                 child: ListTile(
                                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                  leading: Checkbox(
-                                    activeColor: const Color(0xFF2563EB),
-                                    value: item.isChecked,
-                                    onChanged: (val) async {
-                                      bool isChecked = val ?? false;
-                                      if (isChecked) {
-                                        final pickedDate = await showDatePicker(
-                                          context: context,
-                                          initialDate: DateTime.now(),
-                                          firstDate: DateTime(2020),
-                                          lastDate: DateTime(2035),
-                                          helpText: 'Pilih Tanggal Dibeli',
-                                        );
-                                        if (pickedDate != null) {
-                                          item.purchaseDate = pickedDate;
-                                        }
-                                      }
-                                      item.isChecked = isChecked;
-                                      item.updatedAt = DateTime.now();
-                                      final dbService = ref.read(databaseServiceProvider);
-                                      if (!kIsWeb) {
-                                        await dbService.db.writeTxn(() async {
-                                          await dbService.db.shoppingItems.put(item);
-                                        });
-                                        ref.invalidate(shoppingItemsProvider);
-                                      }
-                                    },
+                                  onTap: () => _showChecklistItemsDialog(item),
+                                  leading: CircleAvatar(
+                                    backgroundColor: item.isChecked ? Colors.green.shade50 : const Color(0xFF2563EB).withOpacity(0.1),
+                                    child: Icon(
+                                      item.isChecked ? Icons.check_circle : Icons.shopping_bag_outlined,
+                                      color: item.isChecked ? Colors.green : const Color(0xFF2563EB),
+                                    ),
                                   ),
                                   title: Text(
                                     item.name,
@@ -272,14 +408,19 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
                                     children: [
                                       const SizedBox(height: 4),
                                       if (item.purchaseDate != null)
-                                        Text('Tanggal: ${DateFormat('dd MMM yyyy').format(item.purchaseDate!)}', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-                                      if (subCount > 0)
-                                        Text('$subCount barang belanjaan', style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontStyle: FontStyle.italic)),
+                                        Text('Tanggal Waktu: ${DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(item.purchaseDate!)}', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                                      if (subItems.isNotEmpty)
+                                        Text('$boughtCount / ${subItems.length} Barang Dibeli', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: boughtCount == subItems.length ? Colors.green : const Color(0xFF2563EB))),
                                     ],
                                   ),
                                   trailing: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.playlist_add_check, size: 22, color: Color(0xFF2563EB)),
+                                        tooltip: 'Buka Pop-up Ceklist Barang',
+                                        onPressed: () => _showChecklistItemsDialog(item),
+                                      ),
                                       IconButton(
                                         icon: const Icon(Icons.edit_outlined, size: 20, color: Colors.blueGrey),
                                         onPressed: () {

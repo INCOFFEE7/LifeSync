@@ -55,12 +55,10 @@ class _CircularFabMenuState extends State<CircularFabMenu> with SingleTickerProv
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Stack(
       alignment: Alignment.bottomRight,
       children: [
-        // Backdrop blur & scrim
+        // Backdrop blur
         if (_isOpen)
           GestureDetector(
             onTap: _toggle,
@@ -74,150 +72,136 @@ class _CircularFabMenuState extends State<CircularFabMenu> with SingleTickerProv
             ),
           ),
 
-        // Action Menu Column on Bottom Right
+        // Sub-buttons in Circular Arc (Melingkar)
+        // 1. Belanja (Kiri: -80, 0)
+        AnimatedBuilder(
+          animation: _expandAnimation,
+          builder: (context, child) {
+            final val = _expandAnimation.value;
+            return Positioned(
+              right: 16 + (80 * val),
+              bottom: 16,
+              child: Transform.scale(
+                scale: val,
+                child: Opacity(
+                  opacity: val.clamp(0.0, 1.0),
+                  child: child,
+                ),
+              ),
+            );
+          },
+          child: Tooltip(
+            message: 'Tambah Belanja',
+            child: _buildCircularIcon(
+              icon: Icons.shopping_bag_outlined,
+              color: const Color(0xFFF59E0B),
+              onTap: () {
+                _toggle();
+                widget.onAddShopping();
+              },
+            ),
+          ),
+        ),
+
+        // 2. Tagihan (Diagonal Kiri Atas: -58, -58)
+        AnimatedBuilder(
+          animation: _expandAnimation,
+          builder: (context, child) {
+            final val = _expandAnimation.value;
+            return Positioned(
+              right: 16 + (58 * val),
+              bottom: 16 + (58 * val),
+              child: Transform.scale(
+                scale: val,
+                child: Opacity(
+                  opacity: val.clamp(0.0, 1.0),
+                  child: child,
+                ),
+              ),
+            );
+          },
+          child: Tooltip(
+            message: 'Tambah Tagihan',
+            child: _buildCircularIcon(
+              icon: Icons.receipt_long_outlined,
+              color: const Color(0xFF10B981),
+              onTap: () {
+                _toggle();
+                widget.onAddBill();
+              },
+            ),
+          ),
+        ),
+
+        // 3. Agenda (Atas: 0, -80)
+        AnimatedBuilder(
+          animation: _expandAnimation,
+          builder: (context, child) {
+            final val = _expandAnimation.value;
+            return Positioned(
+              right: 16,
+              bottom: 16 + (80 * val),
+              child: Transform.scale(
+                scale: val,
+                child: Opacity(
+                  opacity: val.clamp(0.0, 1.0),
+                  child: child,
+                ),
+              ),
+            );
+          },
+          child: Tooltip(
+            message: 'Tambah Agenda',
+            child: _buildCircularIcon(
+              icon: Icons.event_note_outlined,
+              color: const Color(0xFF2563EB),
+              onTap: () {
+                _toggle();
+                widget.onAddAgenda();
+              },
+            ),
+          ),
+        ),
+
+        // Main FAB Toggle: Berubah jadi ikon X saat terbuka
         Positioned(
-          bottom: 20,
-          right: 20,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              // Action 1: Belanja
-              ScaleTransition(
-                scale: _expandAnimation,
-                child: FadeTransition(
-                  opacity: _expandAnimation,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 12.0),
-                    child: _buildFabMenuItem(
-                      icon: Icons.shopping_bag_outlined,
-                      label: 'Tambah Belanja',
-                      color: const Color(0xFFF59E0B),
-                      isDark: isDark,
-                      onTap: () {
-                        _toggle();
-                        widget.onAddShopping();
-                      },
-                    ),
-                  ),
-                ),
-              ),
-
-              // Action 2: Tagihan
-              ScaleTransition(
-                scale: _expandAnimation,
-                child: FadeTransition(
-                  opacity: _expandAnimation,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 12.0),
-                    child: _buildFabMenuItem(
-                      icon: Icons.receipt_long_outlined,
-                      label: 'Tambah Tagihan',
-                      color: const Color(0xFF10B981),
-                      isDark: isDark,
-                      onTap: () {
-                        _toggle();
-                        widget.onAddBill();
-                      },
-                    ),
-                  ),
-                ),
-              ),
-
-              // Action 3: Agenda
-              ScaleTransition(
-                scale: _expandAnimation,
-                child: FadeTransition(
-                  opacity: _expandAnimation,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0),
-                    child: _buildFabMenuItem(
-                      icon: Icons.event_note_outlined,
-                      label: 'Tambah Agenda',
-                      color: const Color(0xFF2563EB),
-                      isDark: isDark,
-                      onTap: () {
-                        _toggle();
-                        widget.onAddAgenda();
-                      },
-                    ),
-                  ),
-                ),
-              ),
-
-              // Main Floating Action Button Toggle
-              FloatingActionButton(
-                heroTag: 'fab_main_toggle',
-                onPressed: _toggle,
-                backgroundColor: const Color(0xFF2563EB),
-                foregroundColor: Colors.white,
-                elevation: 6,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                child: AnimatedRotation(
-                  turns: _isOpen ? 0.125 : 0.0,
-                  duration: const Duration(milliseconds: 250),
-                  curve: Curves.easeOutBack,
-                  child: Icon(_isOpen ? Icons.close : Icons.add, size: 28),
-                ),
-              ),
-            ],
+          right: 16,
+          bottom: 16,
+          child: FloatingActionButton(
+            heroTag: 'fab_main_toggle',
+            onPressed: _toggle,
+            backgroundColor: const Color(0xFF2563EB),
+            foregroundColor: Colors.white,
+            elevation: 6,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            child: Icon(_isOpen ? Icons.close : Icons.add, size: 28),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildFabMenuItem({
+  Widget _buildCircularIcon({
     required IconData icon,
-    required String label,
     required Color color,
-    required bool isDark,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.12),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                ),
-              ],
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.4),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-            child: Text(
-              label,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-                color: isDark ? Colors.white : const Color(0xFF1F2937),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: color.withOpacity(0.4),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Icon(icon, color: Colors.white, size: 22),
-          ),
-        ],
+          ],
+        ),
+        child: Icon(icon, color: Colors.white, size: 22),
       ),
     );
   }
