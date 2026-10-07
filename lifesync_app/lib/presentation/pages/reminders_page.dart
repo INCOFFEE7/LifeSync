@@ -14,7 +14,6 @@ import 'package:lifesync_app/presentation/pages/add_edit_bill_page.dart';
 import 'package:lifesync_app/presentation/pages/create_shopping_page.dart';
 import 'package:lifesync_app/presentation/widgets/circular_fab_menu.dart';
 import 'package:lifesync_app/presentation/widgets/month_day_picker_widget.dart';
-import 'package:lifesync_app/presentation/widgets/calculator_input_dialog.dart';
 import 'package:lifesync_app/config/app_variant.dart';
 import 'package:intl/intl.dart';
 
@@ -27,6 +26,9 @@ class RemindersPage extends ConsumerStatefulWidget {
 
 class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindingObserver {
   DateTime _selectedDate = DateTime.now();
+  bool _showAllAgenda = false;
+  bool _showAllBills = false;
+  bool _showAllShopping = false;
 
   @override
   void initState() {
@@ -97,50 +99,65 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
         ),
         body: Stack(
           children: [
-            Column(
+            TabBarView(
               children: [
-                // Reusable Month & Day Strip Picker Widget
-                MonthDayPickerWidget(
-                  selectedDate: _selectedDate,
-                  onDateChanged: (date) => setState(() => _selectedDate = date),
-                ),
-                Expanded(
-                  child: TabBarView(
-                    children: [
-                      // Tab 0: Dashboard Pengingat Terdekat & Ter-urgent
-                      _buildRemindersDashboard(remindersAsync, billsAsync, shoppingAsync, isDark, currencyFmt),
+                // ── Tab 0: Dashboard Pengingat 7 Hari Ke Depan (Langsung Tampil Tanpa Pilih Waktu)
+                _buildRemindersDashboard7Days(remindersAsync, billsAsync, shoppingAsync, isDark, currencyFmt),
 
-                      // Tab 1: Agenda
-                      remindersAsync.when(
+                // ── Tab 1: Agenda ───────────────────────────────────────────
+                Column(
+                  children: [
+                    MonthDayPickerWidget(
+                      selectedDate: _selectedDate,
+                      onDateChanged: (date) => setState(() => _selectedDate = date),
+                    ),
+                    _buildSeeAllHeader('Agenda', _showAllAgenda, () => setState(() => _showAllAgenda = !_showAllAgenda), isDark),
+                    Expanded(
+                      child: remindersAsync.when(
                         data: (reminders) {
                           final activeReminders = reminders.where((r) => !r.deleted).toList();
-                          final filtered = activeReminders.where((r) =>
-                            r.targetDateTime.year == _selectedDate.year &&
-                            r.targetDateTime.month == _selectedDate.month &&
-                            r.targetDateTime.day == _selectedDate.day
-                          ).toList()..sort((a, b) => a.targetDateTime.compareTo(b.targetDateTime));
+                          final filtered = _showAllAgenda
+                              ? (activeReminders..sort((a, b) => b.targetDateTime.compareTo(a.targetDateTime)))
+                              : activeReminders.where((r) =>
+                                  r.targetDateTime.year == _selectedDate.year &&
+                                  r.targetDateTime.month == _selectedDate.month &&
+                                  r.targetDateTime.day == _selectedDate.day
+                                ).toList()..sort((a, b) => a.targetDateTime.compareTo(b.targetDateTime));
 
                           return _buildAgendaList(filtered, lang);
                         },
                         loading: () => const Center(child: CircularProgressIndicator()),
                         error: (e, st) => Center(child: Text('Error: $e')),
                       ),
+                    ),
+                  ],
+                ),
 
-                      // Tab 2: Tagihan (Bills Hub)
-                      billsAsync.when(
+                // ── Tab 2: Tagihan (Bills Hub) ─────────────────────────────
+                Column(
+                  children: [
+                    MonthDayPickerWidget(
+                      selectedDate: _selectedDate,
+                      onDateChanged: (date) => setState(() => _selectedDate = date),
+                    ),
+                    _buildSeeAllHeader('Tagihan', _showAllBills, () => setState(() => _showAllBills = !_showAllBills), isDark),
+                    Expanded(
+                      child: billsAsync.when(
                         loading: () => const Center(child: CircularProgressIndicator()),
                         error: (err, _) => Center(child: Text('Error: $err')),
                         data: (bills) {
-                          if (bills.isEmpty) {
+                          final displayBills = _showAllBills ? bills : bills.where((b) => !b.isPaid).toList();
+
+                          if (displayBills.isEmpty) {
                             return Center(
-                              child: Text('Belum ada tagihan di bulan ini.', style: TextStyle(color: Colors.grey.shade500)),
+                              child: Text('Belum ada data tagihan.', style: TextStyle(color: Colors.grey.shade500)),
                             );
                           }
                           return ListView.builder(
                             padding: const EdgeInsets.all(16),
-                            itemCount: bills.length,
+                            itemCount: displayBills.length,
                             itemBuilder: (context, idx) {
-                              final bill = bills[idx];
+                              final bill = displayBills[idx];
                               return Card(
                                 margin: const EdgeInsets.only(bottom: 12),
                                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
@@ -162,16 +179,30 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
                           );
                         },
                       ),
+                    ),
+                  ],
+                ),
 
-                      // Tab 3: Belanja (Shopping Checklist Hub)
-                      shoppingAsync.when(
+                // ── Tab 3: Belanja (Shopping Checklist Hub) ─────────────────
+                Column(
+                  children: [
+                    MonthDayPickerWidget(
+                      selectedDate: _selectedDate,
+                      onDateChanged: (date) => setState(() => _selectedDate = date),
+                    ),
+                    _buildSeeAllHeader('Belanjaan', _showAllShopping, () => setState(() => _showAllShopping = !_showAllShopping), isDark),
+                    Expanded(
+                      child: shoppingAsync.when(
                         data: (items) {
-                          final filtered = items.where((item) {
-                            if (item.purchaseDate == null) return true;
-                            return item.purchaseDate!.year == _selectedDate.year &&
-                                item.purchaseDate!.month == _selectedDate.month &&
-                                item.purchaseDate!.day == _selectedDate.day;
-                          }).toList();
+                          final activeItems = items.where((i) => !i.deleted).toList();
+                          final filtered = _showAllShopping
+                              ? activeItems
+                              : activeItems.where((item) {
+                                  if (item.purchaseDate == null) return true;
+                                  return item.purchaseDate!.year == _selectedDate.year &&
+                                      item.purchaseDate!.month == _selectedDate.month &&
+                                      item.purchaseDate!.day == _selectedDate.day;
+                                }).toList();
 
                           if (filtered.isEmpty) {
                             return Center(
@@ -180,7 +211,7 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
                                 children: [
                                   Icon(Icons.shopping_cart_outlined, size: 64, color: Colors.grey.shade300),
                                   const SizedBox(height: 12),
-                                  Text('Belum ada pengingat belanja di tanggal ini.', style: TextStyle(color: Colors.grey.shade500)),
+                                  Text('Belum ada pengingat belanja.', style: TextStyle(color: Colors.grey.shade500)),
                                 ],
                               ),
                             );
@@ -240,10 +271,8 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       const SizedBox(height: 4),
-                                      if (item.price > 0)
-                                        Text('Harga Beli: Rp ${currencyFmt.format(item.price.toInt())}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2563EB))),
                                       if (item.purchaseDate != null)
-                                        Text('Tanggal Dibeli: ${DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(item.purchaseDate!)}', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                                        Text('Tanggal: ${DateFormat('dd MMM yyyy').format(item.purchaseDate!)}', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
                                       if (subCount > 0)
                                         Text('$subCount barang belanjaan', style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontStyle: FontStyle.italic)),
                                     ],
@@ -281,8 +310,8 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
                         loading: () => const Center(child: CircularProgressIndicator()),
                         error: (e, st) => Center(child: Text('Error: $e')),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -305,18 +334,60 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
     );
   }
 
-  Widget _buildRemindersDashboard(
+  Widget _buildSeeAllHeader(String category, bool isSeeAll, VoidCallback onToggle, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            isSeeAll ? 'Menampilkan Semua Data $category' : 'Sesuai Filter Tanggal',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+          ),
+          InkWell(
+            onTap: onToggle,
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: isSeeAll ? const Color(0xFF2563EB).withOpacity(0.1) : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: isSeeAll ? const Color(0xFF2563EB) : Colors.grey.shade300),
+              ),
+              child: Row(
+                children: [
+                  Icon(isSeeAll ? Icons.filter_list_off : Icons.list_alt, size: 14, color: isSeeAll ? const Color(0xFF2563EB) : Colors.grey.shade700),
+                  const SizedBox(width: 4),
+                  Text(
+                    isSeeAll ? 'Filter Tanggal' : 'Lihat Semua',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isSeeAll ? const Color(0xFF2563EB) : Colors.grey.shade700),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRemindersDashboard7Days(
     AsyncValue<List<Reminder>> remindersAsync,
     AsyncValue<List<Bill>> billsAsync,
     AsyncValue<List<ShoppingItem>> shoppingAsync,
     bool isDark,
     NumberFormat fmt,
   ) {
+    final now = DateTime.now();
+    final sevenDaysLater = now.add(const Duration(days: 7));
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Banner 7 Hari Ke Depan
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -332,19 +403,19 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
             ),
             child: Row(
               children: [
-                const Icon(Icons.notifications_active, color: Colors.white, size: 36),
+                const Icon(Icons.calendar_view_week, color: Colors.white, size: 36),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
                       Text(
-                        'Pusat Pengingat Terurgent',
+                        'Dashboard 7 Hari Ke Depan',
                         style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       SizedBox(height: 4),
                       Text(
-                        'Agenda, tagihan, dan daftar belanjaan terdekat Anda disajikan secara terpadu.',
+                        'Seluruh agenda, tagihan, dan daftar belanjaan 7 hari ke depan otomatis disajikan langsung.',
                         style: TextStyle(color: Colors.white70, fontSize: 12),
                       ),
                     ],
@@ -355,16 +426,17 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
           ),
           const SizedBox(height: 20),
 
-          Text('Tagihan Urgent (Mendatang)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF1F2937))),
+          // 1. Tagihan 7 Hari Ke Depan
+          Text('Tagihan 7 Hari Ke Depan', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF1F2937))),
           const SizedBox(height: 10),
           billsAsync.when(
             data: (bills) {
-              final unpaidBills = bills.where((b) => !b.isPaid).toList();
-              if (unpaidBills.isEmpty) {
-                return Text('Tidak ada tagihan mendesak.', style: TextStyle(color: Colors.grey.shade500, fontSize: 13));
+              final upcomingBills = bills.where((b) => !b.isPaid && b.dueDate.isBefore(sevenDaysLater)).toList();
+              if (upcomingBills.isEmpty) {
+                return Text('Tidak ada tagihan dalam 7 hari ke depan.', style: TextStyle(color: Colors.grey.shade500, fontSize: 13));
               }
               return Column(
-                children: unpaidBills.map((b) => Card(
+                children: upcomingBills.map((b) => Card(
                   margin: const EdgeInsets.only(bottom: 8),
                   color: isDark ? const Color(0xFF1E293B) : Colors.white,
                   child: ListTile(
@@ -381,22 +453,62 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
           ),
 
           const SizedBox(height: 20),
-          Text('Agenda Terdekat', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF1F2937))),
+
+          // 2. Agenda 7 Hari Ke Depan
+          Text('Agenda 7 Hari Ke Depan', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF1F2937))),
           const SizedBox(height: 10),
           remindersAsync.when(
             data: (reminders) {
-              final active = reminders.where((r) => !r.deleted && r.realtimeStatus != 'Selesai').toList();
+              final active = reminders.where((r) =>
+                !r.deleted &&
+                r.realtimeStatus != 'Selesai' &&
+                r.targetDateTime.isBefore(sevenDaysLater)
+              ).toList()..sort((a, b) => a.targetDateTime.compareTo(b.targetDateTime));
+
               if (active.isEmpty) {
-                return Text('Tidak ada agenda mendesak.', style: TextStyle(color: Colors.grey.shade500, fontSize: 13));
+                return Text('Tidak ada agenda dalam 7 hari ke depan.', style: TextStyle(color: Colors.grey.shade500, fontSize: 13));
               }
               return Column(
-                children: active.take(3).map((r) => Card(
+                children: active.map((r) => Card(
                   margin: const EdgeInsets.only(bottom: 8),
                   color: isDark ? const Color(0xFF1E293B) : Colors.white,
                   child: ListTile(
                     leading: const Icon(Icons.alarm, color: Color(0xFF2563EB)),
                     title: Text(r.title, style: const TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: Text(DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(r.targetDateTime)),
+                  ),
+                )).toList(),
+              );
+            },
+            loading: () => const CircularProgressIndicator(),
+            error: (e, s) => Text('Error: $e'),
+          ),
+
+          const SizedBox(height: 20),
+
+          // 3. Belanjaan 7 Hari Ke Depan
+          Text('Belanjaan 7 Hari Ke Depan', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF1F2937))),
+          const SizedBox(height: 10),
+          shoppingAsync.when(
+            data: (items) {
+              final activeShopping = items.where((i) =>
+                !i.deleted &&
+                !i.isChecked &&
+                i.purchaseDate != null &&
+                i.purchaseDate!.isBefore(sevenDaysLater)
+              ).toList();
+
+              if (activeShopping.isEmpty) {
+                return Text('Tidak ada jadwal belanja dalam 7 hari ke depan.', style: TextStyle(color: Colors.grey.shade500, fontSize: 13));
+              }
+              return Column(
+                children: activeShopping.map((item) => Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  child: ListTile(
+                    leading: const Icon(Icons.shopping_bag_outlined, color: Colors.amber),
+                    title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text('Target Beli: ${DateFormat('dd MMM yyyy').format(item.purchaseDate!)}'),
                   ),
                 )).toList(),
               );
@@ -417,7 +529,7 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
           children: [
             Icon(Icons.event_note_outlined, size: 64, color: Colors.grey.shade300),
             const SizedBox(height: 12),
-            Text('Belum ada agenda di tanggal ini.', style: TextStyle(color: Colors.grey.shade500, fontSize: 14)),
+            Text('Belum ada agenda.', style: TextStyle(color: Colors.grey.shade500, fontSize: 14)),
           ],
         ),
       );
@@ -428,7 +540,7 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
       itemCount: items.length,
       itemBuilder: (context, index) {
         final reminder = items[index];
-        final timeRangeStr = '${DateFormat('HH:mm', 'id_ID').format(reminder.targetDateTime)} - ${DateFormat('HH:mm', 'id_ID').format(reminder.effectiveEndTime)}';
+        final timeRangeStr = '${DateFormat('dd MMM, HH:mm', 'id_ID').format(reminder.targetDateTime)} - ${DateFormat('HH:mm', 'id_ID').format(reminder.effectiveEndTime)}';
 
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
