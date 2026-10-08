@@ -107,10 +107,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 const SizedBox(height: 12),
                 _buildSavingsOverviewCard(data, lang, currencyFmt),
                 const SizedBox(height: 16),
-                if (data.topTargets.isNotEmpty) ...[
-                  _buildRecommendationCarousel(data.topTargets, lang),
-                  const SizedBox(height: 16),
-                ],
                 _buildNabungSection(data.topTargets),
               ],
             ),
@@ -183,20 +179,28 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   children: [
                     const Text('Pemasukan', style: TextStyle(fontSize: 11, color: Colors.grey)),
                     const SizedBox(height: 2),
-                    Text('Rp ${fmt.format(summary.totalIncome.toInt())}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text('Rp ${fmt.format(summary.totalIncome.toInt())}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
+                    ),
                   ],
                 ),
               ),
               Container(width: 1, height: 32, color: Colors.grey.shade200),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.only(left: 12.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 6.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text('Pengeluaran', style: TextStyle(fontSize: 11, color: Colors.grey)),
                       const SizedBox(height: 2),
-                      Text('Rp ${fmt.format(summary.totalExpense.toInt())}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFFEF4444))),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text('Rp ${fmt.format(summary.totalExpense.toInt())}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFFEF4444))),
+                      ),
                     ],
                   ),
                 ),
@@ -204,15 +208,19 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               Container(width: 1, height: 32, color: Colors.grey.shade200),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.only(left: 12.0),
+                  padding: const EdgeInsets.only(left: 6.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text('Saldo Bersih', style: TextStyle(fontSize: 11, color: Colors.grey)),
                       const SizedBox(height: 2),
-                      Text(
-                        '${netPositive ? '+' : '-'}Rp ${fmt.format(summary.netBalance.abs().toInt())}',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: netPositive ? const Color(0xFF10B981) : const Color(0xFFEF4444)),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          '${netPositive ? '+' : '-'}Rp ${fmt.format(summary.netBalance.abs().toInt())}',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: netPositive ? const Color(0xFF10B981) : const Color(0xFFEF4444)),
+                        ),
                       ),
                     ],
                   ),
@@ -292,8 +300,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(AppTranslations.get(lang, 'total_tabungan'),
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(AppTranslations.get(lang, 'total_tabungan'),
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+              Text('${data.topTargets.length} Target',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+            ],
+          ),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,

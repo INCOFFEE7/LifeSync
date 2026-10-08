@@ -159,16 +159,16 @@ class _TargetCardState extends ConsumerState<_TargetCard> {
     final recordsAsync = ref.watch(targetRecordsStreamProvider(widget.target.id!));
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         onTap: () {
           Navigator.push(context, MaterialPageRoute(builder: (_) => TargetDetailPage(target: widget.target)));
         },
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(12.0),
           child: recordsAsync.when(
             data: (records) {
               double totalCollected = records.fold(0.0, (sum, record) => sum + record.incomeAmount);

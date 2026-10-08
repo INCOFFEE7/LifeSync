@@ -259,9 +259,18 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
                   children: [
                     MonthDayPickerWidget(
                       selectedDate: _selectedDate,
-                      onDateChanged: (date) => setState(() => _selectedDate = date),
+                      isSeeAll: _showAllAgenda,
+                      onDateChanged: (date) => setState(() {
+                        _selectedDate = date;
+                        _showAllAgenda = false;
+                      }),
                     ),
-                    _buildSeeAllHeader('Agenda', _showAllAgenda, () => setState(() => _showAllAgenda = !_showAllAgenda), isDark),
+                    _buildSeeAllHeader('Agenda', _showAllAgenda, () {
+                      setState(() {
+                        _showAllAgenda = !_showAllAgenda;
+                        if (!_showAllAgenda) _selectedDate = DateTime.now();
+                      });
+                    }, isDark),
                     Expanded(
                       child: remindersAsync.when(
                         data: (reminders) {
@@ -288,15 +297,27 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
                   children: [
                     MonthDayPickerWidget(
                       selectedDate: _selectedDate,
-                      onDateChanged: (date) => setState(() => _selectedDate = date),
+                      isSeeAll: _showAllBills,
+                      showDayStrip: false, // Hanya pilih Bulan & Tahun untuk Tagihan!
+                      onDateChanged: (date) => setState(() {
+                        _selectedDate = date;
+                        _showAllBills = false;
+                      }),
                     ),
-                    _buildSeeAllHeader('Tagihan', _showAllBills, () => setState(() => _showAllBills = !_showAllBills), isDark),
+                    _buildSeeAllHeader('Tagihan', _showAllBills, () {
+                      setState(() {
+                        _showAllBills = !_showAllBills;
+                        if (!_showAllBills) _selectedDate = DateTime.now();
+                      });
+                    }, isDark),
                     Expanded(
                       child: billsAsync.when(
                         loading: () => const Center(child: CircularProgressIndicator()),
                         error: (err, _) => Center(child: Text('Error: $err')),
                         data: (bills) {
-                          final displayBills = _showAllBills ? bills : bills.where((b) => !b.isPaid).toList();
+                          final displayBills = _showAllBills
+                              ? bills
+                              : bills.where((b) => b.dueDate.year == _selectedDate.year && b.dueDate.month == _selectedDate.month).toList();
 
                           if (displayBills.isEmpty) {
                             return Center(
@@ -309,20 +330,24 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
                             itemBuilder: (context, idx) {
                               final bill = displayBills[idx];
                               return Card(
-                                margin: const EdgeInsets.only(bottom: 12),
+                                margin: const EdgeInsets.only(bottom: 8),
                                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                                 child: ListTile(
+                                  dense: true,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
                                   leading: CircleAvatar(
+                                    radius: 16,
                                     backgroundColor: bill.isPaid ? Colors.green.shade50 : Colors.red.shade50,
                                     child: Icon(
                                       bill.isPaid ? Icons.check_circle : Icons.receipt_long,
                                       color: bill.isPaid ? Colors.green : Colors.redAccent,
+                                      size: 18,
                                     ),
                                   ),
-                                  title: Text(bill.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                  subtitle: Text('Jatuh tempo: ${DateFormat('dd MMM yyyy').format(bill.dueDate)}'),
-                                  trailing: Text('Rp ${currencyFmt.format(bill.amount.toInt())}', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2563EB))),
+                                  title: Text(bill.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                  subtitle: Text('Jatuh tempo: ${DateFormat('dd MMM yyyy').format(bill.dueDate)}', style: const TextStyle(fontSize: 11)),
+                                  trailing: Text('Rp ${currencyFmt.format(bill.amount.toInt())}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF2563EB))),
                                 ),
                               );
                             },
@@ -338,9 +363,18 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
                   children: [
                     MonthDayPickerWidget(
                       selectedDate: _selectedDate,
-                      onDateChanged: (date) => setState(() => _selectedDate = date),
+                      isSeeAll: _showAllShopping,
+                      onDateChanged: (date) => setState(() {
+                        _selectedDate = date;
+                        _showAllShopping = false;
+                      }),
                     ),
-                    _buildSeeAllHeader('Belanjaan', _showAllShopping, () => setState(() => _showAllShopping = !_showAllShopping), isDark),
+                    _buildSeeAllHeader('Belanjaan', _showAllShopping, () {
+                      setState(() {
+                        _showAllShopping = !_showAllShopping;
+                        if (!_showAllShopping) _selectedDate = DateTime.now();
+                      });
+                    }, isDark),
                     Expanded(
                       child: shoppingAsync.when(
                         data: (items) {
@@ -381,54 +415,68 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
                               final boughtCount = subItems.where((i) => i.isChecked).length;
 
                               return Card(
-                                margin: const EdgeInsets.only(bottom: 12),
+                                margin: const EdgeInsets.only(bottom: 8),
                                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                                 child: ListTile(
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  dense: true,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
                                   onTap: () => _showChecklistItemsDialog(item),
                                   leading: CircleAvatar(
+                                    radius: 16,
                                     backgroundColor: item.isChecked ? Colors.green.shade50 : const Color(0xFF2563EB).withOpacity(0.1),
                                     child: Icon(
                                       item.isChecked ? Icons.check_circle : Icons.shopping_bag_outlined,
                                       color: item.isChecked ? Colors.green : const Color(0xFF2563EB),
+                                      size: 18,
                                     ),
                                   ),
                                   title: Text(
                                     item.name,
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 16,
+                                      fontSize: 14,
                                       decoration: item.isChecked ? TextDecoration.lineThrough : null,
                                       color: item.isChecked ? Colors.grey.shade400 : (isDark ? Colors.white : const Color(0xFF1F2937)),
                                     ),
                                   ),
-                                  subtitle: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const SizedBox(height: 4),
-                                      if (item.purchaseDate != null)
-                                        Text('Tanggal Waktu: ${DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(item.purchaseDate!)}', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-                                      if (subItems.isNotEmpty)
-                                        Text('$boughtCount / ${subItems.length} Barang Dibeli', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: boughtCount == subItems.length ? Colors.green : const Color(0xFF2563EB))),
-                                    ],
-                                  ),
+                                  subtitle: subItems.isNotEmpty
+                                      ? Padding(
+                                          padding: const EdgeInsets.only(top: 4.0),
+                                          child: Text(
+                                            '$boughtCount / ${subItems.length} Barang Dibeli',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: boughtCount == subItems.length && subItems.isNotEmpty ? Colors.green : const Color(0xFF2563EB),
+                                            ),
+                                          ),
+                                        )
+                                      : null,
                                   trailing: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       IconButton(
-                                        icon: const Icon(Icons.playlist_add_check, size: 22, color: Color(0xFF2563EB)),
+                                        icon: const Icon(Icons.playlist_add_check, size: 18, color: Color(0xFF2563EB)),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
                                         tooltip: 'Buka Pop-up Ceklist Barang',
                                         onPressed: () => _showChecklistItemsDialog(item),
                                       ),
+                                      const SizedBox(width: 8),
                                       IconButton(
-                                        icon: const Icon(Icons.edit_outlined, size: 20, color: Colors.blueGrey),
+                                        icon: const Icon(Icons.edit_outlined, size: 18, color: Colors.blueGrey),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
                                         onPressed: () {
                                           Navigator.push(context, MaterialPageRoute(builder: (_) => CreateShoppingPage(existingItem: item)));
                                         },
                                       ),
+                                      const SizedBox(width: 8),
                                       IconButton(
-                                        icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                                        icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
                                         onPressed: () async {
                                           final dbService = ref.read(databaseServiceProvider);
                                           if (!kIsWeb) {
@@ -684,19 +732,21 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
         final timeRangeStr = '${DateFormat('dd MMM, HH:mm', 'id_ID').format(reminder.targetDateTime)} - ${DateFormat('HH:mm', 'id_ID').format(reminder.effectiveEndTime)}';
 
         return Card(
-          margin: const EdgeInsets.only(bottom: 12),
+          margin: const EdgeInsets.only(bottom: 8),
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             side: BorderSide(color: const Color(0xFF2563EB).withOpacity(0.3), width: 1.5),
           ),
           child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            dense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
             leading: const CircleAvatar(
+              radius: 16,
               backgroundColor: Color(0xFF2563EB),
-              child: Icon(Icons.alarm, color: Colors.white, size: 20),
+              child: Icon(Icons.alarm, color: Colors.white, size: 18),
             ),
-            title: Text(reminder.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            title: Text(reminder.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

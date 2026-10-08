@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:isar/isar.dart';
-import 'package:lifesync_app/domain/entities/bill.dart';
-import 'package:lifesync_app/domain/entities/financial_note.dart';
-import 'package:lifesync_app/domain/entities/financial_item.dart';
-import 'package:lifesync_app/core/providers/core_providers.dart';
-import 'package:lifesync_app/presentation/providers/repository_providers.dart';
+import 'package:table_calendar/table_calendar.dart';
 import 'package:lifesync_app/presentation/providers/financial_note_providers.dart';
 import 'package:lifesync_app/presentation/pages/add_edit_financial_note_page.dart';
 import 'package:lifesync_app/presentation/pages/financial_note_detail_page.dart';
+import 'package:lifesync_app/presentation/widgets/month_day_picker_widget.dart';
 import 'package:lifesync_app/config/app_variant.dart';
 
 class FinancialRecordsHomePage extends ConsumerStatefulWidget {
@@ -21,335 +17,16 @@ class FinancialRecordsHomePage extends ConsumerStatefulWidget {
 
 class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomePage> {
   final NumberFormat _fmt = NumberFormat('#,###', 'id_ID');
+  DateTime _selectedDate = DateTime.now();
+  bool _showAllFinancial = false;
 
   String _formatAmount(double amount) => 'Rp ${_fmt.format(amount.toInt())}';
-
-  Future<void> _pickDate(BuildContext context) async {
-    final filter = ref.read(noteFilterProvider);
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: filter.selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2035),
-    );
-    if (picked != null) {
-      ref.read(noteFilterProvider.notifier).state = filter.copyWith(
-        mode: NoteFilterMode.specificDate,
-        selectedDate: picked,
-      );
-    }
-  }
-
-  String _getFilterLabel(NoteFilterMode mode) {
-    switch (mode) {
-      case NoteFilterMode.all:
-        return 'Semua';
-      case NoteFilterMode.specificDate:
-        return 'Hari Tertentu';
-      case NoteFilterMode.weekly:
-        return 'Mingguan';
-      case NoteFilterMode.monthly:
-        return 'Bulanan';
-    }
-  }
-
-  void _showNewNoteTypeSelector(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        return Container(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Pilih Jenis Transaksi',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(ctx),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(color: Colors.grey.shade200, width: 1.5),
-                ),
-                leading: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2563EB).withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.edit_note, color: Color(0xFF2563EB), size: 24),
-                ),
-                title: const Text('Transaksi Harian', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                subtitle: const Text('Catat transaksi umum/pemasukan/pengeluaran harian', style: TextStyle(fontSize: 12)),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const AddEditFinancialNotePage()));
-                },
-              ),
-              const SizedBox(height: 12),
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(color: Colors.grey.shade200, width: 1.5),
-                ),
-                leading: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.receipt_long, color: Color(0xFF10B981), size: 24),
-                ),
-                title: const Text('Transaksi Tagihan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                subtitle: const Text('Pilih tagihan yang sudah dibayar untuk dicatatkan', style: TextStyle(fontSize: 12)),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _showBillTransactionSelectorSheet(context);
-                },
-              ),
-              const SizedBox(height: 12),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _showBillTransactionSelectorSheet(BuildContext context) async {
-    final billRepo = ref.read(billRepositoryProvider);
-    final isar = ref.read(databaseServiceProvider).db;
-
-    final paidBills = await billRepo.getPaidBills();
-
-    if (paidBills.isEmpty) {
-      if (context.mounted) {
-        showDialog(
-          context: context,
-          builder: (c) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: const Text('Belum Ada Tagihan Dibayar'),
-            content: const Text('Belum ada tagihan dengan status sudah dibayar atau memiliki realisasi pembayaran.'),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(c), child: const Text('Tutup')),
-            ],
-          ),
-        );
-      }
-      return;
-    }
-
-    // Cek item mana saja yang sudah pernah dicatat ke Keuangan
-    final Map<int, bool> recordedMap = {};
-    for (var b in paidBills) {
-      final tag = '[Bill#${b.id}]';
-      final existing = await isar.financialItems.filter().descriptionStartsWith(tag).findAll();
-      recordedMap[b.id] = existing.isNotEmpty;
-    }
-
-    final Set<int> selectedBillIds = {};
-
-    if (!context.mounted) return;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetCtx) {
-        return StatefulBuilder(
-          builder: (stCtx, setModalState) {
-            final currencyFmt = NumberFormat('#,###', 'id_ID');
-
-            return Container(
-              height: MediaQuery.of(context).size.height * 0.75,
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Pilih Transaksi Tagihan',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
-                      ),
-                      IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(sheetCtx)),
-                    ],
-                  ),
-                  const Text(
-                    'Pilih tagihan yang sudah dibayar untuk dicatatkan ke Keuangan:',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: paidBills.length,
-                      itemBuilder: (lCtx, idx) {
-                        final b = paidBills[idx];
-                        final isRecorded = recordedMap[b.id] ?? false;
-                        final isSelected = selectedBillIds.contains(b.id) || isRecorded;
-                        final realization = b.realizationAmount ?? b.amount;
-                        final dateStr = DateFormat('d MMM yyyy', 'id_ID').format(b.paidAt ?? b.dueDate);
-
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            side: BorderSide(
-                              color: isRecorded ? Colors.green.shade200 : (isSelected ? const Color(0xFF2563EB) : Colors.grey.shade200),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: CheckboxListTile(
-                            value: isSelected,
-                            enabled: !isRecorded, // Nonaktifkan jika sudah dicatat agar tidak duplikat
-                            activeColor: isRecorded ? Colors.green : const Color(0xFF2563EB),
-                            title: Text(
-                              b.name,
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(height: 2),
-                                Text('Realisasi: Rp ${currencyFmt.format(realization.toInt())}', style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 12)),
-                                Text('Dibayar: $dateStr', style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
-                                if (isRecorded) ...[
-                                  const SizedBox(height: 4),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(6)),
-                                    child: const Text('✓ Sudah dicatat ke Keuangan', style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
-                                  ),
-                                ],
-                              ],
-                            ),
-                            onChanged: isRecorded ? null : (val) {
-                              setModalState(() {
-                                if (val == true) {
-                                  selectedBillIds.add(b.id);
-                                } else {
-                                  selectedBillIds.remove(b.id);
-                                }
-                              });
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2563EB),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                      onPressed: selectedBillIds.isEmpty
-                          ? null
-                          : () async {
-                              Navigator.pop(sheetCtx);
-                              await _recordSelectedBillsToFinancialNotes(context, paidBills.where((b) => selectedBillIds.contains(b.id)).toList());
-                            },
-                      icon: const Icon(Icons.check_circle_outline, color: Colors.white),
-                      label: Text('Catat Transaksi (${selectedBillIds.length})', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 15)),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Future<void> _recordSelectedBillsToFinancialNotes(BuildContext context, List<Bill> selectedBills) async {
-    final isar = ref.read(databaseServiceProvider).db;
-
-    int recordedCount = 0;
-
-    for (var bill in selectedBills) {
-      final billTag = '[Bill#${bill.id}]';
-      final date = bill.paidAt ?? bill.dueDate;
-      final dateOnly = DateTime(date.year, date.month, date.day);
-
-      await isar.writeTxn(() async {
-        // Cari/buat FinancialNote untuk tanggal ini
-        var notes = await isar.financialNotes.filter().dateEqualTo(dateOnly).findAll();
-        FinancialNote targetNote;
-        if (notes.isNotEmpty) {
-          targetNote = notes.first;
-        } else {
-          targetNote = FinancialNote()
-            ..title = 'Catatan Keuangan ${date.day}/${date.month}/${date.year}'
-            ..date = dateOnly
-            ..createdAt = DateTime.now()
-            ..updatedAt = DateTime.now();
-          final noteId = await isar.financialNotes.put(targetNote);
-          targetNote.id = noteId;
-        }
-
-        // Cek apakah item dengan tag ini sudah ada (mencegah duplikasi)
-        final existingItems = await isar.financialItems
-            .filter()
-            .descriptionStartsWith(billTag)
-            .findAll();
-
-        if (existingItems.isEmpty) {
-          final newItem = FinancialItem()
-            ..noteId = targetNote.id
-            ..description = '$billTag ${bill.name}' // Default title = Nama Tagihan (editable oleh pengguna!)
-            ..amount = bill.realizationAmount ?? bill.amount
-            ..type = 'expense'
-            ..createdAt = DateTime.now()
-            ..updatedAt = DateTime.now();
-          await isar.financialItems.put(newItem);
-          recordedCount++;
-        }
-      });
-    }
-
-    ref.invalidate(financialNotesNotifierProvider);
-
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$recordedCount transaksi tagihan berhasil dicatat ke Keuangan'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final filter = ref.watch(noteFilterProvider);
-    final filteredNotes = ref.watch(filteredNotesProvider);
-    final summary = ref.watch(filteredSummaryProvider);
+
     final notesAsync = ref.watch(financialNotesNotifierProvider);
 
     return Scaffold(
@@ -380,90 +57,106 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
         foregroundColor: Colors.white,
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        onPressed: () => _showNewNoteTypeSelector(context),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AddEditFinancialNotePage()),
+          );
+        },
         icon: const Icon(Icons.add, size: 24),
         label: const Text('Catatan Baru', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: notesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(child: Text('Error: $err')),
-        data: (_) => Column(
-          children: [
-            // ── Single Filter Dropdown Bar ─────────────────────────────────
-            _buildFilterBar(filter, isDark, context),
+        data: (allNotes) {
+          final displayNotes = _showAllFinancial
+              ? allNotes
+              : allNotes.where((n) => isSameDay(n.note.date, _selectedDate)).toList();
 
-            // ── Period Summary (Total Pemasukan, Total Pengeluaran, Saldo) ──
-            _buildSummaryHeader(summary, isDark),
+          double totalIncome = 0.0;
+          double totalExpense = 0.0;
+          for (var note in displayNotes) {
+            totalIncome += note.totalIncome;
+            totalExpense += note.totalExpense;
+          }
+          final balance = totalIncome - totalExpense;
 
-            // ── Notes List ─────────────────────────────────────────────────
-            Expanded(
-              child: filteredNotes.isEmpty
-                  ? _buildEmptyState(isDark)
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 90),
-                      itemCount: filteredNotes.length,
-                      itemBuilder: (context, i) {
-                        final noteItem = filteredNotes[i];
-                        return _buildNoteCard(noteItem, isDark);
-                      },
-                    ),
-            ),
-          ],
-        ),
+          return Column(
+            children: [
+              // Reusable Month & Day Strip Picker Widget
+              MonthDayPickerWidget(
+                selectedDate: _selectedDate,
+                isSeeAll: _showAllFinancial,
+                onDateChanged: (date) => setState(() {
+                  _selectedDate = date;
+                  _showAllFinancial = false;
+                }),
+              ),
+
+              // "Lihat Semua" / Filter Header Toggle
+              _buildSeeAllHeader(_showAllFinancial, isDark),
+
+              // Period Summary (Total Pemasukan, Total Pengeluaran, Saldo)
+              _buildSummaryHeader(totalIncome, totalExpense, balance, isDark),
+
+              // Notes List
+              Expanded(
+                child: displayNotes.isEmpty
+                    ? _buildEmptyState(isDark)
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 90),
+                        itemCount: displayNotes.length,
+                        itemBuilder: (context, i) {
+                          final noteItem = displayNotes[i];
+                          return _buildNoteCard(noteItem, isDark);
+                        },
+                      ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildFilterBar(FilterState filter, bool isDark, BuildContext context) {
+  Widget _buildSeeAllHeader(bool isSeeAll, bool isDark) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       color: isDark ? const Color(0xFF1E293B) : Colors.white,
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Icon(Icons.filter_list_rounded, size: 20, color: isDark ? Colors.white70 : const Color(0xFF475569)),
-              const SizedBox(width: 8),
-              Text(
-                'Saring berdasarkan:',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white70 : const Color(0xFF475569),
-                ),
-              ),
-            ],
+          Text(
+            isSeeAll ? 'Menampilkan Semua Catatan Keuangan' : 'Sesuai Filter Tanggal',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
           ),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2563EB).withAlpha(15),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFF2563EB).withAlpha(60)),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<NoteFilterMode>(
-                value: filter.mode,
-                icon: const Icon(Icons.arrow_drop_down_rounded, color: Color(0xFF2563EB)),
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF2563EB)),
-                dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                onChanged: (mode) {
-                  if (mode == null) return;
-                  if (mode == NoteFilterMode.specificDate) {
-                    _pickDate(context);
-                  } else {
-                    ref.read(noteFilterProvider.notifier).state = filter.copyWith(mode: mode);
-                  }
-                },
-                items: NoteFilterMode.values.map((mode) {
-                  return DropdownMenuItem<NoteFilterMode>(
-                    value: mode,
-                    child: Text(_getFilterLabel(mode)),
-                  );
-                }).toList(),
+          InkWell(
+            onTap: () {
+              setState(() {
+                _showAllFinancial = !_showAllFinancial;
+                if (!_showAllFinancial) {
+                  _selectedDate = DateTime.now(); // Reset back to Today
+                }
+              });
+            },
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: isSeeAll ? const Color(0xFF2563EB).withOpacity(0.1) : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: isSeeAll ? const Color(0xFF2563EB) : Colors.grey.shade300),
+              ),
+              child: Row(
+                children: [
+                  Icon(isSeeAll ? Icons.filter_list_off : Icons.list_alt, size: 14, color: isSeeAll ? const Color(0xFF2563EB) : Colors.grey.shade700),
+                  const SizedBox(width: 4),
+                  Text(
+                    isSeeAll ? 'Filter Tanggal' : 'Lihat Semua',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isSeeAll ? const Color(0xFF2563EB) : Colors.grey.shade700),
+                  ),
+                ],
               ),
             ),
           ),
@@ -472,129 +165,74 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
     );
   }
 
-  Widget _buildSummaryHeader(FinancialSummary summary, bool isDark) {
-    final netPositive = summary.netBalance >= 0;
+  Widget _buildSummaryHeader(double income, double expense, double balance, bool isDark) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 8, offset: const Offset(0, 3))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          _summaryTile(_formatAmount(summary.totalIncome), 'Pemasukan', const Color(0xFF10B981), isDark),
-          _vertDivider(isDark),
-          _summaryTile(_formatAmount(summary.totalExpense), 'Pengeluaran', const Color(0xFFEF4444), isDark),
-          _vertDivider(isDark),
-          _summaryTile(
-            '${netPositive ? '+' : '-'}${_formatAmount(summary.netBalance.abs())}',
-            'Saldo Bersih',
-            netPositive ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-            isDark,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _summaryTile(String amount, String label, Color color, bool isDark) {
-    return Expanded(
-      child: Column(
-        children: [
-          Text(amount, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color)),
-          const SizedBox(height: 2),
-          Text(label, style: TextStyle(fontSize: 10, color: isDark ? Colors.white54 : const Color(0xFF64748B))),
-        ],
-      ),
-    );
-  }
-
-  Widget _vertDivider(bool isDark) {
-    return Container(width: 1, height: 36, margin: const EdgeInsets.symmetric(horizontal: 4), color: isDark ? Colors.white10 : const Color(0xFFE2E8F0));
-  }
-
-  Widget _buildNoteCard(NoteWithItems noteItem, bool isDark) {
-    final note = noteItem.note;
-    final net = noteItem.netTotal;
-    final netPositive = net >= 0;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 8, offset: const Offset(0, 3))],
-      ),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => FinancialNoteDetailPage(noteId: note.id)),
-          );
-        },
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      note.title,
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A)),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: (netPositive ? const Color(0xFF10B981) : const Color(0xFFEF4444)).withAlpha(20),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '${netPositive ? '+' : '-'}${_formatAmount(net.abs())}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: netPositive ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  Icon(Icons.calendar_today_outlined, size: 14, color: isDark ? Colors.white54 : const Color(0xFF64748B)),
-                  const SizedBox(width: 6),
-                  Text(
-                    DateFormat('d MMMM yyyy', 'id_ID').format(note.date),
-                    style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : const Color(0xFF64748B)),
-                  ),
-                  const SizedBox(width: 14),
-                  Icon(Icons.list_alt, size: 14, color: isDark ? Colors.white54 : const Color(0xFF64748B)),
-                  const SizedBox(width: 6),
-                  Text(
-                    '${noteItem.itemCount} Item',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white70 : const Color(0xFF334155)),
-                  ),
-                ],
-              ),
-              if (note.notes != null && note.notes!.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  note.notes!,
-                  style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: isDark ? Colors.white38 : Colors.black45),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Pemasukan', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                const SizedBox(height: 4),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(_formatAmount(income), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.green)),
                 ),
               ],
-            ],
+            ),
           ),
-        ),
+          Container(width: 1, height: 32, color: Colors.grey.shade200),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Pengeluaran', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 4),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(_formatAmount(expense), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.red)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Container(width: 1, height: 32, color: Colors.grey.shade200),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(left: 6.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Selisih', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 4),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(_formatAmount(balance), style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: balance >= 0 ? const Color(0xFF2563EB) : Colors.red)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -602,24 +240,95 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
   Widget _buildEmptyState(bool isDark) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.menu_book_outlined, size: 72, color: isDark ? Colors.white24 : const Color(0xFF94A3B8)),
+            Icon(Icons.receipt_long_outlined, size: 64, color: Colors.grey.shade300),
             const SizedBox(height: 16),
             Text(
-              'Belum ada catatan keuangan',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF334155)),
+              'Belum ada catatan keuangan.',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.grey.shade700),
             ),
             const SizedBox(height: 8),
             Text(
-              'Buat catatan baru seperti di buku kas harian menggunakan tombol "+" di bawah',
-              style: TextStyle(fontSize: 14, color: isDark ? Colors.white54 : const Color(0xFF64748B)),
+              'Klik "+ Catatan Baru" untuk mulai mencatat pemasukan atau pengeluaran.',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
               textAlign: TextAlign.center,
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildNoteCard(NoteWithItems noteItem, bool isDark) {
+    final dateStr = DateFormat('dd MMMM yyyy, HH:mm', 'id_ID').format(noteItem.note.date);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 0,
+      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: Colors.grey.shade200, width: 1.5),
+      ),
+      child: ListTile(
+        dense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => FinancialNoteDetailPage(noteId: noteItem.note.id),
+            ),
+          );
+        },
+        leading: Container(
+          padding: const EdgeInsets.all(9),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2563EB).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Icon(Icons.account_balance_wallet, color: Color(0xFF2563EB), size: 20),
+        ),
+        title: Text(
+          noteItem.note.title,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: isDark ? Colors.white : const Color(0xFF1E293B),
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 3),
+            Text(dateStr, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+            const SizedBox(height: 3),
+            Row(
+              children: [
+                if (noteItem.totalIncome > 0)
+                  Expanded(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text('+${_formatAmount(noteItem.totalIncome)} ', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green)),
+                    ),
+                  ),
+                if (noteItem.totalExpense > 0)
+                  Expanded(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text('-${_formatAmount(noteItem.totalExpense)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red)),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+        trailing: const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
       ),
     );
   }

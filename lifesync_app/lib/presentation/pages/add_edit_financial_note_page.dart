@@ -56,14 +56,21 @@ class _AddEditFinancialNotePageState extends ConsumerState<AddEditFinancialNoteP
   }
 
   Future<void> _pickDate() async {
-    final picked = await showDatePicker(
+    final pickedDate = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2035),
     );
-    if (picked != null) {
-      setState(() => _selectedDate = picked);
+    if (pickedDate != null && mounted) {
+      final pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(_selectedDate),
+      );
+      final time = pickedTime ?? TimeOfDay.fromDateTime(_selectedDate);
+      setState(() {
+        _selectedDate = DateTime(pickedDate.year, pickedDate.month, pickedDate.day, time.hour, time.minute);
+      });
     }
   }
 
@@ -427,12 +434,12 @@ class _AddEditFinancialNotePageState extends ConsumerState<AddEditFinancialNoteP
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.calendar_today, size: 18, color: Color(0xFF2563EB)),
+                            const Icon(Icons.access_time_filled, size: 18, color: Color(0xFF2563EB)),
                             const SizedBox(width: 12),
-                            Text('Tanggal Catatan', style: TextStyle(color: isDark ? Colors.white70 : Colors.black87)),
+                            Text('Waktu Catatan', style: TextStyle(color: isDark ? Colors.white70 : Colors.black87)),
                             const Spacer(),
                             Text(
-                              DateFormat('d MMMM yyyy', 'id_ID').format(_selectedDate),
+                              DateFormat('d MMMM yyyy, HH:mm', 'id_ID').format(_selectedDate),
                               style: const TextStyle(fontWeight: FontWeight.bold),
                             ),
                           ],

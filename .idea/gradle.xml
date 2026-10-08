@@ -21,20 +21,20 @@
           <set>
             <option value="$PROJECT_DIR$/lifesync_app/android" />
             <option value="$PROJECT_DIR$/lifesync_app/android/app" />
-            <option value="$USER_HOME$/AppData/Local/Pub/Cache/hosted/pub.dev/audioplayers_android-5.2.1/android" />
+            <option value="$USER_HOME$/AppData/Local/Pub/Cache/hosted/pub.dev/audioplayers_android-5.3.0/android" />
             <option value="$USER_HOME$/AppData/Local/Pub/Cache/hosted/pub.dev/file_picker-8.3.7/android" />
             <option value="$USER_HOME$/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_local_notifications-17.2.4/android" />
             <option value="$USER_HOME$/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_plugin_android_lifecycle-2.0.35/android" />
-            <option value="$USER_HOME$/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_secure_storage-10.3.1/android" />
+            <option value="$USER_HOME$/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_secure_storage-10.3.4/android" />
             <option value="$USER_HOME$/AppData/Local/Pub/Cache/hosted/pub.dev/google_sign_in_android-6.2.1/android" />
             <option value="$USER_HOME$/AppData/Local/Pub/Cache/hosted/pub.dev/home_widget-0.9.3/android" />
             <option value="$USER_HOME$/AppData/Local/Pub/Cache/hosted/pub.dev/isar_flutter_libs-3.1.0+1/android" />
-            <option value="$USER_HOME$/AppData/Local/Pub/Cache/hosted/pub.dev/jni-1.0.0/android" />
-            <option value="$USER_HOME$/AppData/Local/Pub/Cache/hosted/pub.dev/jni_flutter-1.0.1/android" />
+            <option value="$USER_HOME$/AppData/Local/Pub/Cache/hosted/pub.dev/jni-1.1.0/android" />
+            <option value="$USER_HOME$/AppData/Local/Pub/Cache/hosted/pub.dev/jni_flutter-1.0.4+1/android" />
             <option value="$USER_HOME$/AppData/Local/Pub/Cache/hosted/pub.dev/package_info_plus-9.0.1/android" />
-            <option value="$USER_HOME$/AppData/Local/Pub/Cache/hosted/pub.dev/shared_preferences_android-2.4.26/android" />
-            <option value="$USER_HOME$/AppData/Local/Pub/Cache/hosted/pub.dev/video_player_android-2.11.0/android" />
-            <option value="$USER_HOME$/AppData/Local/Pub/Cache/hosted/pub.dev/workmanager_android-0.9.0+2/android" />
+            <option value="$USER_HOME$/AppData/Local/Pub/Cache/hosted/pub.dev/shared_preferences_android-2.4.28/android" />
+            <option value="$USER_HOME$/AppData/Local/Pub/Cache/hosted/pub.dev/video_player_android-2.12.2/android" />
+            <option value="$USER_HOME$/AppData/Local/Pub/Cache/hosted/pub.dev/workmanager_android-0.9.3/android" />
             <option value="$PROJECT_DIR$/../../src/flutter/packages/flutter_tools/gradle" />
           </set>
         </option>

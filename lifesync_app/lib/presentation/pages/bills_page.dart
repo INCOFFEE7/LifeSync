@@ -569,18 +569,18 @@ class _BillsPageState extends ConsumerState<BillsPage> {
                           final remaining = (bill.amount - realization).clamp(0.0, double.infinity);
 
                           return Card(
-                            margin: const EdgeInsets.only(bottom: 12),
+                            margin: const EdgeInsets.only(bottom: 8),
                             elevation: 0,
                             color: isDark ? const Color(0xFF1E293B) : Colors.white,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(14),
                               side: BorderSide(
                                 color: isPaid ? Colors.green.shade200 : Colors.grey.shade200,
                                 width: 1.5,
                               ),
                             ),
                             child: Padding(
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.all(12),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
