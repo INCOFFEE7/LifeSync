@@ -43,20 +43,53 @@ class _CalculatorDialogContentState extends State<_CalculatorDialogContent> {
 
   double _evaluateExpr(String expr) {
     try {
-      String sanitized = expr.replaceAll('×', '*').replaceAll('÷', '/');
-      final tokens = RegExp(r'(\d+(?:\.\d+)?|[+\-*/])').allMatches(sanitized).map((m) => m.group(0)!).toList();
+      String sanitized = expr.replaceAll('×', '*').replaceAll('÷', '/').replaceAll(' ', '');
+      if (sanitized.isEmpty) return 0.0;
+
+      List<String> tokens = [];
+      String currentNum = '';
+
+      for (int i = 0; i < sanitized.length; i++) {
+        String char = sanitized[i];
+        if (char == '+' || char == '×' || char == '*' || char == '÷' || char == '/') {
+          if (currentNum.isNotEmpty) {
+            tokens.add(currentNum);
+            currentNum = '';
+          }
+          tokens.add(char);
+        } else if (char == '-') {
+          if (currentNum.isEmpty && (tokens.isEmpty || tokens.last == '+' || tokens.last == '-' || tokens.last == '*' || tokens.last == '/')) {
+            currentNum += char;
+          } else {
+            if (currentNum.isNotEmpty) {
+              tokens.add(currentNum);
+              currentNum = '';
+            }
+            tokens.add('-');
+          }
+        } else {
+          currentNum += char;
+        }
+      }
+      if (currentNum.isNotEmpty) {
+        tokens.add(currentNum);
+      }
+
       if (tokens.isEmpty) return 0.0;
+      if (tokens.length == 1) return double.tryParse(tokens[0]) ?? 0.0;
+
       for (int i = 1; i < tokens.length - 1; i += 2) {
         if (tokens[i] == '*' || tokens[i] == '/') {
           double left = double.parse(tokens[i - 1]);
           double right = double.parse(tokens[i + 1]);
-          double result = tokens[i] == '*' ? (left * right) : (right == 0 ? 0 : left / right);
-          tokens[i - 1] = result.toString();
+          double res = tokens[i] == '*' ? (left * right) : (right == 0 ? 0 : left / right);
+          tokens[i - 1] = res.toString();
           tokens.removeAt(i);
           tokens.removeAt(i);
           i -= 2;
         }
       }
+
       double total = double.parse(tokens[0]);
       for (int i = 1; i < tokens.length - 1; i += 2) {
         String op = tokens[i];
@@ -64,8 +97,13 @@ class _CalculatorDialogContentState extends State<_CalculatorDialogContent> {
         if (op == '+') total += nextNum;
         else if (op == '-') total -= nextNum;
       }
-      return total.clamp(0.0, 999999999999.0);
+      return total;
     } catch (_) {
+      // If trailing operator like '50000-', parse left portion instead of collapsing to entire stripped digits
+      final match = RegExp(r'^-?\d+(\.\d+)?').firstMatch(expr.trim());
+      if (match != null) {
+        return double.tryParse(match.group(0)!) ?? 0.0;
+      }
       return 0.0;
     }
   }
@@ -76,7 +114,9 @@ class _CalculatorDialogContentState extends State<_CalculatorDialogContent> {
 
   String _formatCurrency(double val) {
     final fmt = NumberFormat('#,###', 'id_ID');
-    return val == 0 ? 'Rp 0' : 'Rp ${fmt.format(val.toInt())}';
+    if (val == 0) return 'Rp 0';
+    if (val < 0) return '-Rp ${fmt.format(val.abs().toInt())}';
+    return 'Rp ${fmt.format(val.toInt())}';
   }
 
   void _onKeyPress(String k) {

@@ -61,7 +61,7 @@ final dashboardDataProvider = StreamProvider.autoDispose<DashboardData>((ref) as
 
   for (var target in targets) {
     totalTargetAmount += target.targetAmount;
-    final records = await targetRepo.getRecordsForTarget(target.id!);
+    final records = await targetRepo.getRecordsForTarget(target.id);
     totalSavings += records.fold(0.0, (sum, r) => sum + r.incomeAmount);
   }
 
@@ -91,7 +91,7 @@ final dashboardDataProvider = StreamProvider.autoDispose<DashboardData>((ref) as
   // ── Build TargetDashboardInfo for each dashboard target ───────────────────
   List<TargetDashboardInfo> topTargetsInfo = [];
   for (var t in dashboardTargets) {
-    final records = await targetRepo.getRecordsForTarget(t.id!);
+    final records = await targetRepo.getRecordsForTarget(t.id);
     double savings = records.fold(0.0, (sum, r) => sum + r.incomeAmount);
 
     double savedToday = 0;
@@ -131,7 +131,7 @@ final dashboardDataProvider = StreamProvider.autoDispose<DashboardData>((ref) as
       if (statusA != 'Sedang Berjalan' && statusB == 'Sedang Berjalan') return 1;
       return a.targetDateTime.compareTo(b.targetDateTime);
     });
-  final upcomingReminders = activeReminders;
+  final upcomingReminders = activeReminders.take(10).toList();
 
   final todayRemindersCount = reminders
       .where((r) =>

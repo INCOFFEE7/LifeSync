@@ -158,6 +158,7 @@ class IsarBillRepository {
         scheduledTime: scheduledDate,
         sound: 'silent',
         payload: payload,
+        featureName: 'Tagihan',
       );
     } else {
       await _notifService.cancelNotification(notifId);

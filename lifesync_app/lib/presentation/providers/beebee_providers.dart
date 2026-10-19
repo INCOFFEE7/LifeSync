@@ -71,25 +71,32 @@ final qadhaRecordsProvider = StreamProvider<List<QadhaRecord>>((ref) {
   return repo.watchQadha();
 });
 
-final totalFastingDebtSummaryProvider = FutureProvider<Map<String, int>>((ref) async {
-  ref.watch(fastingDebtsProvider);
-  ref.watch(qadhaRecordsProvider);
-  
+final totalFastingDebtSummaryProvider = StreamProvider<Map<String, int>>((ref) async* {
   final repo = ref.watch(fastingRepositoryProvider);
-  final debts = await repo.getAllDebts();
-  final qadhas = await repo.getAllQadha();
   
-  int totalInitialDebt = debts.fold<int>(0, (int sum, debt) => sum + debt.initialDebt);
-  int totalQadha = qadhas.fold<int>(0, (int sum, qadha) => sum + qadha.amount);
-  
-  // calculate current debt
-  int currentDebt = debts.fold<int>(0, (int sum, debt) => sum + debt.currentDebt);
-  
-  return {
-    'totalInitialDebt': totalInitialDebt,
-    'totalQadha': totalQadha,
-    'currentDebt': currentDebt,
-  };
+  // Computes summary from repository
+  Future<Map<String, int>> computeSummary() async {
+    final debts = await repo.getAllDebts();
+    final qadhas = await repo.getAllQadha();
+    
+    int totalInitialDebt = debts.fold<int>(0, (sum, debt) => sum + debt.initialDebt);
+    int totalQadha = qadhas.fold<int>(0, (sum, qadha) => sum + qadha.amount);
+    int currentDebt = debts.fold<int>(0, (sum, debt) => sum + debt.currentDebt);
+    
+    return {
+      'totalInitialDebt': totalInitialDebt,
+      'totalQadha': totalQadha,
+      'currentDebt': currentDebt,
+    };
+  }
+
+  // Yield initial value
+  yield await computeSummary();
+
+  // Watch for any changes in debts or qadha records in real-time
+  await for (final _ in repo.watchDebts()) {
+    yield await computeSummary();
+  }
 });
 
 final menstruationRecordsProvider = StreamProvider<List<MenstruationRecord>>((ref) {
@@ -113,31 +120,39 @@ class MenstrualStats {
   });
 }
 
-final menstrualStatsProvider = FutureProvider<MenstrualStats>((ref) async {
-  ref.watch(menstruationRecordsProvider);
-  
+final menstrualStatsProvider = StreamProvider<MenstrualStats>((ref) async* {
   final repo = ref.watch(menstruationRepositoryProvider);
-  
-  final avgCycle = await repo.getAverageCycle();
-  final avgDuration = await repo.getAverageDuration();
-  final nextPrediction = await repo.predictNextPeriod();
-  
-  int countdown = 0;
-  if (nextPrediction != null) {
-    countdown = nextPrediction.difference(DateTime.now()).inDays;
+
+  Future<MenstrualStats> computeStats() async {
+    final avgCycle = await repo.getAverageCycle();
+    final avgDuration = await repo.getAverageDuration();
+    final nextPrediction = await repo.predictNextPeriod();
+    
+    int countdown = 0;
+    if (nextPrediction != null) {
+      countdown = nextPrediction.difference(DateTime.now()).inDays;
+    }
+    
+    final records = await repo.getAllRecords();
+    DateTime? lastPeriodDate;
+    if (records.isNotEmpty) {
+      lastPeriodDate = records.first.startDate;
+    }
+    
+    return MenstrualStats(
+      avgCycle: avgCycle,
+      avgDuration: avgDuration,
+      nextPrediction: nextPrediction,
+      countdownDays: countdown,
+      lastPeriodDate: lastPeriodDate,
+    );
   }
-  
-  final records = await repo.getAllRecords();
-  DateTime? lastPeriodDate;
-  if (records.isNotEmpty) {
-    lastPeriodDate = records.first.startDate;
+
+  // Yield initial value
+  yield await computeStats();
+
+  // Watch for any changes in menstruation records in real-time
+  await for (final _ in repo.watchRecords()) {
+    yield await computeStats();
   }
-  
-  return MenstrualStats(
-    avgCycle: avgCycle,
-    avgDuration: avgDuration,
-    nextPrediction: nextPrediction,
-    countdownDays: countdown,
-    lastPeriodDate: lastPeriodDate,
-  );
 });

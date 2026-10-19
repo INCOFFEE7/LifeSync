@@ -71,7 +71,7 @@ class _BeebeeSplashScreenState extends State<BeebeeSplashScreen> with SingleTick
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'BeeNest',
+                  'BeeHappy',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,

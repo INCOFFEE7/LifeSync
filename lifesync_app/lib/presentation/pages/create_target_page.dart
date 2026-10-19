@@ -197,9 +197,9 @@ class _CreateTargetPageState extends ConsumerState<CreateTargetPage> {
           children: [
             TextFormField(
               initialValue: _name,
-              decoration: _inputDecoration('Nama Target'),
+              decoration: _inputDecoration('Nama Target *'),
               style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1F2937)),
-              validator: (val) => val == null || val.isEmpty ? 'Wajib diisi' : null,
+              validator: (val) => val == null || val.trim().isEmpty ? 'Nama target wajib diisi' : null,
               onSaved: (val) => _name = val!,
             ),
             const SizedBox(height: 20),
@@ -220,7 +220,7 @@ class _CreateTargetPageState extends ConsumerState<CreateTargetPage> {
                   });
                 }
               },
-              decoration: _inputDecoration('Jumlah Target (Rp)').copyWith(
+              decoration: _inputDecoration('Jumlah Target * (Rp)').copyWith(
                 prefixText: 'Rp ',
                 suffixIcon: const Icon(Icons.calculate, color: Color(0xFF2563EB)),
               ),

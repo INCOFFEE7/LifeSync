@@ -35,6 +35,9 @@ class _AddFastingDebtPageState extends ConsumerState<AddFastingDebtPage> {
       final repo = ref.read(fastingRepositoryProvider);
       await repo.saveDebt(debt);
 
+      ref.invalidate(fastingDebtsProvider);
+      ref.invalidate(totalFastingDebtSummaryProvider);
+
       if (mounted) Navigator.pop(context);
     }
   }

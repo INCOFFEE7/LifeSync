@@ -1,16 +1,23 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lifesync_app/core/providers/core_providers.dart';
 import 'package:lifesync_app/domain/entities/bill.dart';
+import 'package:lifesync_app/domain/entities/shopping_item.dart';
 import 'package:lifesync_app/presentation/providers/repository_providers.dart';
 import 'package:lifesync_app/presentation/providers/financial_note_providers.dart';
+import 'package:lifesync_app/presentation/providers/shopping_providers.dart';
+import 'package:lifesync_app/presentation/pages/create_shopping_page.dart';
 import 'package:lifesync_app/presentation/screens/cloud_backup_settings_screen.dart';
 import 'package:lifesync_app/presentation/providers/dashboard_provider.dart';
 import 'package:lifesync_app/domain/usecases/countdown_usecase.dart';
 import 'package:lifesync_app/domain/entities/reminder.dart';
 import 'package:lifesync_app/core/services/home_widget_service.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lifesync_app/presentation/pages/settings_page.dart';
+import 'package:lifesync_app/presentation/pages/reminders_page.dart';
+import 'package:lifesync_app/presentation/widgets/calculator_input_dialog.dart';
 import 'package:lifesync_app/core/utils/translations.dart';
 import 'package:lifesync_app/presentation/providers/localization_provider.dart';
 import 'package:lifesync_app/config/app_variant.dart';
@@ -23,7 +30,6 @@ class DashboardPage extends ConsumerStatefulWidget {
 }
 
 class _DashboardPageState extends ConsumerState<DashboardPage> {
-  bool _isSyncing = false;
   Set<int> _pinnedReminderIds = {};
   final PageController _recommendationPageController = PageController();
   int _recommendationPage = 0;
@@ -55,15 +61,17 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     final locale = ref.watch(localeProvider);
     final lang = locale.languageCode;
     final financialSummary = ref.watch(filteredSummaryProvider);
+    final shoppingAsync = ref.watch(shoppingItemsProvider);
 
     final now = DateTime.now();
     final currentMonthKey = DateFormat('yyyy-MM').format(now);
     final billsAsync = ref.watch(billsStreamProvider(currentMonthKey));
 
     final currencyFmt = NumberFormat('#,###', 'id_ID');
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF9FAFB),
       appBar: _buildHeader(),
       body: dashboardAsync.when(
         data: (data) {
@@ -80,7 +88,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 _buildRemindersSection(data.upcomingReminders),
                 const SizedBox(height: 24),
 
-                // ── 2. KEUANGAN (Rangkuman Transaksi & Tagihan 7 Hari) ───────
+                // ── 2. DAFTAR BELANJA BELUM DIBELI ───────────────────────────
+                _buildSectionTitle('Daftar Belanja Belum Dibeli'),
+                const SizedBox(height: 12),
+                _buildShoppingListSection(shoppingAsync, currencyFmt, isDark),
+                const SizedBox(height: 24),
+
+                // ── 3. KEUANGAN (Rangkuman Transaksi & Tagihan 7 Hari) ───────
                 _buildSectionTitle(AppTranslations.get(lang, 'keuangan')),
                 const SizedBox(height: 12),
                 _buildFinancialTransactionsSummaryCard(financialSummary, currencyFmt),
@@ -102,7 +116,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 ),
                 const SizedBox(height: 24),
 
-                // ── 3. NABUNG (Total Tabungan & Recommendations) ───────────────
+                // ── 4. NABUNG (Total Tabungan & Recommendations) ───────────────
                 _buildSectionTitle('Nabung'),
                 const SizedBox(height: 12),
                 _buildSavingsOverviewCard(data, lang, currencyFmt),
@@ -144,7 +158,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              '${data.activeRemindersCount} ${AppTranslations.get(lang, 'total')}',
+              'Total Agenda: ${data.activeRemindersCount}',
               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF2563EB)),
             ),
           ),
@@ -238,57 +252,68 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       return const SizedBox.shrink();
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const RemindersPage()),
+        );
+      },
+      borderRadius: BorderRadius.circular(14),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Tagihan Mendatang (7 Hari)',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Tagihan Mendatang (7 Hari)',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(10)),
+                  child: Text('${upcomingBills.length} Tagihan', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.orange.shade800)),
+                ),
+              ],
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(10)),
-              child: Text('${upcomingBills.length} Tagihan', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.orange.shade800)),
-            ),
+            const SizedBox(height: 8),
+            ...upcomingBills.map((b) {
+              final daysLeft = b.dueDate.difference(DateTime.now()).inDays;
+              String timeText = daysLeft == 0 ? 'Hari ini' : '$daysLeft hari lagi';
+
+              return Card(
+                margin: const EdgeInsets.only(bottom: 8),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: BorderSide(color: Colors.orange.shade200, width: 1.5),
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: Colors.orange.shade50, shape: BoxShape.circle),
+                    child: const Icon(Icons.receipt_long, color: Colors.orange, size: 20),
+                  ),
+                  title: Text(b.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  subtitle: Text('Jatuh tempo: ${DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(b.dueDate)}', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                  trailing: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text('Rp ${fmt.format(b.amount.toInt())}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF2563EB))),
+                      Text(timeText, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.orange)),
+                    ],
+                  ),
+                ),
+              );
+            }),
           ],
         ),
-        const SizedBox(height: 8),
-        ...upcomingBills.map((b) {
-          final daysLeft = b.dueDate.difference(DateTime.now()).inDays;
-          String timeText = daysLeft == 0 ? 'Hari ini' : '$daysLeft hari lagi';
-
-          return Card(
-            margin: const EdgeInsets.only(bottom: 8),
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-              side: BorderSide(color: Colors.orange.shade200, width: 1.5),
-            ),
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: Colors.orange.shade50, shape: BoxShape.circle),
-                child: const Icon(Icons.receipt_long, color: Colors.orange, size: 20),
-              ),
-              title: Text(b.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              subtitle: Text('Jatuh tempo: ${DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(b.dueDate)}', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-              trailing: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text('Rp ${fmt.format(b.amount.toInt())}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF2563EB))),
-                  Text(timeText, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.orange)),
-                ],
-              ),
-            ),
-          );
-        }),
-      ],
+      ),
     );
   }
 
@@ -357,6 +382,306 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
+  Widget _buildShoppingItemSecondaryDetails(ShoppingItem item, NumberFormat currencyFmt, bool isDark) {
+    final List<Widget> details = [];
+    final mutedStyle = TextStyle(
+      fontSize: 11,
+      color: isDark ? Colors.white54 : Colors.grey.shade600,
+    );
+
+    if (item.purchasedBy != null && item.purchasedBy!.trim().isNotEmpty) {
+      details.add(Text('Dibeli Oleh: ${item.purchasedBy!.trim()}', style: mutedStyle));
+    }
+    if (item.price > 0) {
+      details.add(Text(
+        'Harga: Rp ${currencyFmt.format(item.price.toInt())}',
+        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+      ));
+    }
+    if (item.location != null && item.location!.trim().isNotEmpty) {
+      details.add(Text('Tempat: ${item.location!.trim()}', style: mutedStyle));
+    }
+    if (item.notes != null && item.notes!.trim().isNotEmpty) {
+      details.add(Text(
+        'Catatan: ${item.notes!.trim()}',
+        style: const TextStyle(fontSize: 11, color: Color(0xFF2563EB), fontStyle: FontStyle.italic),
+      ));
+    }
+
+    if (details.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: details.map((d) => Padding(padding: const EdgeInsets.only(top: 2), child: d)).toList(),
+    );
+  }
+
+  Future<void> _showShoppingCheckoffDialog(ShoppingItem item) async {
+    final purchasedByController = TextEditingController(text: item.purchasedBy ?? '');
+    final locationController = TextEditingController(text: item.location ?? '');
+    double enteredPrice = item.price;
+    DateTime selectedDate = item.purchaseDate ?? DateTime.now();
+    final currencyFmt = NumberFormat('#,###', 'id_ID');
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            final isDark = Theme.of(ctx).brightness == Brightness.dark;
+
+            return Container(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+                top: 24, left: 24, right: 24,
+              ),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(Icons.shopping_bag_outlined, color: Color(0xFF10B981), size: 24),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Konfirmasi Dibeli',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                              ),
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      item.name,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2563EB)),
+                    ),
+                    if (item.notes != null && item.notes!.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text('Catatan: ${item.notes}', style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.grey)),
+                    ],
+                    const SizedBox(height: 16),
+
+                    // Dibeli Oleh (Opsional)
+                    TextFormField(
+                      controller: purchasedByController,
+                      decoration: InputDecoration(
+                        labelText: 'Dibeli Oleh Siapa (Opsional)',
+                        hintText: 'e.g. Ibu, Ayah, Siska',
+                        filled: true,
+                        fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Tempat Membeli (Opsional)
+                    TextFormField(
+                      controller: locationController,
+                      decoration: InputDecoration(
+                        labelText: 'Tempat Membeli (Opsional)',
+                        hintText: 'e.g. Pasar Tradisional, Minimarket',
+                        filled: true,
+                        fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Harga (Opsional - Kalkulator)
+                    TextFormField(
+                      readOnly: true,
+                      controller: TextEditingController(
+                        text: enteredPrice > 0 ? currencyFmt.format(enteredPrice.toInt()) : '',
+                      ),
+                      onTap: () async {
+                        final val = await showCalculatorInputDialog(
+                          context: ctx,
+                          title: 'Input Harga Pembelian',
+                          initialValue: enteredPrice,
+                        );
+                        if (val != null) {
+                          setModalState(() {
+                            enteredPrice = val;
+                          });
+                        }
+                      },
+                      decoration: InputDecoration(
+                        labelText: 'Harga Pembelian (Opsional)',
+                        prefixText: 'Rp ',
+                        suffixIcon: const Icon(Icons.calculate, color: Color(0xFF10B981)),
+                        filled: true,
+                        fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      ),
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF10B981)),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Tanggal Pembayaran
+                    ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      title: const Text('Waktu Pembelian', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                      subtitle: Text(
+                        DateFormat('dd MMMM yyyy, HH:mm', 'id_ID').format(selectedDate),
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : Colors.black87),
+                      ),
+                      trailing: const Icon(Icons.calendar_today, color: Color(0xFF2563EB), size: 18),
+                      onTap: () async {
+                        final pDate = await showDatePicker(
+                          context: ctx,
+                          initialDate: selectedDate,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2035),
+                        );
+                        if (pDate != null && ctx.mounted) {
+                          final pTime = await showTimePicker(
+                            context: ctx,
+                            initialTime: TimeOfDay.fromDateTime(selectedDate),
+                          );
+                          final time = pTime ?? TimeOfDay.fromDateTime(selectedDate);
+                          setModalState(() {
+                            selectedDate = DateTime(pDate.year, pDate.month, pDate.day, time.hour, time.minute);
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 20),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              side: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('Batal', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.grey)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF10B981),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            onPressed: () async {
+                              item.isChecked = true;
+                              item.purchaseDate = selectedDate;
+                              item.price = enteredPrice;
+                              item.purchasedBy = purchasedByController.text.trim().isEmpty ? null : purchasedByController.text.trim();
+                              item.location = locationController.text.trim().isEmpty ? null : locationController.text.trim();
+                              item.updatedAt = DateTime.now();
+
+                              final dbService = ref.read(databaseServiceProvider);
+                              if (!kIsWeb) {
+                                await dbService.db.writeTxn(() async {
+                                  await dbService.db.shoppingItems.put(item);
+                                });
+                                ref.invalidate(shoppingItemsProvider);
+                              }
+
+                              if (ctx.mounted) Navigator.pop(ctx);
+                            },
+                            child: const Text('Konfirmasi Selesai', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildShoppingListSection(AsyncValue<List<ShoppingItem>> shoppingAsync, NumberFormat fmt, bool isDark) {
+    return shoppingAsync.when(
+      data: (items) {
+        final unpurchased = items.where((i) => !i.deleted && !i.isChecked).take(15).toList();
+        if (unpurchased.isEmpty) {
+          return _buildEmptyCard('Belum ada daftar belanjaan yang belum dibeli.');
+        }
+        return Column(
+          children: unpurchased.map((item) {
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              elevation: 0,
+              child: ListTile(
+                dense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                onTap: () {
+                  _showShoppingCheckoffDialog(item);
+                },
+                leading: Checkbox(
+                  activeColor: const Color(0xFF2563EB),
+                  value: item.isChecked,
+                  onChanged: (val) {
+                    _showShoppingCheckoffDialog(item);
+                  },
+                ),
+                title: Text(
+                  item.name,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    decoration: item.isChecked ? TextDecoration.lineThrough : null,
+                    color: item.isChecked ? Colors.grey.shade400 : (isDark ? Colors.white : const Color(0xFF1F2937)),
+                  ),
+                ),
+                subtitle: _buildShoppingItemSecondaryDetails(item, fmt, isDark),
+              ),
+            );
+          }).toList(),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+
   Widget _buildNabungSection(List<TargetDashboardInfo> targets) {
     if (targets.isEmpty) {
       return _buildEmptyCard('Belum ada target nabung.');
@@ -380,19 +705,23 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       surfaceTintColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       scrolledUnderElevation: 4,
       titleSpacing: 20,
-      title: Image.asset(
-        AppEnvironment.config.getLogoFullPath(isDark),
-        width: 140,
-        cacheWidth: 420,
-        fit: BoxFit.contain,
-        filterQuality: FilterQuality.high,
-        errorBuilder: (c, e, s) => Text(
-          AppEnvironment.config.appName,
-          style: const TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF2563EB),
-            letterSpacing: -0.5,
+      title: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6.0),
+        child: Image.asset(
+          AppEnvironment.config.getLogoFullPath(isDark),
+          width: 175,
+          height: 42,
+          cacheWidth: 525,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.high,
+          errorBuilder: (c, e, s) => Text(
+            AppEnvironment.config.appName,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF2563EB),
+              letterSpacing: -0.5,
+            ),
           ),
         ),
       ),

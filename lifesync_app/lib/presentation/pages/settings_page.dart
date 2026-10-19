@@ -57,9 +57,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Future<void> _loadVersion() async {
-    final info = await PackageInfo.fromPlatform();
     setState(() {
-      _version = 'v${info.version}+${info.buildNumber}';
+      _version = 'v2026.10.15.02.01';
     });
   }
 

@@ -160,6 +160,48 @@ class NotificationService {
     }
   }
 
+  /// Resolusi channel dan label fitur otomatis (Tagihan, Target Nabung, Pengingat Agenda, Belanja)
+  Map<String, String> _resolveFeatureDetails({
+    String? featureName,
+    required String title,
+    required String body,
+    String? sound,
+  }) {
+    final combined = '${featureName ?? ''} $title $body'.toLowerCase();
+
+    if (combined.contains('nabung') ||
+        combined.contains('target') ||
+        combined.contains('tabungan')) {
+      return {
+        'channelId': 'wattodo_target_v1',
+        'channelName': 'WATTODO Target Nabung',
+        'channelDesc': 'Notifikasi pengingat target menabung',
+        'summaryText': 'Target Nabung',
+      };
+    } else if (combined.contains('belanja')) {
+      return {
+        'channelId': 'wattodo_shopping_v1',
+        'channelName': 'WATTODO Belanja',
+        'channelDesc': 'Notifikasi catatan belanjaan',
+        'summaryText': 'Belanja',
+      };
+    } else if (combined.contains('tagihan') || sound == 'silent') {
+      return {
+        'channelId': 'wattodo_bill_v1',
+        'channelName': 'WATTODO Tagihan',
+        'channelDesc': 'Notifikasi jatuh tempo tagihan',
+        'summaryText': 'Tagihan',
+      };
+    } else {
+      return {
+        'channelId': 'wattodo_agenda_v1',
+        'channelName': 'WATTODO Pengingat Agenda',
+        'channelDesc': 'Notifikasi pengingat agenda dan kegiatan',
+        'summaryText': 'Pengingat Agenda',
+      };
+    }
+  }
+
   /// Jadwalkan satu notifikasi pengingat
   Future<bool> scheduleNotification({
     required int id,
@@ -168,6 +210,7 @@ class NotificationService {
     required DateTime scheduledTime,
     String? sound,
     String? payload,
+    String? featureName,
   }) async {
     if (kIsWeb) return false;
 
@@ -175,7 +218,7 @@ class NotificationService {
 
     final now = DateTime.now();
 
-    // Jika waktu yang dijadwalkan sudah lewat, abaikan (jangan pernah jadikan notifikasi baru atau bunyikan instan)
+    // Jika waktu yang dijadwalkan sudah lewat, abaikan
     if (scheduledTime.isBefore(now) || scheduledTime.isAtSameMomentAs(now)) {
       debugPrint('[NotifService] Skipped past/expired notification: $title at $scheduledTime');
       return false;
@@ -183,18 +226,27 @@ class NotificationService {
 
     try {
       AndroidNotificationSound? notifSound;
-      String channelId;
-      String channelName = 'LifeSync Alarm & Pengingat';
       bool playSound = true;
 
+      final feature = _resolveFeatureDetails(
+        featureName: featureName,
+        title: title,
+        body: body,
+        sound: sound,
+      );
+
+      String channelId = feature['channelId']!;
+      String channelName = feature['channelName']!;
+      String channelDesc = feature['channelDesc']!;
+      String summaryText = feature['summaryText']!;
+
       if (sound == 'silent') {
-        // Pengingat tagihan tanpa nada/ringtone
         notifSound = null;
         playSound = false;
-        channelId = 'lifesync_silent_bill_v2';
-        channelName = 'LifeSync Pengingat Tagihan (Tanpa Suara)';
+        channelId = 'wattodo_silent_v1';
+        channelName = 'WATTODO Tagihan (Tanpa Suara)';
+        summaryText = 'Tagihan';
       } else {
-        // Pengingat agenda biasa: gunakan nada alarm / kustom ber-priority tinggi
         playSound = true;
         String activeSound = sound ?? '';
         if (activeSound.isEmpty) {
@@ -204,19 +256,19 @@ class NotificationService {
 
         if (activeSound.contains('/')) {
           notifSound = UriAndroidNotificationSound('file://$activeSound');
-          channelId = 'lifesync_custom_${activeSound.hashCode}_v9';
+          channelId = '${channelId}_custom_${activeSound.hashCode}';
         } else {
           final soundName = activeSound.split('.').first;
           final validName = soundName.isEmpty ? 'notif' : soundName;
           notifSound = RawResourceAndroidNotificationSound(validName);
-          channelId = 'lifesync_${validName}_v9';
+          channelId = '${channelId}_$validName';
         }
       }
 
       final androidDetails = AndroidNotificationDetails(
         channelId,
         channelName,
-        channelDescription: 'Alarm dan Pengingat Prioritas Tinggi LifeSync',
+        channelDescription: channelDesc,
         importance: Importance.max,
         priority: Priority.max,
         sound: notifSound,
@@ -229,89 +281,67 @@ class NotificationService {
         enableVibration: true,
         ongoing: false,
         autoCancel: true,
-        styleInformation: BigTextStyleInformation(body),
+        styleInformation: BigTextStyleInformation(
+          body,
+          contentTitle: title,
+          summaryText: summaryText,
+        ),
       );
 
       final scheduledTz = tz.TZDateTime.from(scheduledTime, tz.local);
 
-      // Menggunakan alarmClock mode agar selalu tepat waktu di HP Samsung / Android 11+ Go Edition
-      await _plugin.zonedSchedule(
-        id,
-        title,
-        body,
-        scheduledTz,
-        NotificationDetails(android: androidDetails),
-        androidScheduleMode: AndroidScheduleMode.alarmClock,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-        payload: payload ?? id.toString(),
-      );
-
-      debugPrint(
-          '[NotifService] Scheduled (AlarmClock): "$title" at ${scheduledTz.toString()}');
-      return true;
-    } catch (e, stack) {
-      debugPrint('[NotifService] Schedule failed: $e\n$stack');
-
-      // Fallback: coba dengan exactAllowWhileIdle
+      // Coba berurutan: alarmClock -> exactAllowWhileIdle -> inexact
       try {
-        await _scheduleWithFallback(id, title, body, scheduledTime, sound);
+        await _plugin.zonedSchedule(
+          id,
+          title,
+          body,
+          scheduledTz,
+          NotificationDetails(android: androidDetails),
+          androidScheduleMode: AndroidScheduleMode.alarmClock,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          payload: payload ?? id.toString(),
+        );
+        debugPrint('[NotifService] Scheduled (alarmClock): "$title" at $scheduledTz ($summaryText)');
         return true;
-      } catch (e2) {
-        debugPrint('[NotifService] Fallback also failed: $e2');
-        return false;
+      } catch (e) {
+        debugPrint('[NotifService] alarmClock failed: $e, mencoba exactAllowWhileIdle...');
+        try {
+          await _plugin.zonedSchedule(
+            id,
+            title,
+            body,
+            scheduledTz,
+            NotificationDetails(android: androidDetails),
+            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+            uiLocalNotificationDateInterpretation:
+                UILocalNotificationDateInterpretation.absoluteTime,
+            payload: payload ?? id.toString(),
+          );
+          debugPrint('[NotifService] Scheduled (exactAllowWhileIdle): "$title" at $scheduledTz ($summaryText)');
+          return true;
+        } catch (e2) {
+          debugPrint('[NotifService] exactAllowWhileIdle failed: $e2, fallback ke inexact...');
+          await _plugin.zonedSchedule(
+            id,
+            title,
+            body,
+            scheduledTz,
+            NotificationDetails(android: androidDetails),
+            androidScheduleMode: AndroidScheduleMode.inexact,
+            uiLocalNotificationDateInterpretation:
+                UILocalNotificationDateInterpretation.absoluteTime,
+            payload: payload ?? id.toString(),
+          );
+          debugPrint('[NotifService] Scheduled (inexact): "$title" at $scheduledTz ($summaryText)');
+          return true;
+        }
       }
+    } catch (e, stack) {
+      debugPrint('[NotifService] Schedule completely failed: $e\n$stack');
+      return false;
     }
-  }
-
-  /// Fallback
-  Future<void> _scheduleWithFallback(
-    int id,
-    String title,
-    String body,
-    DateTime scheduledTime,
-    String? sound,
-  ) async {
-    String activeSound = sound ?? '';
-    if (activeSound.isEmpty) {
-      final prefs = await SharedPreferences.getInstance();
-      activeSound = prefs.getString('default_reminder_sound') ?? 'notif.mp3';
-    }
-
-    AndroidNotificationSound? notifSound;
-    if (activeSound.contains('/')) {
-      notifSound = UriAndroidNotificationSound('file://$activeSound');
-    } else {
-      notifSound = RawResourceAndroidNotificationSound(activeSound.split('.').first);
-    }
-
-    final androidDetails = AndroidNotificationDetails(
-      'lifesync_fallback_v8',
-      'LifeSync Reminders & Alarm',
-      importance: Importance.max,
-      priority: Priority.high,
-      fullScreenIntent: true,
-      sound: notifSound,
-      audioAttributesUsage: AudioAttributesUsage.alarm,
-      category: AndroidNotificationCategory.alarm,
-      visibility: NotificationVisibility.public,
-      playSound: true,
-      enableVibration: true,
-    );
-
-    final scheduledTz = tz.TZDateTime.from(scheduledTime, tz.local);
-
-    await _plugin.zonedSchedule(
-      id,
-      title,
-      body,
-      scheduledTz,
-      NotificationDetails(android: androidDetails),
-      androidScheduleMode: AndroidScheduleMode.alarmClock,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-    );
-    debugPrint('[NotifService] Scheduled with fallback (alarmClock mode)');
   }
 
   Future<void> cancelNotification(int id) async {
@@ -326,20 +356,27 @@ class NotificationService {
     debugPrint('[NotifService] All notifications cancelled');
   }
 
-  /// Tampilkan notifikasi sistem untuk tagihan (muncul di status bar HP)
+  /// Tampilkan notifikasi sistem status bar HP sesuai fitur (Nabung, Tagihan, Agenda, Belanja)
   Future<void> showSystemNotification({
     required int id,
     required String title,
     required String body,
     String? payload,
+    String? featureName,
   }) async {
     if (kIsWeb) return;
     if (!_initialized) await init();
 
+    final feature = _resolveFeatureDetails(
+      featureName: featureName,
+      title: title,
+      body: body,
+    );
+
     final androidDetails = AndroidNotificationDetails(
-      'lifesync_bill_system_v2',
-      'LifeSync Tagihan Sistem',
-      channelDescription: 'Notifikasi sistem untuk tagihan jatuh tempo',
+      feature['channelId']!,
+      feature['channelName']!,
+      channelDescription: feature['channelDesc']!,
       importance: Importance.max,
       priority: Priority.high,
       playSound: false,
@@ -347,7 +384,7 @@ class NotificationService {
       styleInformation: BigTextStyleInformation(
         body,
         contentTitle: title,
-        summaryText: 'Tagihan LifeSync',
+        summaryText: feature['summaryText']!,
       ),
     );
 
@@ -358,7 +395,7 @@ class NotificationService {
       NotificationDetails(android: androidDetails),
       payload: payload ?? id.toString(),
     );
-    debugPrint('[NotifService] Posted system notification: $title');
+    debugPrint('[NotifService] Posted system notification: $title (${feature['summaryText']})');
   }
 
   /// Tampilkan notifikasi langsung sekarang
@@ -366,9 +403,17 @@ class NotificationService {
     required String title,
     required String body,
     String? sound,
+    String? featureName,
   }) async {
     if (kIsWeb) return;
     if (!_initialized) await init();
+
+    final feature = _resolveFeatureDetails(
+      featureName: featureName,
+      title: title,
+      body: body,
+      sound: sound,
+    );
 
     String activeSound = sound ?? '';
     if (activeSound.isEmpty) {
@@ -377,23 +422,31 @@ class NotificationService {
     }
 
     AndroidNotificationSound? notifSound;
-    String channelId = 'lifesync_test_v8';
+    String channelId = feature['channelId']!;
     if (activeSound.contains('/')) {
       notifSound = UriAndroidNotificationSound('file://$activeSound');
-      channelId = 'lifesync_test_custom_${activeSound.hashCode}_v8';
+      channelId = '${channelId}_custom_${activeSound.hashCode}';
     } else {
-      notifSound = RawResourceAndroidNotificationSound(activeSound.split('.').first);
-      channelId = 'lifesync_test_${activeSound.split('.').first}_v8';
+      final soundName = activeSound.split('.').first;
+      final validName = soundName.isEmpty ? 'notif' : soundName;
+      notifSound = RawResourceAndroidNotificationSound(validName);
+      channelId = '${channelId}_$validName';
     }
 
     final androidDetails = AndroidNotificationDetails(
       channelId,
-      'LifeSync Test',
+      feature['channelName']!,
+      channelDescription: feature['channelDesc']!,
       importance: Importance.max,
       priority: Priority.high,
       sound: notifSound,
       playSound: true,
       enableVibration: true,
+      styleInformation: BigTextStyleInformation(
+        body,
+        contentTitle: title,
+        summaryText: feature['summaryText']!,
+      ),
     );
 
     await _plugin.show(
@@ -402,7 +455,7 @@ class NotificationService {
       body,
       NotificationDetails(android: androidDetails),
     );
-    debugPrint('[NotifService] Showed immediate notification with custom sound ($activeSound)');
+    debugPrint('[NotifService] Showed immediate notification: $title (${feature['summaryText']})');
   }
 
   /// Ambil semua notifikasi yang masih dijadwalkan

@@ -86,19 +86,23 @@ class TargetsPage extends ConsumerWidget {
       surfaceTintColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       scrolledUnderElevation: 4,
       titleSpacing: 20,
-      title: Image.asset(
-        AppEnvironment.config.getLogoFullPath(isDark),
-        width: 140,
-        cacheWidth: 420,
-        fit: BoxFit.contain,
-        filterQuality: FilterQuality.high,
-        errorBuilder: (c, e, s) => Text(
-          AppEnvironment.config.appName,
-          style: const TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF2563EB),
-            letterSpacing: -0.5,
+      title: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6.0),
+        child: Image.asset(
+          AppEnvironment.config.getLogoFullPath(isDark),
+          width: 175,
+          height: 42,
+          cacheWidth: 525,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.high,
+          errorBuilder: (c, e, s) => Text(
+            AppEnvironment.config.appName,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF2563EB),
+              letterSpacing: -0.5,
+            ),
           ),
         ),
       ),

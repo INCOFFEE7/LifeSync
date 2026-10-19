@@ -9,7 +9,7 @@ import 'package:lifesync_app/core/notifications/notification_rescheduler.dart';
 import 'package:lifesync_app/core/providers/core_providers.dart';
 import 'package:lifesync_app/core/theme/app_theme.dart';
 import 'package:lifesync_app/presentation/screens/beebee_splash_screen.dart';
-import 'package:lifesync_app/presentation/screens/lifesync_splash_screen.dart';
+import 'package:lifesync_app/presentation/screens/animated_splash_screen.dart';
 import 'package:lifesync_app/core/services/home_widget_service.dart';
 import 'package:lifesync_app/core/services/midnight_sync_service.dart';
 import 'package:lifesync_app/core/sync/background_sync.dart';
@@ -26,11 +26,11 @@ void main() async {
   } else {
     AppEnvironment.setup(AppConfig(
       variant: AppVariant.lifesync,
-      appName: 'LifeHaven',
-      logoPath: 'assets/images/LifeHavenApk.png',
-      logoFullPath: 'assets/images/LifeHavenFull.png',
-      logoDarkPath: 'assets/images/LifeHavenDarkBG.png',
-      logoDarkFullPath: 'assets/images/LifeHavenDarkBG.png',
+      appName: 'What To Do',
+      logoPath: 'assets/images/WhatToDoAppLogo.png',
+      logoFullPath: 'assets/images/WhatToDoHorizontalLockup.png',
+      logoDarkPath: 'assets/images/WhatToDoAppLogo.png',
+      logoDarkFullPath: 'assets/images/WhatToDoHorizontalLockup.png',
       lightTheme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       enabledModules: ['finance_tracker', 'goals_tracker', 'reminders'],
@@ -126,7 +126,7 @@ class LifeSyncApp extends ConsumerWidget {
       ],
       home: AppEnvironment.config.variant == AppVariant.beebee 
           ? const BeebeeSplashScreen() 
-          : const LifeHavenSplashScreen(),
+          : const AnimatedSplashScreen(),
     );
   }
 }

@@ -36,7 +36,7 @@ class FastingHistoryPage extends ConsumerWidget {
               width: 120,
               fit: BoxFit.contain,
               filterQuality: FilterQuality.high,
-              errorBuilder: (c, e, s) => const Text('BeeNest', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFE91E8C))),
+              errorBuilder: (c, e, s) => const Text('BeeHappy', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFE91E8C))),
             ),
             const Text(
               "Beebee's little private space.",
@@ -206,6 +206,9 @@ class FastingHistoryPage extends ConsumerWidget {
 
                                     if (confirm == true) {
                                       await ref.read(fastingRepositoryProvider).deleteQadha(record.id);
+                                      ref.invalidate(fastingDebtsProvider);
+                                      ref.invalidate(qadhaRecordsProvider);
+                                      ref.invalidate(totalFastingDebtSummaryProvider);
                                     }
                                   },
                                 ),
@@ -360,6 +363,9 @@ class FastingHistoryPage extends ConsumerWidget {
 
                                         if (confirm == true) {
                                           await ref.read(fastingRepositoryProvider).deleteDebt(debt.id);
+                                          ref.invalidate(fastingDebtsProvider);
+                                          ref.invalidate(qadhaRecordsProvider);
+                                          ref.invalidate(totalFastingDebtSummaryProvider);
                                         }
                                       },
                                     ),
@@ -470,6 +476,9 @@ class FastingHistoryPage extends ConsumerWidget {
                   record.date = date;
                   record.notes = notes;
                   await ref.read(fastingRepositoryProvider).updateQadha(record);
+                  ref.invalidate(fastingDebtsProvider);
+                  ref.invalidate(qadhaRecordsProvider);
+                  ref.invalidate(totalFastingDebtSummaryProvider);
                   if (context.mounted) Navigator.pop(c);
                 },
                 child: Text(AppTranslations.get(lang, 'simpan')),
@@ -529,6 +538,9 @@ class FastingHistoryPage extends ConsumerWidget {
                   debt.currentDebt = currentDebt;
                   debt.reason = reason;
                   await ref.read(fastingRepositoryProvider).updateDebt(debt);
+                  ref.invalidate(fastingDebtsProvider);
+                  ref.invalidate(qadhaRecordsProvider);
+                  ref.invalidate(totalFastingDebtSummaryProvider);
                   if (context.mounted) Navigator.pop(c);
                 },
                 child: Text(AppTranslations.get(lang, 'simpan')),

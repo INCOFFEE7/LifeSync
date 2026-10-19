@@ -33,7 +33,7 @@ class BeebeeDashboardPage extends ConsumerWidget {
               cacheWidth: 390,
               fit: BoxFit.contain,
               filterQuality: FilterQuality.high,
-              errorBuilder: (c, e, s) => const Text('BeeNest', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFE91E8C))),
+              errorBuilder: (c, e, s) => const Text('BeeHappy', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFE91E8C))),
             ),
             const Text(
               "Beebee's little private space.",

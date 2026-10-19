@@ -30,11 +30,29 @@ class Reminder {
     return endTime ?? targetDateTime.add(const Duration(hours: 1));
   }
 
+  @ignore
+  bool get isRange {
+    final start = DateTime(targetDateTime.year, targetDateTime.month, targetDateTime.day);
+    final end = DateTime(effectiveEndTime.year, effectiveEndTime.month, effectiveEndTime.day);
+    return end.isAfter(start);
+  }
+
   // Getter untuk menghitung status secara real-time berdasarkan waktu lokal perangkat
   @ignore
   String get realtimeStatus {
     final now = DateTime.now();
     final end = effectiveEndTime;
+    if (status == ReminderStatus.completed) {
+      return 'Selesai';
+    }
+    if (isRange) {
+      // Agenda dengan rentang waktu: aktif sampai user menekan tombol Agenda Selesai
+      if (now.isBefore(targetDateTime)) {
+        return 'Akan Datang';
+      }
+      return 'Sedang Berjalan';
+    }
+    // Agenda satu hari: otomatis selesai jika harinya/waktunya sudah berlalu
     if (now.isBefore(targetDateTime)) {
       return 'Akan Datang';
     } else if (now.isBefore(end)) {

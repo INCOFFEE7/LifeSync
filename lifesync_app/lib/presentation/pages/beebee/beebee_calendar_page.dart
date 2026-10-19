@@ -43,7 +43,7 @@ class _BeebeeCalendarPageState extends ConsumerState<BeebeeCalendarPage> {
                 width: 120,
                 fit: BoxFit.contain,
                 filterQuality: FilterQuality.high,
-                errorBuilder: (c, e, s) => const Text('BeeNest', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFE91E8C))),
+                errorBuilder: (c, e, s) => const Text('BeeHappy', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFE91E8C))),
               ),
               const Text(
                 "Beebee's little private space.",
@@ -375,6 +375,10 @@ class _BeebeeCalendarPageState extends ConsumerState<BeebeeCalendarPage> {
 
                             if (confirm == true) {
                               await ref.read(menstruationRepositoryProvider).deleteRecord(record.id);
+                              ref.invalidate(menstruationRecordsProvider);
+                              ref.invalidate(menstrualStatsProvider);
+                              ref.invalidate(fastingDebtsProvider);
+                              ref.invalidate(totalFastingDebtSummaryProvider);
                             }
                           },
                         ),
@@ -507,6 +511,10 @@ class _BeebeeCalendarPageState extends ConsumerState<BeebeeCalendarPage> {
                   record.isRamadan = isRamadan;
                   record.notes = notes;
                   await ref.read(menstruationRepositoryProvider).updateRecord(record);
+                  ref.invalidate(menstruationRecordsProvider);
+                  ref.invalidate(menstrualStatsProvider);
+                  ref.invalidate(fastingDebtsProvider);
+                  ref.invalidate(totalFastingDebtSummaryProvider);
                   if (context.mounted) Navigator.pop(c);
                 },
                 child: Text(AppTranslations.get(lang, 'simpan')),

@@ -72,6 +72,10 @@ class _AddQadhaPageState extends ConsumerState<AddQadhaPage> {
       final repo = ref.read(fastingRepositoryProvider);
       await repo.saveQadha(record);
 
+      ref.invalidate(fastingDebtsProvider);
+      ref.invalidate(qadhaRecordsProvider);
+      ref.invalidate(totalFastingDebtSummaryProvider);
+
       if (mounted) Navigator.pop(context);
     } else if (_selectedDebt == null) {
       ScaffoldMessenger.of(context).showSnackBar(

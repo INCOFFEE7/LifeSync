@@ -28,11 +28,14 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
   Timer? _dueCheckTimer;
   final Set<int> _triggeredPopupIds = {};
 
-  final List<Widget> _pages = [
+  final GlobalKey<State<FinancialRecordsHomePage>> _financialPageKey = GlobalKey();
+  final GlobalKey<State<RemindersPage>> _remindersPageKey = GlobalKey();
+
+  late final List<Widget> _pages = [
     const DashboardPage(),
-    const FinancialRecordsHomePage(),
+    FinancialRecordsHomePage(key: _financialPageKey),
     const TargetsPage(),
-    const RemindersPage(),
+    RemindersPage(key: _remindersPageKey),
   ];
 
   @override
@@ -72,33 +75,10 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
 
   Future<void> _checkDueItems() async {
     try {
-      final reminders = await ref.read(reminderRepositoryProvider).getAllReminders();
       final now = DateTime.now();
 
-      for (var r in reminders) {
-        if (!r.deleted && r.realtimeStatus == 'Sedang Berjalan') {
-          if (!_triggeredPopupIds.contains(r.id)) {
-            _triggeredPopupIds.add(r.id);
-            final notifId = r.id.hashCode & 0x7FFFFFFF;
-
-            NotificationService().triggerInAppPopup({
-              'id': r.id,
-              'title': r.title,
-              'body': r.description ?? 'Agenda Anda sedang berlangsung.',
-              'startTime': r.targetDateTime.toIso8601String(),
-              'endTime': r.effectiveEndTime.toIso8601String(),
-              'type': 'reminder',
-            });
-
-            NotificationService().showSystemNotification(
-              id: notifId,
-              title: 'Pengingat Agenda: ${r.title}',
-              body: 'Agenda Anda sedang berlangsung saat ini.',
-            );
-          }
-        }
-      }
-
+      // Agenda: Notifikasi mengikuti alarm yang telah dijadwalkan (zonedSchedule), tidak perlu spam notif instan saat sedang berjalan
+      // Hanya biarkan target dan shopping yang memiliki periodic reminder di foreground
       final targets = await ref.read(targetRepositoryProvider).getAllTargets();
       for (var t in targets) {
         if (!t.deleted && t.mode == 'fixed' && t.fixedDailyAmount > 0) {
@@ -122,6 +102,7 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
                 id: notifId,
                 title: 'Belum Nabung Hari Ini',
                 body: 'Jangan lupa menyelesaikan tabungan ${t.name} hari ini.',
+                featureName: 'Target Nabung',
               );
             }
           }
@@ -243,6 +224,17 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
   }
 
   void _onTabTapped(int index) {
+    if (index == 1) {
+      final state = _financialPageKey.currentState;
+      if (state != null) {
+        (state as dynamic).resetToToday();
+      }
+    } else if (index == 3) {
+      final state = _remindersPageKey.currentState;
+      if (state != null) {
+        (state as dynamic).resetToDashboard();
+      }
+    }
     setState(() {
       _currentIndex = index;
     });

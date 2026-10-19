@@ -193,7 +193,7 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
           children: [
             TextFormField(
               initialValue: _name,
-              decoration: _inputDecoration('Nama Tagihan (e.g. Listrik, Internet, Air)'),
+              decoration: _inputDecoration('Nama Tagihan * (e.g. Listrik, Internet, Air)'),
               style: const TextStyle(fontWeight: FontWeight.bold),
               validator: (val) => val == null || val.trim().isEmpty ? 'Nama tagihan wajib diisi' : null,
               onSaved: (val) => _name = val!,
@@ -215,7 +215,7 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
                   });
                 }
               },
-              decoration: _inputDecoration('Nominal Rencana Tagihan (Rp)').copyWith(
+              decoration: _inputDecoration('Nominal Rencana Tagihan * (Rp)').copyWith(
                 prefixText: 'Rp ',
                 suffixIcon: const Icon(Icons.calculate, color: Color(0xFF2563EB)),
               ),

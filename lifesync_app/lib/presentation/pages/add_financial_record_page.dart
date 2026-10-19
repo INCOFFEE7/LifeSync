@@ -146,7 +146,7 @@ class _AddFinancialRecordPageState extends ConsumerState<AddFinancialRecordPage>
     try {
       String sanitized = expr.replaceAll('×', '*').replaceAll('÷', '/');
       // Simple parse for sequential expressions
-      final tokens = RegExp(r'(\d+(?:\.\d+)?|[+\-*/])').allMatches(sanitized).map((m) => m.group(0)!).toList();
+      final tokens = RegExp(r'(-?\d+(?:\.\d+)?|[+\-*/])').allMatches(sanitized).map((m) => m.group(0)!).toList();
       if (tokens.isEmpty) return 0.0;
 
       double total = double.tryParse(tokens[0]) ?? 0.0;
@@ -158,7 +158,7 @@ class _AddFinancialRecordPageState extends ConsumerState<AddFinancialRecordPage>
         else if (op == '*') total *= nextNum;
         else if (op == '/' && nextNum != 0) total /= nextNum;
       }
-      return total.clamp(0.0, 999999999999.0);
+      return total.clamp(-999999999999.0, 999999999999.0);
     } catch (_) {
       return double.tryParse(expr.replaceAll(RegExp(r'[^\d.]'), '')) ?? 0.0;
     }
@@ -169,6 +169,7 @@ class _AddFinancialRecordPageState extends ConsumerState<AddFinancialRecordPage>
   String get _formattedAmount {
     final val = _amountValue.toInt();
     if (val == 0 && _calcExpression == '0') return 'Rp 0';
+    if (val < 0) return '-Rp ${_currencyFormatter.format(val.abs())}';
     return 'Rp ${_currencyFormatter.format(val)}';
   }
 

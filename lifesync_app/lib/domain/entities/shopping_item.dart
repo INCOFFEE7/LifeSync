@@ -15,7 +15,9 @@ class ShoppingItem {
   DateTime? purchaseDate;
   double price = 0.0;
 
-  // List barang-barang di dalam catatan belanjaan (JSON encoded string item)
+  String? purchasedBy;
+  String? location;
+
   List<String> itemsList = [];
 
   String? notes;

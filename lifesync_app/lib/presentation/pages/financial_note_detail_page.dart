@@ -21,21 +21,62 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
   // ── Helper: Evaluate expression string to double ──────────────────────────
   double _evaluateExpr(String expr) {
     try {
-      String sanitized = expr.replaceAll('×', '*').replaceAll('÷', '/');
-      final tokens = RegExp(r'(\d+(?:\.\d+)?|[+\-*/])').allMatches(sanitized).map((m) => m.group(0)!).toList();
+      String sanitized = expr.replaceAll('×', '*').replaceAll('÷', '/').replaceAll(' ', '');
+      if (sanitized.isEmpty) return 0.0;
+
+      List<String> tokens = [];
+      String currentNum = '';
+
+      for (int i = 0; i < sanitized.length; i++) {
+        String char = sanitized[i];
+        if (char == '+' || char == '×' || char == '*' || char == '÷' || char == '/') {
+          if (currentNum.isNotEmpty) {
+            tokens.add(currentNum);
+            currentNum = '';
+          }
+          tokens.add(char);
+        } else if (char == '-') {
+          if (currentNum.isEmpty && (tokens.isEmpty || tokens.last == '+' || tokens.last == '-' || tokens.last == '*' || tokens.last == '/')) {
+            currentNum += char;
+          } else {
+            if (currentNum.isNotEmpty) {
+              tokens.add(currentNum);
+              currentNum = '';
+            }
+            tokens.add('-');
+          }
+        } else {
+          currentNum += char;
+        }
+      }
+      if (currentNum.isNotEmpty) {
+        tokens.add(currentNum);
+      }
+
       if (tokens.isEmpty) return 0.0;
-      double total = double.tryParse(tokens[0]) ?? 0.0;
+
       for (int i = 1; i < tokens.length - 1; i += 2) {
-        final op = tokens[i];
-        final nextNum = double.tryParse(tokens[i + 1]) ?? 0.0;
+        if (tokens[i] == '*' || tokens[i] == '/') {
+          double left = double.parse(tokens[i - 1]);
+          double right = double.parse(tokens[i + 1]);
+          double res = tokens[i] == '*' ? (left * right) : (right == 0 ? 0 : left / right);
+          tokens[i - 1] = res.toString();
+          tokens.removeAt(i);
+          tokens.removeAt(i);
+          i -= 2;
+        }
+      }
+
+      double total = double.parse(tokens[0]);
+      for (int i = 1; i < tokens.length - 1; i += 2) {
+        String op = tokens[i];
+        double nextNum = double.parse(tokens[i + 1]);
         if (op == '+') total += nextNum;
         else if (op == '-') total -= nextNum;
-        else if (op == '*') total *= nextNum;
-        else if (op == '/' && nextNum != 0) total /= nextNum;
       }
-      return total.clamp(0.0, 999999999999.0);
+      return total;
     } catch (_) {
-      return double.tryParse(expr.replaceAll(RegExp(r'[^\d.]'), '')) ?? 0.0;
+      return double.tryParse(expr.replaceAll(RegExp(r'[^\d.-]'), '')) ?? 0.0;
     }
   }
 
@@ -45,13 +86,16 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
 
   String _formatCurrency(double val) {
     final fmt = NumberFormat('#,###', 'id_ID');
-    return val == 0 ? 'Rp 0' : 'Rp ${fmt.format(val.toInt())}';
+    if (val == 0) return 'Rp 0';
+    if (val < 0) return '-Rp ${fmt.format(val.abs().toInt())}';
+    return 'Rp ${fmt.format(val.toInt())}';
   }
 
   void _showQuickAddItemDialog(int noteId) {
     final descController = TextEditingController();
     String calcExpr = '0';
     String type = 'expense';
+    DateTime itemTimestamp = DateTime.now();
     bool showKeypad = false;
 
     showModalBottomSheet(
@@ -113,7 +157,7 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text('Quick Add Item', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A))),
+                    Text('Tambah Item Transaksi', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A))),
                     const SizedBox(height: 16),
                     Row(
                       children: [
@@ -143,11 +187,39 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                       controller: descController,
                       onTap: () { if (showKeypad) setModalState(() => showKeypad = false); },
                       decoration: InputDecoration(
-                        labelText: 'Nama Item Transaksi',
+                        labelText: 'Nama Item Transaksi *',
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Waktu Transaksi Item', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                      subtitle: Text(
+                        DateFormat('dd MMMM yyyy, HH:mm', 'id_ID').format(itemTimestamp),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                      trailing: const Icon(Icons.access_time_filled, color: Color(0xFF2563EB), size: 20),
+                      onTap: () async {
+                        final pickedDate = await showDatePicker(
+                          context: context,
+                          initialDate: itemTimestamp,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2035),
+                        );
+                        if (pickedDate != null && mounted) {
+                          final pickedTime = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.fromDateTime(itemTimestamp),
+                          );
+                          final time = pickedTime ?? TimeOfDay.fromDateTime(itemTimestamp);
+                          setModalState(() {
+                            itemTimestamp = DateTime(pickedDate.year, pickedDate.month, pickedDate.day, time.hour, time.minute);
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
                     GestureDetector(
                       onTap: () {
                         FocusScope.of(context).unfocus();
@@ -195,13 +267,26 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                       onPressed: () async {
                         final desc = descController.text.trim();
                         final finalVal = _evaluateExpr(calcExpr);
-                        if (desc.isEmpty || finalVal <= 0) return;
+                        if (desc.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Nama item transaksi wajib diisi!')),
+                          );
+                          return;
+                        }
+                        if (finalVal <= 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Nominal transaksi harus lebih dari 0!')),
+                          );
+                          return;
+                        }
 
                         final item = FinancialItem()
                           ..noteId = noteId
                           ..description = desc
                           ..amount = finalVal
-                          ..type = type;
+                          ..type = type
+                          ..createdAt = itemTimestamp
+                          ..updatedAt = DateTime.now();
 
                         await ref.read(financialNotesNotifierProvider.notifier).addItemToNote(item);
                         if (mounted) Navigator.pop(ctx);
@@ -312,7 +397,7 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                                   const Icon(Icons.calendar_today, size: 16, color: Color(0xFF2563EB)),
                                   const SizedBox(width: 8),
                                   Text(
-                                    DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(note.date),
+                                    DateFormat('EEEE, d MMMM yyyy, HH:mm', 'id_ID').format(note.date),
                                     style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? Colors.white70 : Colors.black87),
                                   ),
                                 ],
@@ -348,7 +433,7 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('Daftar Transaksi', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            Text('Daftar Transaksi (${items.length})', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                             ElevatedButton.icon(
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF2563EB),
@@ -356,7 +441,7 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                               ),
                               onPressed: () => _showQuickAddItemDialog(note.id),
                               icon: const Icon(Icons.add, color: Colors.white, size: 18),
-                              label: const Text('Tambah Item', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              label: const Text('Tambah Transaksi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                             ),
                           ],
                         ),
@@ -377,12 +462,12 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             itemCount: items.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 10),
+                            separatorBuilder: (_, __) => const SizedBox(height: 8),
                             itemBuilder: (ctx, idx) {
                               final item = items[idx];
                               final isIncome = item.type == 'income';
                               return Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                                 decoration: BoxDecoration(
                                   color: isDark ? const Color(0xFF1E293B) : Colors.white,
                                   borderRadius: BorderRadius.circular(14),
@@ -390,26 +475,36 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                                 child: Row(
                                   children: [
                                     CircleAvatar(
-                                      radius: 18,
+                                      radius: 16,
                                       backgroundColor: isIncome ? const Color(0xFF10B981).withAlpha(30) : const Color(0xFFEF4444).withAlpha(30),
                                       child: Icon(
                                         isIncome ? Icons.arrow_downward : Icons.arrow_upward,
                                         color: isIncome ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-                                        size: 18,
+                                        size: 16,
                                       ),
                                     ),
-                                    const SizedBox(width: 14),
+                                    const SizedBox(width: 12),
                                     Expanded(
-                                      child: Text(
-                                        item.description,
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            item.description,
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(item.createdAt),
+                                            style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                     Text(
                                       '${isIncome ? '+' : '-'} Rp ${currencyFmt.format(item.amount.toInt())}',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 15,
+                                        fontSize: 14,
                                         color: isIncome ? const Color(0xFF10B981) : const Color(0xFFEF4444),
                                       ),
                                     ),

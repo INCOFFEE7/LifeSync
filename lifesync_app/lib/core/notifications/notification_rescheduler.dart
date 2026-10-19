@@ -52,9 +52,12 @@ class NotificationRescheduler {
       int cancelled = 0;
 
       for (final reminder in allReminders) {
+        // Clamp ke int32 — Android notification ID harus int32
+        final notifId = reminder.id & 0x7FFFFFFF;
+
         // Jika sudah dihapus, selesai, atau waktu target/end sudah lewat -> PASTIKAN dibatalkan
         if (reminder.deleted || reminder.realtimeStatus == 'Selesai' || reminder.effectiveEndTime.isBefore(now)) {
-          await _notifService.cancelNotification(reminder.id);
+          await _notifService.cancelNotification(notifId);
           cancelled++;
           continue;
         }
@@ -75,11 +78,16 @@ class NotificationRescheduler {
           );
         }
 
-        // Jika waktu notifikasi sudah lewat -> batalkan dan jangan jadwalkan
+        // Jika waktu notifikasi offset sudah lewat:
         if (scheduledTime.isBefore(now)) {
-          await _notifService.cancelNotification(reminder.id);
-          cancelled++;
-          continue;
+          if (reminder.targetDateTime.isAfter(now)) {
+            // Fallback: jadwalkan tepat pada waktu mulai agenda
+            scheduledTime = reminder.targetDateTime;
+          } else {
+            await _notifService.cancelNotification(notifId);
+            cancelled++;
+            continue;
+          }
         }
 
         final sound = (reminder.customSound?.isNotEmpty == true)
@@ -95,13 +103,18 @@ class NotificationRescheduler {
           'type': 'reminder',
         });
 
+        final body = (reminder.description != null && reminder.description!.trim().isNotEmpty)
+            ? reminder.description!.trim()
+            : _buildBody(reminder);
+
         final success = await _notifService.scheduleNotification(
-          id: reminder.id,
-          title: 'LifeHaven: ${reminder.title}',
-          body: _buildBody(reminder),
+          id: notifId,
+          title: reminder.title,
+          body: body,
           scheduledTime: scheduledTime,
           sound: sound,
           payload: payload,
+          featureName: 'Pengingat Agenda',
         );
 
         if (success) scheduled++;

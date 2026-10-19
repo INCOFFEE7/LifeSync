@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:lifesync_app/domain/entities/bill.dart';
@@ -83,7 +83,6 @@ class _BillsPageState extends ConsumerState<BillsPage> {
     final isPaid = bill.isPaid;
 
     if (!isPaid) {
-      // PROSES BAYAR TAGIHAN
       double enteredRealization = bill.amount;
       DateTime selectedPaymentDate = DateTime.now();
       final notesController = TextEditingController();
@@ -99,233 +98,269 @@ class _BillsPageState extends ConsumerState<BillsPage> {
               final isDark = Theme.of(ctx).brightness == Brightness.dark;
               final diff = enteredRealization - bill.amount;
 
+              Color diffColor;
+              IconData diffIcon;
+              String diffLabel;
+              Color diffBgColor;
+              Color diffBorderColor;
+
+              if (diff < 0) {
+                diffColor = const Color(0xFFD97706);
+                diffBgColor = const Color(0xFFFFFBEB);
+                diffBorderColor = const Color(0xFFFCD34D);
+                diffIcon = Icons.warning_amber_rounded;
+                diffLabel = 'Kurang: Rp ${currencyFmt.format(diff.abs().toInt())}';
+              } else if (diff > 0) {
+                diffColor = const Color(0xFF2563EB);
+                diffBgColor = const Color(0xFFEFF6FF);
+                diffBorderColor = const Color(0xFF93C5FD);
+                diffIcon = Icons.trending_up_rounded;
+                diffLabel = 'Kelebihan: Rp ${currencyFmt.format(diff.toInt())}';
+              } else {
+                diffColor = const Color(0xFF10B981);
+                diffBgColor = const Color(0xFFF0FDF4);
+                diffBorderColor = const Color(0xFF86EFAC);
+                diffIcon = Icons.check_circle_outline_rounded;
+                diffLabel = 'Sesuai Rencana';
+              }
+
               return Container(
                 padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-                  top: 24, left: 24, right: 24,
+                  bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+                  top: 8,
                 ),
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
                 ),
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF10B981).withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Icon(Icons.payments_outlined, color: Color(0xFF10B981), size: 24),
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                'Bayar: ${bill.name}',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
-                                ),
-                              ),
-                            ],
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 20),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(2),
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.close),
-                            onPressed: () => Navigator.pop(ctx, false),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: Colors.grey.shade300),
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Text('Nominal Rencana Tagihan:', style: TextStyle(fontSize: 13, color: isDark ? Colors.white60 : Colors.grey.shade600, fontWeight: FontWeight.w600)),
-                            Text('Rp ${currencyFmt.format(bill.amount.toInt())}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF2563EB))),
+                            // Header
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF10B981).withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(Icons.payments_rounded, color: Color(0xFF10B981), size: 22),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Konfirmasi Pembayaran',
+                                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.grey.shade500, letterSpacing: 0.5),
+                                      ),
+                                      Text(
+                                        bill.name,
+                                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: Icon(Icons.close, color: Colors.grey.shade400),
+                                  onPressed: () => Navigator.pop(ctx, false),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+
+                            // Nominal Rencana
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: isDark ? Colors.white12 : Colors.grey.shade200),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Nominal Rencana', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: isDark ? Colors.white60 : Colors.grey.shade600)),
+                                  Text('Rp ${currencyFmt.format(bill.amount.toInt())}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF2563EB))),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Input Realisasi (tappable, live update via setDialogState)
+                            GestureDetector(
+                              onTap: () async {
+                                final val = await showCalculatorInputDialog(
+                                  context: ctx,
+                                  title: 'Input Realisasi Pembayaran',
+                                  initialValue: enteredRealization,
+                                );
+                                if (val != null && val >= 0) {
+                                  setDialogState(() => enteredRealization = val);
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF0F172A) : Colors.white,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: const Color(0xFF10B981).withOpacity(0.5), width: 1.5),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Nominal Realisasi', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.grey.shade500, letterSpacing: 0.3)),
+                                          const SizedBox(height: 4),
+                                          Text('Rp ${currencyFmt.format(enteredRealization.toInt())}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
+                                        ],
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(color: const Color(0xFF10B981).withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                                      child: const Icon(Icons.calculate_rounded, color: Color(0xFF10B981), size: 20),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+
+                            // Badge Kurang / Lebih / Sesuai — live
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              decoration: BoxDecoration(color: diffBgColor, borderRadius: BorderRadius.circular(12), border: Border.all(color: diffBorderColor)),
+                              child: Row(
+                                children: [
+                                  Icon(diffIcon, color: diffColor, size: 18),
+                                  const SizedBox(width: 8),
+                                  Text(diffLabel, style: TextStyle(color: diffColor, fontWeight: FontWeight.bold, fontSize: 13)),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Tanggal Pembayaran
+                            GestureDetector(
+                              onTap: () async {
+                                final pDate = await showDatePicker(context: ctx, initialDate: selectedPaymentDate, firstDate: DateTime(2020), lastDate: DateTime(2035));
+                                if (pDate != null && ctx.mounted) {
+                                  final pTime = await showTimePicker(context: ctx, initialTime: TimeOfDay.fromDateTime(selectedPaymentDate));
+                                  final time = pTime ?? TimeOfDay.fromDateTime(selectedPaymentDate);
+                                  setDialogState(() {
+                                    selectedPaymentDate = DateTime(pDate.year, pDate.month, pDate.day, time.hour, time.minute);
+                                  });
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: isDark ? Colors.white12 : Colors.grey.shade200),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.calendar_today_rounded, color: Color(0xFF2563EB), size: 18),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Tanggal Pembayaran', style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            DateFormat('dd MMMM yyyy, HH:mm', 'id_ID').format(selectedPaymentDate),
+                                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF1F2937)),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Catatan opsional
+                            TextFormField(
+                              controller: notesController,
+                              decoration: InputDecoration(
+                                labelText: 'Catatan Realisasi (Opsional)',
+                                hintText: 'e.g. Termasuk denda / diskon',
+                                filled: true,
+                                fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.grey.shade200)),
+                                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5)),
+                                prefixIcon: Icon(Icons.notes_rounded, color: Colors.grey.shade400, size: 20),
+                              ),
+                              maxLines: 2,
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Buttons
+                            Row(
+                              children: [
+                                Expanded(
+                                  flex: 2,
+                                  child: OutlinedButton(
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                      side: BorderSide(color: Colors.grey.shade300),
+                                    ),
+                                    onPressed: () => Navigator.pop(ctx, false),
+                                    child: Text('Batal', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.grey.shade600)),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  flex: 3,
+                                  child: ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF10B981),
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                      elevation: 0,
+                                    ),
+                                    icon: const Icon(Icons.check_rounded, size: 20),
+                                    label: const Text('Konfirmasi Bayar', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                                    onPressed: () => Navigator.pop(ctx, true),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 14),
-                      TextFormField(
-                        readOnly: true,
-                        controller: TextEditingController(
-                          text: currencyFmt.format(enteredRealization.toInt()),
-                        ),
-                        onTap: () async {
-                          final val = await showCalculatorInputDialog(
-                            context: ctx,
-                            title: 'Input Realisasi Pembayaran',
-                            initialValue: enteredRealization,
-                          );
-                          if (val != null && val >= 0) {
-                            setDialogState(() {
-                              enteredRealization = val;
-                            });
-                          }
-                        },
-                        decoration: InputDecoration(
-                          labelText: 'Nominal Realisasi Pembayaran (Rp)',
-                          prefixText: 'Rp ',
-                          suffixIcon: const Icon(Icons.calculate, color: Color(0xFF10B981)),
-                          filled: true,
-                          fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey.shade300)),
-                        ),
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF10B981)),
-                      ),
-                      const SizedBox(height: 10),
-                      // Perbandingan nominal
-                      if (diff < 0) ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: Colors.amber.shade50,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.amber.shade300),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.info_outline, color: Colors.amber, size: 20),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Kurang (Sisa): Rp ${currencyFmt.format(diff.abs().toInt())}',
-                                  style: TextStyle(color: Colors.amber.shade900, fontWeight: FontWeight.bold, fontSize: 13),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ] else if (diff > 0) ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.blue.shade300),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.add_circle_outline, color: Colors.blue, size: 20),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Kelebihan: Rp ${currencyFmt.format(diff.toInt())}',
-                                  style: TextStyle(color: Colors.blue.shade900, fontWeight: FontWeight.bold, fontSize: 13),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ] else ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: Colors.green.shade50,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.green.shade300),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.check_circle_outline, color: Colors.green, size: 20),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Lunas Sesuai Rencana',
-                                  style: TextStyle(color: Colors.green.shade900, fontWeight: FontWeight.bold, fontSize: 13),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 14),
-                      ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          side: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        title: const Text('Tanggal Pembayaran', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                        subtitle: Text(
-                          DateFormat('dd MMMM yyyy, HH:mm', 'id_ID').format(selectedPaymentDate),
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : Colors.black87),
-                        ),
-                        trailing: const Icon(Icons.calendar_today, color: Color(0xFF2563EB), size: 20),
-                        onTap: () async {
-                          final pDate = await showDatePicker(
-                            context: ctx,
-                            initialDate: selectedPaymentDate,
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime(2035),
-                          );
-                          if (pDate != null && ctx.mounted) {
-                            final pTime = await showTimePicker(
-                              context: ctx,
-                              initialTime: TimeOfDay.fromDateTime(selectedPaymentDate),
-                            );
-                            final time = pTime ?? TimeOfDay.fromDateTime(selectedPaymentDate);
-                            setDialogState(() {
-                              selectedPaymentDate = DateTime(pDate.year, pDate.month, pDate.day, time.hour, time.minute);
-                            });
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 14),
-                      TextFormField(
-                        controller: notesController,
-                        decoration: InputDecoration(
-                          labelText: 'Catatan Realisasi (Opsional)',
-                          hintText: 'e.g. Termasuk denda / diskon',
-                          filled: true,
-                          fillColor: isDark ? const Color(0xFF0F172A) : Colors.white,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey.shade300)),
-                        ),
-                        maxLines: 2,
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                side: BorderSide(color: Colors.grey.shade300),
-                              ),
-                              onPressed: () => Navigator.pop(ctx, false),
-                              child: const Text('Batal', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.grey)),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF10B981),
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                              onPressed: () => Navigator.pop(ctx, true),
-                              child: const Text('Konfirmasi Bayar', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
-                            ),
-                          ),
-                        ],
                       ),
                     ],
                   ),
@@ -338,8 +373,6 @@ class _BillsPageState extends ConsumerState<BillsPage> {
 
       if (confirm == true) {
         final enteredNotes = notesController.text.trim();
-
-        // 1. Save Bill State
         bill.isPaid = true;
         bill.realizationAmount = enteredRealization;
         bill.paidAt = selectedPaymentDate;
@@ -349,20 +382,12 @@ class _BillsPageState extends ConsumerState<BillsPage> {
               ? '${bill.notes}\n[Bayar ${DateFormat('dd/MM/yy').format(selectedPaymentDate)}]: $enteredNotes'
               : '[Bayar ${DateFormat('dd/MM/yy').format(selectedPaymentDate)}]: $enteredNotes';
         }
-
         await ref.read(billRepositoryProvider).saveBill(bill);
-
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Tagihan "${bill.name}" berhasil dibayar!'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Tagihan "${bill.name}" berhasil dibayar!'), backgroundColor: Colors.green));
         }
       }
     } else {
-      // BATALKAN PEMBAYARAN TAGIHAN
       final confirm = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -379,27 +404,18 @@ class _BillsPageState extends ConsumerState<BillsPage> {
           ],
         ),
       );
-
       if (confirm == true) {
         bill.isPaid = false;
         bill.realizationAmount = 0.0;
         bill.paidAt = null;
         bill.updatedAt = DateTime.now();
-
         await ref.read(billRepositoryProvider).saveBill(bill);
-
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Status tagihan "${bill.name}" dikembalikan ke Belum Dibayar.'),
-              backgroundColor: Colors.orange,
-            ),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Status tagihan "${bill.name}" dikembalikan ke Belum Dibayar.'), backgroundColor: Colors.orange));
         }
       }
     }
   }
-
   @override
   Widget build(BuildContext context) {
     final billsAsync = ref.watch(billsStreamProvider(_currentMonthKey));
@@ -416,15 +432,19 @@ class _BillsPageState extends ConsumerState<BillsPage> {
         scrolledUnderElevation: 4,
         automaticallyImplyLeading: false,
         titleSpacing: 20,
-        title: Image.asset(
-          AppEnvironment.config.getLogoFullPath(isDark),
-          width: 140,
-          cacheWidth: 420,
-          fit: BoxFit.contain,
-          filterQuality: FilterQuality.high,
-          errorBuilder: (_, __, ___) => Text(
-            AppEnvironment.config.appName,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Color(0xFF2563EB), letterSpacing: -0.5),
+        title: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6.0),
+          child: Image.asset(
+            AppEnvironment.config.getLogoFullPath(isDark),
+            width: 175,
+            height: 42,
+            cacheWidth: 525,
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.high,
+            errorBuilder: (_, __, ___) => Text(
+              AppEnvironment.config.appName,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Color(0xFF2563EB), letterSpacing: -0.5),
+            ),
           ),
         ),
       ),
@@ -496,6 +516,10 @@ class _BillsPageState extends ConsumerState<BillsPage> {
                   );
                 }
 
+                int paidCount = bills.where((b) => b.isPaid).length;
+                int totalCount = bills.length;
+                double billProgress = totalCount > 0 ? (paidCount / totalCount) : 0.0;
+
                 double totalAmount = bills.fold(0.0, (s, b) => s + b.amount);
                 double totalRealization = bills.fold(0.0, (s, b) => s + (b.realizationAmount ?? 0.0));
                 double totalRemaining = bills
@@ -513,44 +537,75 @@ class _BillsPageState extends ConsumerState<BillsPage> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 3))],
                       ),
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('Total Rencana', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
-                                const SizedBox(height: 4),
-                                Text('Rp ${currencyFmt.format(totalAmount.toInt())}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF2563EB))),
-                              ],
-                            ),
-                          ),
-                          Container(width: 1, height: 32, color: Colors.grey.shade200),
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('Total Realisasi', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
-                                  const SizedBox(height: 4),
-                                  Text('Rp ${currencyFmt.format(totalRealization.toInt())}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
-                                ],
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Total Rencana', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                                    const SizedBox(height: 4),
+                                    Text('Rp ${currencyFmt.format(totalAmount.toInt())}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF2563EB))),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ),
-                          Container(width: 1, height: 32, color: Colors.grey.shade200),
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.only(left: 8.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('Sisa Tagihan', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
-                                  const SizedBox(height: 4),
-                                  Text('Rp ${currencyFmt.format(totalRemaining.toInt())}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: totalRemaining > 0 ? Colors.red : Colors.grey)),
-                                ],
+                              Container(width: 1, height: 32, color: Colors.grey.shade200),
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('Total Realisasi', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                                      const SizedBox(height: 4),
+                                      Text('Rp ${currencyFmt.format(totalRealization.toInt())}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
+                                    ],
+                                  ),
+                                ),
                               ),
+                              Container(width: 1, height: 32, color: Colors.grey.shade200),
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(left: 8.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('Sisa Tagihan', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                                      const SizedBox(height: 4),
+                                      Text('Rp ${currencyFmt.format(totalRemaining.toInt())}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: totalRemaining > 0 ? Colors.red : Colors.grey)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          const Divider(height: 1),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '$paidCount / $totalCount tagihan dibayar',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.black87),
+                              ),
+                              Text(
+                                '${(billProgress * 100).toInt()}%',
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: LinearProgressIndicator(
+                              value: billProgress,
+                              minHeight: 8,
+                              backgroundColor: isDark ? Colors.white10 : Colors.grey.shade200,
+                              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
                             ),
                           ),
                         ],

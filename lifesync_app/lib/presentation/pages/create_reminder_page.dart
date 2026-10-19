@@ -25,7 +25,7 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
   PriorityLevel _priority = PriorityLevel.medium;
   DateTime _targetDateTime = DateTime.now().add(const Duration(minutes: 30));
   DateTime _endTime = DateTime.now().add(const Duration(hours: 2));
-  int _notificationMinutes = 60; // 1 hour before
+  int _notificationMinutes = 0; // Default: Tepat waktu
   bool _isAllDay = false;
   String? _selectedSound; // Selected notification sound
   String? _customCategory;
@@ -166,6 +166,10 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
       final repo = ref.read(reminderRepositoryProvider);
       final id = await repo.saveReminder(reminder);
       
+      // Clamp ID ke int32 — Android notification ID harus int32 (max 2.1 miliar).
+      // Isar ID berbasis millisecondsSinceEpoch (~1.7 triliun) akan overflow jika langsung dipakai.
+      final notifId = id & 0x7FFFFFFF;
+
       // Schedule notification
       final notifService = ref.read(notificationServiceProvider);
       DateTime scheduledTime;
@@ -176,43 +180,152 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
         scheduledTime = _targetDateTime.subtract(Duration(minutes: _notificationMinutes));
       }
       
+      final now = DateTime.now();
+      if (!scheduledTime.isAfter(now)) {
+        if (_targetDateTime.isAfter(now)) {
+          // Jika waktu minus offset sudah lewat, fallback ke waktu mulai agenda
+          scheduledTime = _targetDateTime;
+        } else if (_endTime.isAfter(now)) {
+          // Jika waktu mulai juga lewat namun agenda masih berjalan, bunyikan 5 detik lagi
+          scheduledTime = now.add(const Duration(seconds: 5));
+        }
+      }
+
+      debugPrint('[CreateReminder] Scheduling notif id=$notifId at $scheduledTime (now=$now)');
+      
       final sound = _selectedSound ?? ref.read(defaultSoundProvider);
       
       try {
-        if (scheduledTime.isAfter(DateTime.now())) {
+        if (scheduledTime.isAfter(now)) {
           await notifService.scheduleNotification(
-            id: id,
-            title: 'LifeSync Reminder: $_title',
-            body: 'Your reminder is due in $_notificationMinutes minutes!',
+            id: notifId,
+            title: _title,
+            body: _description.trim().isNotEmpty
+                ? _description.trim()
+                : 'Pengingat agenda Anda telah tiba.',
             scheduledTime: scheduledTime,
             sound: sound,
+            featureName: 'Pengingat Agenda',
           );
+          debugPrint('[CreateReminder] Notification scheduled successfully at $scheduledTime.');
+        } else {
+          debugPrint('[CreateReminder] Agenda sudah selesai sepenuhnya, notif tidak dijadwalkan.');
         }
       } catch (e) {
-        debugPrint('Failed to schedule notification: $e');
+        debugPrint('[CreateReminder] Failed to schedule notification: $e');
       } finally {
         if (mounted) {
           // Invalidate dashboard so it auto-updates
           ref.invalidate(dashboardDataProvider);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      widget.existingReminder == null
+                          ? 'Pengingat "${reminder.title}" berhasil dibuat!'
+                          : 'Pengingat "${reminder.title}" berhasil diperbarui!',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: const Color(0xFF2563EB),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              duration: const Duration(seconds: 3),
+            ),
+          );
           Navigator.pop(context);
         }
       }
     }
   }
 
-  InputDecoration _inputDecoration(String label) {
+  InputDecoration _inputDecoration(String label, {bool isCompact = false}) {
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+      labelStyle: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w500, fontSize: isCompact ? 13 : 14),
       filled: true,
       fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      contentPadding: isCompact
+          ? const EdgeInsets.symmetric(horizontal: 12, vertical: 10)
+          : const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5)),
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 2)),
       errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.red, width: 1.5)),
       focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.red, width: 2)),
     );
+  }
+
+  Future<void> _showEditCategoryDialog(String currentCategory) async {
+    final textController = TextEditingController(text: currentCategory);
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Text('Ubah Nama Kategori', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Perubahan hanya berlaku untuk pengingat yang dibuat saat ini dan seterusnya.',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: textController,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: 'Nama Kategori Baru',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2563EB)),
+            onPressed: () {
+              final val = textController.text.trim();
+              if (val.isNotEmpty) Navigator.pop(ctx, val);
+            },
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
+
+    if (newName != null && newName.isNotEmpty && newName != currentCategory) {
+      final db = ref.read(databaseServiceProvider).db;
+      db.writeTxnSync(() {
+        final settings = db.appSettings.getSync(1) ?? AppSettings()..id = 1;
+        final list = List<String>.from(settings.customCategories);
+        final index = list.indexOf(currentCategory);
+        if (index != -1) {
+          list[index] = newName;
+        } else {
+          list.add(newName);
+        }
+        settings.customCategories = list;
+        db.appSettings.putSync(settings);
+      });
+
+      setState(() {
+        final idx = _existingCustomCategories.indexOf(currentCategory);
+        if (idx != -1) {
+          _existingCustomCategories[idx] = newName;
+        }
+        _selectedCategoryValue = newName;
+        _customCategory = newName;
+      });
+    }
   }
 
   @override
@@ -238,9 +351,9 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
           children: [
             TextFormField(
               initialValue: _title,
-              decoration: _inputDecoration('Judul Pengingat'),
+              decoration: _inputDecoration('Judul Pengingat *'),
               style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1F2937)),
-              validator: (val) => val == null || val.isEmpty ? 'Wajib diisi' : null,
+              validator: (val) => val == null || val.trim().isEmpty ? 'Judul pengingat wajib diisi' : null,
               onSaved: (val) => _title = val!,
             ),
             const SizedBox(height: 20),
@@ -253,47 +366,91 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
             ),
             const SizedBox(height: 20),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Expanded(
-                  child: DropdownButtonFormField<String>(
-                    decoration: _inputDecoration('Kategori'),
-                    style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1F2937)),
-                    icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4B5563)),
-                    value: _selectedCategoryValue,
-                    items: [
-                      ...ReminderCategory.values
-                          .where((c) => c != ReminderCategory.other)
-                          .map((c) => DropdownMenuItem(value: c.name, child: Text(c.name.toUpperCase()))),
-                      ..._existingCustomCategories.map((c) => DropdownMenuItem(value: c, child: Text(c.toUpperCase()))),
-                      const DropdownMenuItem(value: 'ADD_NEW', child: Text('TAMBAH BARU...')),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          isDense: true,
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            labelText: 'Kategori',
+                            labelStyle: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w500, fontSize: 10),
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200, width: 1.2)),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.8)),
+                          ),
+                          style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1F2937), fontSize: 11),
+                          icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4B5563), size: 14),
+                          value: _selectedCategoryValue,
+                          items: [
+                            ...ReminderCategory.values
+                                .where((c) => c != ReminderCategory.other)
+                                .map((c) => DropdownMenuItem(value: c.name, child: Text(c.name.toUpperCase(), style: const TextStyle(fontSize: 10)))),
+                            ..._existingCustomCategories.map((c) => DropdownMenuItem(value: c, child: Text(c.toUpperCase(), style: const TextStyle(fontSize: 10)))),
+                            const DropdownMenuItem(value: 'ADD_NEW', child: Text('TAMBAH BARU...', style: TextStyle(fontSize: 10, color: Color(0xFF2563EB), fontWeight: FontWeight.bold))),
+                          ],
+                          onChanged: (val) {
+                            setState(() {
+                              _selectedCategoryValue = val!;
+                              if (val == 'ADD_NEW') {
+                                _category = ReminderCategory.other;
+                                _customCategory = '';
+                              } else {
+                                try {
+                                  _category = ReminderCategory.values.firstWhere((c) => c.name == val);
+                                  _customCategory = null;
+                                } catch (e) {
+                                  _category = ReminderCategory.other;
+                                  _customCategory = val;
+                                }
+                              }
+                            });
+                          },
+                        ),
+                      ),
+                      if (_existingCustomCategories.contains(_selectedCategoryValue)) ...[
+                        const SizedBox(width: 4),
+                        InkWell(
+                          onTap: () => _showEditCategoryDialog(_selectedCategoryValue),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2563EB).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.edit_outlined, size: 14, color: Color(0xFF2563EB)),
+                          ),
+                        ),
+                      ],
                     ],
-                    onChanged: (val) {
-                      setState(() {
-                        _selectedCategoryValue = val!;
-                        if (val == 'ADD_NEW') {
-                          _category = ReminderCategory.other;
-                          _customCategory = '';
-                        } else {
-                          try {
-                            _category = ReminderCategory.values.firstWhere((c) => c.name == val);
-                            _customCategory = null;
-                          } catch (e) {
-                            _category = ReminderCategory.other;
-                            _customCategory = val;
-                          }
-                        }
-                      });
-                    },
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 8),
                 Expanded(
                   child: DropdownButtonFormField<PriorityLevel>(
-                    decoration: _inputDecoration('Prioritas'),
-                    style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1F2937)),
-                    icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4B5563)),
+                    isDense: true,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      labelText: 'Prioritas',
+                      labelStyle: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w500, fontSize: 10),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200, width: 1.2)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.8)),
+                    ),
+                    style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1F2937), fontSize: 11),
+                    icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4B5563), size: 14),
                     value: _priority,
-                    items: PriorityLevel.values.map((p) => DropdownMenuItem(value: p, child: Text(p.name.toUpperCase()))).toList(),
+                    items: PriorityLevel.values.map((p) => DropdownMenuItem(value: p, child: Text(p.name.toUpperCase(), style: const TextStyle(fontSize: 10)))).toList(),
                     onChanged: (val) => setState(() => _priority = val!),
                   ),
                 ),

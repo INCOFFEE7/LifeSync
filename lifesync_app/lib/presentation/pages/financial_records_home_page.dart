@@ -20,6 +20,13 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
   DateTime _selectedDate = DateTime.now();
   bool _showAllFinancial = false;
 
+  void resetToToday() {
+    setState(() {
+      _selectedDate = DateTime.now();
+      _showAllFinancial = false;
+    });
+  }
+
   String _formatAmount(double amount) => 'Rp ${_fmt.format(amount.toInt())}';
 
   @override
@@ -39,15 +46,19 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
         scrolledUnderElevation: 4,
         automaticallyImplyLeading: false,
         titleSpacing: 20,
-        title: Image.asset(
-          AppEnvironment.config.getLogoFullPath(isDark),
-          width: 140,
-          cacheWidth: 420,
-          fit: BoxFit.contain,
-          filterQuality: FilterQuality.high,
-          errorBuilder: (_, __, ___) => Text(
-            AppEnvironment.config.appName,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Color(0xFF2563EB), letterSpacing: -0.5),
+        title: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6.0),
+          child: Image.asset(
+            AppEnvironment.config.getLogoFullPath(isDark),
+            width: 175,
+            height: 42,
+            cacheWidth: 525,
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.high,
+            errorBuilder: (_, __, ___) => Text(
+              AppEnvironment.config.appName,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Color(0xFF2563EB), letterSpacing: -0.5),
+            ),
           ),
         ),
       ),
@@ -60,7 +71,7 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const AddEditFinancialNotePage()),
+            MaterialPageRoute(builder: (_) => AddEditFinancialNotePage(initialDate: _selectedDate)),
           );
         },
         icon: const Icon(Icons.add, size: 24),
@@ -88,14 +99,18 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
               MonthDayPickerWidget(
                 selectedDate: _selectedDate,
                 isSeeAll: _showAllFinancial,
+                dateScope: _showAllFinancial ? 'all' : 'this_month',
+                onDateScopeChanged: (scope) {
+                  setState(() {
+                    _showAllFinancial = scope == 'all';
+                    if (!_showAllFinancial) _selectedDate = DateTime.now();
+                  });
+                },
                 onDateChanged: (date) => setState(() {
                   _selectedDate = date;
                   _showAllFinancial = false;
                 }),
               ),
-
-              // "Lihat Semua" / Filter Header Toggle
-              _buildSeeAllHeader(_showAllFinancial, isDark),
 
               // Period Summary (Total Pemasukan, Total Pengeluaran, Saldo)
               _buildSummaryHeader(totalIncome, totalExpense, balance, isDark),

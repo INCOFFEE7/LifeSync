@@ -78,6 +78,11 @@ class _AddMenstruationPageState extends ConsumerState<AddMenstruationPage> {
       final repo = ref.read(menstruationRepositoryProvider);
       await repo.saveRecord(record);
 
+      ref.invalidate(menstruationRecordsProvider);
+      ref.invalidate(menstrualStatsProvider);
+      ref.invalidate(fastingDebtsProvider);
+      ref.invalidate(totalFastingDebtSummaryProvider);
+
       if (mounted) Navigator.pop(context);
     }
   }
