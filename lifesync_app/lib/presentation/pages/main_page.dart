@@ -9,6 +9,7 @@ import 'package:lifesync_app/core/notifications/notification_service.dart';
 import 'package:lifesync_app/presentation/providers/repository_providers.dart';
 import 'package:lifesync_app/presentation/providers/shopping_providers.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 
 import 'package:lifesync_app/presentation/pages/financial_records_home_page.dart';
 
@@ -248,51 +249,53 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
         index: _currentIndex,
         children: _pages,
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(15),
-              blurRadius: 20,
-              offset: const Offset(0, -5),
-            ),
-          ],
+      bottomNavigationBar: NavigationBarTheme(
+        data: NavigationBarThemeData(
+          height: 68,
+          backgroundColor: LsColors.surface(context),
+          surfaceTintColor: Colors.transparent,
+          indicatorColor: LsColors.brand.withValues(alpha: 0.14),
+          indicatorShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(
+                fontSize: 11.5,
+                fontWeight: states.contains(WidgetState.selected) ? FontWeight.w800 : FontWeight.w600,
+                color: states.contains(WidgetState.selected) ? LsColors.brand : LsColors.mute(context),
+              )),
+          iconTheme: WidgetStateProperty.resolveWith((states) => IconThemeData(
+                color: states.contains(WidgetState.selected) ? LsColors.brand : LsColors.mute(context),
+              )),
         ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: _onTabTapped,
-          backgroundColor: Colors.white,
-          type: BottomNavigationBarType.fixed,
-          selectedItemColor: const Color(0xFF2563EB),
-          unselectedItemColor: Colors.grey.shade400,
-          showSelectedLabels: true,
-          showUnselectedLabels: true,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 12),
-          elevation: 0,
-          items: [
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.home_outlined),
-              activeIcon: const Icon(Icons.home),
-              label: AppTranslations.get(lang, 'beranda'),
-            ),
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.account_balance_wallet_outlined),
-              activeIcon: const Icon(Icons.account_balance_wallet),
-              label: AppTranslations.get(lang, 'keuangan'),
-            ),
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.savings_outlined),
-              activeIcon: const Icon(Icons.savings),
-              label: 'Nabung',
-            ),
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.notifications_none_outlined),
-              activeIcon: const Icon(Icons.notifications),
-              label: AppTranslations.get(lang, 'pengingat'),
-            ),
-          ],
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: LsColors.line(context))),
+          ),
+          child: NavigationBar(
+            selectedIndex: _currentIndex,
+            onDestinationSelected: _onTabTapped,
+            elevation: 0,
+            destinations: [
+              NavigationDestination(
+                icon: const Icon(Icons.home_outlined),
+                selectedIcon: const Icon(Icons.home_rounded),
+                label: AppTranslations.get(lang, 'beranda'),
+              ),
+              NavigationDestination(
+                icon: const Icon(Icons.account_balance_wallet_outlined),
+                selectedIcon: const Icon(Icons.account_balance_wallet),
+                label: AppTranslations.get(lang, 'keuangan'),
+              ),
+              const NavigationDestination(
+                icon: Icon(Icons.savings_outlined),
+                selectedIcon: Icon(Icons.savings),
+                label: 'Nabung',
+              ),
+              NavigationDestination(
+                icon: const Icon(Icons.notifications_none_outlined),
+                selectedIcon: const Icon(Icons.notifications),
+                label: AppTranslations.get(lang, 'pengingat'),
+              ),
+            ],
+          ),
         ),
       ),
     );

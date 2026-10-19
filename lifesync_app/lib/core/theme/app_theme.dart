@@ -5,7 +5,7 @@ class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-      scaffoldBackgroundColor: Colors.white, // Pure white background
+      scaffoldBackgroundColor: const Color(0xFFF3F6FC),
       colorScheme: ColorScheme.fromSeed(
         seedColor: const Color(0xFF2563EB), // Tailwind Blue 600
         secondary: const Color(0xFF3B82F6), 
@@ -23,8 +23,8 @@ class AppTheme {
       cardTheme: CardThemeData(
         elevation: 0, // Flat elegant look
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: Color(0xFFE0E7FF), width: 1.5), // Very light indigo/blue border
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Color(0xFFE2E8F0), width: 1),
         ),
         color: Colors.white,
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -33,7 +33,7 @@ class AppTheme {
         style: FilledButton.styleFrom(
           backgroundColor: const Color(0xFF2563EB), // High contrast blue buttons
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           padding: const EdgeInsets.symmetric(vertical: 16),
           elevation: 0,
         ),

@@ -21,6 +21,7 @@ import 'package:lifesync_app/presentation/widgets/calculator_input_dialog.dart';
 import 'package:lifesync_app/core/utils/translations.dart';
 import 'package:lifesync_app/presentation/providers/localization_provider.dart';
 import 'package:lifesync_app/config/app_variant.dart';
+import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
@@ -71,7 +72,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF9FAFB),
+      backgroundColor: LsColors.paper(context),
       appBar: _buildHeader(),
       body: dashboardAsync.when(
         data: (data) {
@@ -80,6 +81,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // ── 0. SAPAAN, HERO SALDO & RINGKASAN CEPAT ──────────────────
+                _buildGreeting(),
+                const SizedBox(height: 16),
+                _buildHeroBalance(financialSummary, currencyFmt),
+                const SizedBox(height: 12),
+                _buildQuickTiles(data, shoppingAsync, billsAsync, now, lang),
+                const SizedBox(height: 28),
+
                 // ── 1. PENGINGAT (Agenda Hari Ini & Reminders) ───────────────
                 _buildSectionTitle(AppTranslations.get(lang, 'pengingat')),
                 const SizedBox(height: 12),
@@ -95,9 +104,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 const SizedBox(height: 24),
 
                 // ── 3. KEUANGAN (Rangkuman Transaksi & Tagihan 7 Hari) ───────
-                _buildSectionTitle(AppTranslations.get(lang, 'keuangan')),
-                const SizedBox(height: 12),
-                _buildFinancialTransactionsSummaryCard(financialSummary, currencyFmt),
+                _buildSectionTitle('Tagihan Jatuh Tempo'),
                 const SizedBox(height: 12),
                 billsAsync.when(
                   data: (bills) {
@@ -132,6 +139,125 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
+  Widget _buildGreeting() {
+    final h = DateTime.now().hour;
+    final greet = h < 11 ? 'Selamat pagi' : h < 15 ? 'Selamat siang' : h < 18 ? 'Selamat sore' : 'Selamat malam';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        LsEyebrow(DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(DateTime.now())),
+        const SizedBox(height: 4),
+        Text(
+          '$greet.',
+          style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, height: 1.1, letterSpacing: -0.8, color: LsColors.ink(context)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeroBalance(FinancialSummary s, NumberFormat fmt) {
+    final positive = s.netBalance >= 0;
+    return LsHeroCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const LsEyebrow('Saldo Bersih', color: Color(0xA6FFFFFF)),
+          const SizedBox(height: 4),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '${positive ? '' : '-'}Rp ${fmt.format(s.netBalance.abs().toInt())}',
+              style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w800, height: 1, letterSpacing: -1, color: Colors.white),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(child: _heroFlow('Pemasukan', s.totalIncome, const Color(0xFF6EE7B7), Icons.south_west, fmt)),
+              const SizedBox(width: 8),
+              Expanded(child: _heroFlow('Pengeluaran', s.totalExpense, const Color(0xFFFCA5A5), Icons.north_east, fmt)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _heroFlow(String label, double v, Color c, IconData icon, NumberFormat fmt) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xB3FFFFFF))),
+          const SizedBox(height: 2),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Row(
+              children: [
+                Icon(icon, size: 14, color: c),
+                const SizedBox(width: 4),
+                Text('Rp ${fmt.format(v.toInt())}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: c)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickTiles(
+    DashboardData data,
+    AsyncValue<List<ShoppingItem>> shoppingAsync,
+    AsyncValue<List<Bill>> billsAsync,
+    DateTime now,
+    String lang,
+  ) {
+    final unbought = shoppingAsync.valueOrNull?.where((e) => !e.deleted && !e.isChecked).length ?? 0;
+    final urgent = billsAsync.valueOrNull?.where((b) {
+          if (b.deleted || b.isPaid) return false;
+          final d = b.dueDate.difference(now).inDays;
+          return d >= -1 && d <= 7;
+        }).length ??
+        0;
+    return Row(
+      children: [
+        Expanded(
+          child: LsStatTile(
+            icon: Icons.event_outlined,
+            color: LsColors.violet,
+            value: '${data.todayRemindersCount}',
+            label: AppTranslations.get(lang, 'agenda_hari_ini'),
+            unit: 'hari ini',
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: LsStatTile(
+            icon: Icons.receipt_long_outlined,
+            color: urgent > 0 ? LsColors.expense : LsColors.income,
+            value: '$urgent',
+            label: 'Tagihan',
+            unit: '≤ 7 hari',
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: LsStatTile(
+            icon: Icons.shopping_bag_outlined,
+            color: LsColors.amber,
+            value: '$unbought',
+            label: 'Belanja',
+            unit: 'belum dibeli',
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildAgendaSummaryCard(DashboardData data, String lang) {
     return _buildFlatCard(
       child: Row(
@@ -161,86 +287,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               'Total Agenda: ${data.activeRemindersCount}',
               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF2563EB)),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFinancialTransactionsSummaryCard(FinancialSummary summary, NumberFormat fmt) {
-    final netPositive = summary.netBalance >= 0;
-
-    return _buildFlatCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Rangkuman Transaksi Keuangan',
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w600),
-              ),
-              const Icon(Icons.account_balance_wallet_outlined, color: Color(0xFF2563EB), size: 20),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Pemasukan', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                    const SizedBox(height: 2),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text('Rp ${fmt.format(summary.totalIncome.toInt())}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
-                    ),
-                  ],
-                ),
-              ),
-              Container(width: 1, height: 32, color: Colors.grey.shade200),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Pengeluaran', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                      const SizedBox(height: 2),
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text('Rp ${fmt.format(summary.totalExpense.toInt())}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFFEF4444))),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              Container(width: 1, height: 32, color: Colors.grey.shade200),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 6.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Saldo Bersih', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                      const SizedBox(height: 2),
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          '${netPositive ? '+' : '-'}Rp ${fmt.format(summary.netBalance.abs().toInt())}',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: netPositive ? const Color(0xFF10B981) : const Color(0xFFEF4444)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
           ),
         ],
       ),
@@ -781,12 +827,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF1F2937)),
-    );
-  }
+  Widget _buildSectionTitle(String title) => LsSectionHeader(title: title);
 
   Widget _buildTargetCard(TargetDashboardInfo info) {
     final target = info.target;
@@ -1086,22 +1127,5 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildFlatCard({required Widget child}) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: child,
-    );
-  }
+  Widget _buildFlatCard({required Widget child}) => LsCard(padding: const EdgeInsets.all(18), child: child);
 }
