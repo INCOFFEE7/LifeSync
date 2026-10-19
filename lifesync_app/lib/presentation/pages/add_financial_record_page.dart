@@ -7,6 +7,7 @@ import 'package:lifesync_app/domain/entities/financial_category.dart';
 import 'package:lifesync_app/domain/entities/financial_record.dart';
 import 'package:lifesync_app/presentation/providers/repository_providers.dart';
 import 'package:lifesync_app/presentation/widgets/custom_numeric_keypad.dart';
+import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 import 'package:lifesync_app/core/utils/translations.dart';
 import 'package:lifesync_app/presentation/providers/localization_provider.dart';
 
@@ -216,7 +217,7 @@ class _AddFinancialRecordPageState extends ConsumerState<AddFinancialRecordPage>
               SizedBox(width: 8),
               Text('Transaksi berhasil disimpan!'),
             ]),
-            backgroundColor: const Color(0xFF10B981),
+            backgroundColor: LsColors.income,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -242,20 +243,23 @@ class _AddFinancialRecordPageState extends ConsumerState<AddFinancialRecordPage>
 
     final defaultCategories = FinancialCategory.getCategoriesByType(_selectedType);
     final customNames = _selectedType == TransactionType.income ? _customIncomeCategories : _customExpenseCategories;
-    final customColor = _selectedType == TransactionType.income ? const Color(0xFF10B981) : const Color(0xFFEF4444);
+    final customColor = _selectedType == TransactionType.income ? LsColors.income : LsColors.expense;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: LsColors.paper(context),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: LsColors.surface(context),
+        surfaceTintColor: Colors.transparent,
+        scrolledUnderElevation: 0,
         elevation: 0,
+        shape: Border(bottom: BorderSide(color: LsColors.line(context))),
         title: Text(
           _selectedType == TransactionType.income
               ? AppTranslations.get(lang, 'pemasukan')
               : AppTranslations.get(lang, 'pengeluaran'),
           style: TextStyle(
             color: isDark ? Colors.white : const Color(0xFF0F172A),
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w800,
           ),
         ),
         leading: IconButton(
@@ -283,13 +287,14 @@ class _AddFinancialRecordPageState extends ConsumerState<AddFinancialRecordPage>
                     Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                        color: LsColors.surface(context),
+                        border: Border.all(color: LsColors.line(context)),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Row(
                         children: [
-                          _typeTab(lang, TransactionType.income, const Color(0xFF10B981), isDark),
-                          _typeTab(lang, TransactionType.expense, const Color(0xFFEF4444), isDark),
+                          _typeTab(lang, TransactionType.income, LsColors.income, isDark),
+                          _typeTab(lang, TransactionType.expense, LsColors.expense, isDark),
                         ],
                       ),
                     ),
@@ -305,12 +310,12 @@ class _AddFinancialRecordPageState extends ConsumerState<AddFinancialRecordPage>
                         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
                         decoration: BoxDecoration(
                           color: _showKeypad
-                              ? (_selectedType == TransactionType.income ? const Color(0xFF10B981).withAlpha(15) : const Color(0xFFEF4444).withAlpha(15))
+                              ? (_selectedType == TransactionType.income ? LsColors.income.withAlpha(15) : LsColors.expense.withAlpha(15))
                               : (isDark ? const Color(0xFF1E293B) : Colors.white),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: _showKeypad
-                                ? (_selectedType == TransactionType.income ? const Color(0xFF10B981) : const Color(0xFFEF4444))
+                                ? (_selectedType == TransactionType.income ? LsColors.income : LsColors.expense)
                                 : (isDark ? Colors.white10 : const Color(0xFFE2E8F0)),
                             width: _showKeypad ? 2 : 1,
                           ),
@@ -334,7 +339,7 @@ class _AddFinancialRecordPageState extends ConsumerState<AddFinancialRecordPage>
                               style: TextStyle(
                                 fontSize: 36,
                                 fontWeight: FontWeight.w800,
-                                color: _selectedType == TransactionType.income ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                                color: _selectedType == TransactionType.income ? LsColors.income : LsColors.expense,
                               ),
                             ),
                             if (_calcExpression.contains(RegExp(r'[+\-×÷]')))
@@ -428,9 +433,9 @@ class _AddFinancialRecordPageState extends ConsumerState<AddFinancialRecordPage>
                           filled: true,
                           fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0))),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: customColor.withAlpha(100))),
-                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: customColor, width: 1.5)),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0))),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: customColor.withAlpha(100))),
+                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: customColor, width: 1.5)),
                           suffixIcon: IconButton(
                             icon: const Icon(Icons.check_circle_outline),
                             color: customColor,
@@ -474,9 +479,9 @@ class _AddFinancialRecordPageState extends ConsumerState<AddFinancialRecordPage>
                         filled: true,
                         fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0))),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0))),
-                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0))),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0))),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5)),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -495,16 +500,16 @@ class _AddFinancialRecordPageState extends ConsumerState<AddFinancialRecordPage>
                 child: ElevatedButton(
                   onPressed: _canSave ? _saveTransaction : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _selectedType == TransactionType.income ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                    backgroundColor: _selectedType == TransactionType.income ? LsColors.income : LsColors.expense,
                     disabledBackgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    elevation: _canSave ? 4 : 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    elevation: 0,
                   ),
                   child: _isSaving
                       ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
                       : Text(
                           AppTranslations.get(lang, 'simpan_transaksi'),
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white),
                         ),
                 ),
               ),

@@ -7,6 +7,7 @@ import 'package:lifesync_app/presentation/providers/dashboard_provider.dart';
 import 'package:lifesync_app/core/utils/thousands_formatter.dart';
 import 'package:lifesync_app/domain/entities/income_target.dart';
 import 'package:lifesync_app/presentation/widgets/calculator_input_dialog.dart';
+import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 
 class AddIncomeDialog extends ConsumerStatefulWidget {
   final int targetId;
@@ -89,22 +90,25 @@ class _AddIncomeDialogState extends ConsumerState<AddIncomeDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final line = LsColors.line(context);
+    final fieldBorder = OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: line));
     return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      backgroundColor: LsColors.surface(context),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28), side: BorderSide(color: line)),
       title: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFF2563EB).withOpacity(0.1),
+              color: LsColors.brand.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(14),
             ),
             child: const Icon(Icons.savings, color: Color(0xFF2563EB), size: 24),
           ),
           const SizedBox(width: 12),
-          const Text(
+          Text(
             'Catat Nabung',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: -0.3, color: LsColors.ink(context)),
           ),
         ],
       ),
@@ -120,15 +124,17 @@ class _AddIncomeDialogState extends ConsumerState<AddIncomeDialog> {
                   labelText: 'Jumlah (Rp)',
                   prefixText: 'Rp ',
                   filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                  fillColor: LsColors.paper(context),
+                  border: fieldBorder,
+                  enabledBorder: fieldBorder,
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: LsColors.brand, width: 2)),
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.calculate, color: Color(0xFF2563EB)),
                     tooltip: 'Buka Kalkulator',
                     onPressed: _openCalculator,
                   ),
                 ),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF2563EB)),
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: LsColors.brand),
                 keyboardType: TextInputType.number,
                 inputFormatters: [ThousandsFormatter()],
                 validator: (val) {
@@ -142,12 +148,13 @@ class _AddIncomeDialogState extends ConsumerState<AddIncomeDialog> {
               ),
               const SizedBox(height: 14),
               ListTile(
+                tileColor: LsColors.paper(context),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
-                  side: BorderSide(color: Colors.grey.shade300),
+                  side: BorderSide(color: line),
                 ),
-                title: const Text('Tanggal', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                subtitle: Text(DateFormat('dd MMMM yyyy', 'id_ID').format(_date), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                title: Text('Tanggal', style: TextStyle(fontSize: 12, color: LsColors.mute(context))),
+                subtitle: Text(DateFormat('dd MMMM yyyy', 'id_ID').format(_date), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: LsColors.ink(context))),
                 trailing: const Icon(Icons.calendar_today, color: Color(0xFF2563EB), size: 20),
                 onTap: _selectDate,
               ),
@@ -156,8 +163,10 @@ class _AddIncomeDialogState extends ConsumerState<AddIncomeDialog> {
                 decoration: InputDecoration(
                   labelText: 'Catatan (Opsional)',
                   filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                  fillColor: LsColors.paper(context),
+                  border: fieldBorder,
+                  enabledBorder: fieldBorder,
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: LsColors.brand, width: 2)),
                 ),
                 maxLines: 2,
                 onSaved: (val) => _notes = val ?? '',
@@ -174,20 +183,20 @@ class _AddIncomeDialogState extends ConsumerState<AddIncomeDialog> {
               child: OutlinedButton(
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  side: BorderSide(color: Colors.grey.shade300),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  side: BorderSide(color: line),
                 ),
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Batal', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
+                child: Text('Batal', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: LsColors.mute(context))),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: FilledButton(
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF2563EB),
+                  backgroundColor: LsColors.brand,
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
                 onPressed: _saveIncome,
                 child: const Text('Simpan', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),

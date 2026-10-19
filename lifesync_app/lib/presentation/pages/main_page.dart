@@ -12,6 +12,12 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 
 import 'package:lifesync_app/presentation/pages/financial_records_home_page.dart';
+import 'package:lifesync_app/presentation/pages/add_financial_record_page.dart';
+import 'package:lifesync_app/presentation/pages/create_reminder_page.dart';
+import 'package:lifesync_app/presentation/pages/add_edit_bill_page.dart';
+import 'package:lifesync_app/presentation/pages/create_shopping_page.dart';
+import 'package:lifesync_app/presentation/pages/create_target_page.dart';
+import 'package:lifesync_app/presentation/pages/add_edit_financial_note_page.dart';
 
 import 'dart:async';
 import 'package:intl/intl.dart';
@@ -241,6 +247,105 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
     });
   }
 
+  void _showAddSheet() {
+    final actions = <_AddAction>[
+      _AddAction('transaksi', 'Transaksi', 'Catat pemasukan atau pengeluaran', Icons.swap_vert_rounded, LsColors.brand,
+          (_) => const AddFinancialRecordPage()),
+      _AddAction('agenda', 'Pengingat Agenda', 'Jadwal dan kegiatan', Icons.event_rounded, LsColors.violet,
+          (_) => const CreateReminderPage()),
+      _AddAction('tagihan', 'Pengingat Tagihan', 'Tagihan rutin dan jatuh tempo', Icons.receipt_long_rounded, LsColors.expense,
+          (_) => const AddEditBillPage()),
+      _AddAction('belanja', 'Pengingat Belanja', 'Daftar belanjaan', Icons.shopping_cart_rounded, LsColors.amber,
+          (_) => const CreateShoppingPage()),
+      _AddAction('target', 'Target Nabung', 'Mulai menabung untuk tujuan baru', Icons.savings_rounded, LsColors.income,
+          (_) => const CreateTargetPage()),
+      _AddAction('catatan', 'Catatan Keuangan', 'Simpan catatan keuangan', Icons.sticky_note_2_rounded, LsColors.brand,
+          (_) => const AddEditFinancialNotePage()),
+    ];
+    final preferred = switch (_currentIndex) {
+      2 => 'target',
+      3 => 'agenda',
+      _ => 'transaksi',
+    };
+    actions.sort((a, b) => (a.id == preferred ? 0 : 1).compareTo(b.id == preferred ? 0 : 1));
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: LsColors.surface(context),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      builder: (sheetContext) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(color: LsColors.line(sheetContext), borderRadius: BorderRadius.circular(4)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const LsEyebrow('Buat'),
+              const SizedBox(height: 4),
+              Text('Tambah Baru',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: LsColors.ink(sheetContext), letterSpacing: -0.4)),
+              const SizedBox(height: 14),
+              for (final a in actions)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _AddActionRow(
+                    action: a,
+                    highlighted: a.id == preferred,
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      Navigator.push(context, MaterialPageRoute(builder: a.builder));
+                    },
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _navItem(int index, IconData icon, IconData selectedIcon, String label) {
+    final selected = _currentIndex == index;
+    final color = selected ? LsColors.brand : LsColors.mute(context);
+    return Expanded(
+      child: InkWell(
+        onTap: () => _onTabTapped(index),
+        child: SizedBox(
+          height: 64,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                decoration: BoxDecoration(
+                  color: selected ? LsColors.brand.withValues(alpha: 0.14) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(selected ? selectedIcon : icon, color: color, size: 24),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 11.5, fontWeight: selected ? FontWeight.w800 : FontWeight.w600, color: color),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final lang = ref.watch(localeProvider).languageCode;
@@ -249,51 +354,112 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
         index: _currentIndex,
         children: _pages,
       ),
-      bottomNavigationBar: NavigationBarTheme(
-        data: NavigationBarThemeData(
-          height: 68,
-          backgroundColor: LsColors.surface(context),
-          surfaceTintColor: Colors.transparent,
-          indicatorColor: LsColors.brand.withValues(alpha: 0.14),
-          indicatorShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(
-                fontSize: 11.5,
-                fontWeight: states.contains(WidgetState.selected) ? FontWeight.w800 : FontWeight.w600,
-                color: states.contains(WidgetState.selected) ? LsColors.brand : LsColors.mute(context),
-              )),
-          iconTheme: WidgetStateProperty.resolveWith((states) => IconThemeData(
-                color: states.contains(WidgetState.selected) ? LsColors.brand : LsColors.mute(context),
-              )),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: LsColors.surface(context),
+          border: Border(top: BorderSide(color: LsColors.line(context))),
         ),
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border(top: BorderSide(color: LsColors.line(context))),
+        child: SafeArea(
+          top: false,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.topCenter,
+            children: [
+              Row(
+                children: [
+                  _navItem(0, Icons.home_outlined, Icons.home_rounded, AppTranslations.get(lang, 'beranda')),
+                  _navItem(1, Icons.account_balance_wallet_outlined, Icons.account_balance_wallet,
+                      AppTranslations.get(lang, 'keuangan')),
+                  const Expanded(child: SizedBox(height: 64)),
+                  _navItem(2, Icons.savings_outlined, Icons.savings, 'Nabung'),
+                  _navItem(3, Icons.notifications_none_outlined, Icons.notifications, AppTranslations.get(lang, 'pengingat')),
+                ],
+              ),
+              Positioned(
+                top: -18,
+                child: Semantics(
+                  button: true,
+                  label: 'Tambah Baru',
+                  child: Material(
+                    color: LsColors.brand,
+                    shape: const CircleBorder(),
+                    elevation: 8,
+                    shadowColor: LsColors.brand.withValues(alpha: 0.5),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: _showAddSheet,
+                      child: Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: LsColors.surface(context), width: 3),
+                        ),
+                        child: const Icon(Icons.add_rounded, color: Colors.white, size: 30),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-          child: NavigationBar(
-            selectedIndex: _currentIndex,
-            onDestinationSelected: _onTabTapped,
-            elevation: 0,
-            destinations: [
-              NavigationDestination(
-                icon: const Icon(Icons.home_outlined),
-                selectedIcon: const Icon(Icons.home_rounded),
-                label: AppTranslations.get(lang, 'beranda'),
+        ),
+      ),
+    );
+  }
+}
+
+class _AddAction {
+  final String id;
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final WidgetBuilder builder;
+  const _AddAction(this.id, this.title, this.subtitle, this.icon, this.color, this.builder);
+}
+
+class _AddActionRow extends StatelessWidget {
+  final _AddAction action;
+  final bool highlighted;
+  final VoidCallback onTap;
+  const _AddActionRow({required this.action, required this.highlighted, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: highlighted ? action.color.withValues(alpha: 0.10) : Colors.transparent,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: highlighted ? action.color.withValues(alpha: 0.5) : LsColors.line(context)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(color: action.color.withValues(alpha: 0.14), shape: BoxShape.circle),
+                child: Icon(action.icon, color: action.color, size: 21),
               ),
-              NavigationDestination(
-                icon: const Icon(Icons.account_balance_wallet_outlined),
-                selectedIcon: const Icon(Icons.account_balance_wallet),
-                label: AppTranslations.get(lang, 'keuangan'),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(action.title,
+                        style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800, color: LsColors.ink(context))),
+                    Text(action.subtitle, style: TextStyle(fontSize: 11.5, color: LsColors.mute(context))),
+                  ],
+                ),
               ),
-              const NavigationDestination(
-                icon: Icon(Icons.savings_outlined),
-                selectedIcon: Icon(Icons.savings),
-                label: 'Nabung',
-              ),
-              NavigationDestination(
-                icon: const Icon(Icons.notifications_none_outlined),
-                selectedIcon: const Icon(Icons.notifications),
-                label: AppTranslations.get(lang, 'pengingat'),
-              ),
+              if (highlighted) LsChip('Disarankan', color: action.color),
+              if (!highlighted) Icon(Icons.chevron_right_rounded, color: LsColors.mute(context)),
             ],
           ),
         ),

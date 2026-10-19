@@ -6,6 +6,7 @@ import 'package:lifesync_app/domain/entities/financial_item.dart';
 import 'package:lifesync_app/presentation/providers/financial_note_providers.dart';
 import 'package:lifesync_app/presentation/pages/add_edit_financial_note_page.dart';
 import 'package:lifesync_app/presentation/widgets/custom_numeric_keypad.dart';
+import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 
 class FinancialNoteDetailPage extends ConsumerStatefulWidget {
   final int noteId;
@@ -150,37 +151,49 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
               padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom + 16, top: 20, left: 20, right: 20),
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
               ),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text('Tambah Item Transaksi', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF0F172A))),
+                    Text('Tambah Item Transaksi', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: LsColors.ink(context))),
                     const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ChoiceChip(
-                            label: const Center(child: Text('Pengeluaran')),
-                            selected: type == 'expense',
-                            selectedColor: const Color(0xFFEF4444),
-                            labelStyle: TextStyle(color: type == 'expense' ? Colors.white : (isDark ? Colors.white70 : Colors.black87), fontWeight: FontWeight.bold),
-                            onSelected: (sel) { if (sel) setModalState(() => type = 'expense'); },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ChoiceChip(
-                            label: const Center(child: Text('Pemasukan')),
-                            selected: type == 'income',
-                            selectedColor: const Color(0xFF10B981),
-                            labelStyle: TextStyle(color: type == 'income' ? Colors.white : (isDark ? Colors.white70 : Colors.black87), fontWeight: FontWeight.bold),
-                            onSelected: (sel) { if (sel) setModalState(() => type = 'income'); },
-                          ),
-                        ),
-                      ],
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: LsColors.paper(context),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: LsColors.line(context)),
+                      ),
+                      child: Row(
+                        children: [
+                          for (final opt in const [['expense', 'Pengeluaran'], ['income', 'Pemasukan']])
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => setModalState(() => type = opt[0]),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 150),
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: type == opt[0] ? (opt[0] == 'income' ? LsColors.income : LsColors.expense) : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(11),
+                                  ),
+                                  child: Text(
+                                    opt[1],
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 13,
+                                      color: type == opt[0] ? Colors.white : LsColors.mute(context),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 16),
                     TextField(
@@ -188,7 +201,7 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                       onTap: () { if (showKeypad) setModalState(() => showKeypad = false); },
                       decoration: InputDecoration(
                         labelText: 'Nama Item Transaksi *',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -261,8 +274,9 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: type == 'income' ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
                       onPressed: () async {
                         final desc = descController.text.trim();
@@ -327,7 +341,6 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final currencyFmt = NumberFormat('#,###', 'id_ID');
 
     final notesAsync = ref.watch(financialNotesNotifierProvider);
@@ -348,12 +361,16 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
         final note = noteItem.note;
         final items = noteItem.items;
 
+        final net = noteItem.netTotal;
         return Scaffold(
-          backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+          backgroundColor: LsColors.paper(context),
           appBar: AppBar(
-            title: Text(note.title),
-            backgroundColor: Colors.transparent,
+            title: Text(note.title, style: const TextStyle(fontWeight: FontWeight.w800)),
+            backgroundColor: LsColors.surface(context),
+            surfaceTintColor: Colors.transparent,
+            scrolledUnderElevation: 0,
             elevation: 0,
+            shape: Border(bottom: BorderSide(color: LsColors.line(context))),
             actions: [
               IconButton(
                 icon: const Icon(Icons.edit_outlined),
@@ -365,7 +382,7 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                 },
               ),
               IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                icon: const Icon(Icons.delete_outline, color: LsColors.expense),
                 onPressed: () => _confirmDeleteNote(note.id),
               ),
             ],
@@ -375,87 +392,73 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
               children: [
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Header Note Info
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(color: Colors.black.withAlpha(10), blurRadius: 10, offset: const Offset(0, 4)),
-                            ],
-                          ),
+                        LsHeroCard(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.calendar_today, size: 16, color: Color(0xFF2563EB)),
+                                  const Icon(Icons.calendar_today, size: 14, color: Colors.white70),
                                   const SizedBox(width: 8),
-                                  Text(
-                                    DateFormat('EEEE, d MMMM yyyy, HH:mm', 'id_ID').format(note.date),
-                                    style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? Colors.white70 : Colors.black87),
-                                  ),
-                                ],
-                              ),
-                              if (note.notes != null && note.notes!.isNotEmpty) ...[
-                                const SizedBox(height: 12),
-                                Text(
-                                  note.notes!,
-                                  style: TextStyle(fontStyle: FontStyle.italic, color: isDark ? Colors.white54 : Colors.black54),
-                                ),
-                              ],
-                              const Divider(height: 24),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text('Total Catatan (${items.length} Item)', style: const TextStyle(fontWeight: FontWeight.bold)),
-                                  Text(
-                                    'Rp ${currencyFmt.format(noteItem.netTotal.toInt())}',
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: noteItem.netTotal >= 0 ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                                  Expanded(
+                                    child: Text(
+                                      DateFormat('EEEE, d MMMM yyyy, HH:mm', 'id_ID').format(note.date),
+                                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Colors.white70),
                                     ),
                                   ),
                                 ],
                               ),
+                              const SizedBox(height: 14),
+                              LsEyebrow('Total Catatan (${items.length} Item)', color: Colors.white70),
+                              const SizedBox(height: 6),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  '${net < 0 ? '-' : ''}Rp ${currencyFmt.format(net.abs().toInt())}',
+                                  style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w800, height: 1.1, letterSpacing: -1, color: Colors.white),
+                                ),
+                              ),
+                              if (note.notes != null && note.notes!.isNotEmpty) ...[
+                                const SizedBox(height: 10),
+                                Text(
+                                  note.notes!,
+                                  style: const TextStyle(fontStyle: FontStyle.italic, fontSize: 12, color: Colors.white70),
+                                ),
+                              ],
                             ],
                           ),
                         ),
                         const SizedBox(height: 24),
 
-                        // Item List Header
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('Daftar Transaksi (${items.length})', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            Expanded(child: LsSectionHeader(title: 'Daftar Transaksi (${items.length})')),
+                            const SizedBox(width: 8),
                             ElevatedButton.icon(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF2563EB),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                backgroundColor: LsColors.brand,
+                                elevation: 0,
+                                shape: const StadiumBorder(),
                               ),
                               onPressed: () => _showQuickAddItemDialog(note.id),
                               icon: const Icon(Icons.add, color: Colors.white, size: 18),
-                              label: const Text('Tambah Transaksi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              label: const Text('Tambah', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
                             ),
                           ],
                         ),
                         const SizedBox(height: 12),
 
                         if (items.isEmpty)
-                          Container(
+                          LsCard(
                             padding: const EdgeInsets.all(32),
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                              borderRadius: BorderRadius.circular(16),
+                            child: Center(
+                              child: Text('Belum ada item transaksi dalam catatan ini', style: TextStyle(color: LsColors.mute(context))),
                             ),
-                            child: const Text('Belum ada item transaksi dalam catatan ini'),
                           )
                         else
                           ListView.separated(
@@ -466,22 +469,16 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                             itemBuilder: (ctx, idx) {
                               final item = items[idx];
                               final isIncome = item.type == 'income';
-                              return Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
+                              final c = isIncome ? LsColors.income : LsColors.expense;
+                              return LsCard(
+                                padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
                                 child: Row(
                                   children: [
-                                    CircleAvatar(
-                                      radius: 16,
-                                      backgroundColor: isIncome ? const Color(0xFF10B981).withAlpha(30) : const Color(0xFFEF4444).withAlpha(30),
-                                      child: Icon(
-                                        isIncome ? Icons.arrow_downward : Icons.arrow_upward,
-                                        color: isIncome ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-                                        size: 16,
-                                      ),
+                                    Container(
+                                      width: 38,
+                                      height: 38,
+                                      decoration: BoxDecoration(color: c.withValues(alpha: 0.14), shape: BoxShape.circle),
+                                      child: Icon(isIncome ? Icons.arrow_downward : Icons.arrow_upward, color: c, size: 18),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
@@ -490,26 +487,22 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                                         children: [
                                           Text(
                                             item.description,
-                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: LsColors.ink(context)),
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
                                             DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(item.createdAt),
-                                            style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                                            style: TextStyle(fontSize: 11, color: LsColors.mute(context)),
                                           ),
                                         ],
                                       ),
                                     ),
                                     Text(
                                       '${isIncome ? '+' : '-'} Rp ${currencyFmt.format(item.amount.toInt())}',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                        color: isIncome ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-                                      ),
+                                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: c),
                                     ),
                                     IconButton(
-                                      icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                                      icon: Icon(Icons.delete_outline, size: 18, color: LsColors.mute(context)),
                                       onPressed: () async {
                                         await ref.read(financialNotesNotifierProvider.notifier).deleteItem(item.id);
                                       },

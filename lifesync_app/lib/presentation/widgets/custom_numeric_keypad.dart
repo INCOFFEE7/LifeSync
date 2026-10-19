@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 
 class CustomNumericKeypad extends StatelessWidget {
   final ValueChanged<String> onKeyPress;
@@ -25,10 +26,11 @@ class CustomNumericKeypad extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       decoration: BoxDecoration(
         color: backgroundColor ?? (isDark ? const Color(0xFF1E293B) : Colors.white),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border(top: BorderSide(color: LsColors.line(context))),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(20),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 16,
             offset: const Offset(0, -4),
           ),
@@ -63,7 +65,7 @@ class CustomNumericKeypad extends StatelessWidget {
           // Row 1: C/AC, ÷, ×, Backspace
           Row(
             children: [
-              _buildOpKey('C', context, color: const Color(0xFFEF4444)),
+              _buildOpKey('C', context, color: LsColors.expense),
               _buildOpKey('÷', context),
               _buildOpKey('×', context),
               _buildDeleteKey(context),
@@ -148,12 +150,12 @@ class CustomNumericKeypad extends StatelessWidget {
   }
 
   Widget _buildOpKey(String label, BuildContext context, {Color? color}) {
-    final opColor = color ?? const Color(0xFF2563EB);
+    final opColor = color ?? LsColors.brand;
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
         child: Material(
-          color: opColor.withAlpha(25),
+          color: opColor.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(14),
           child: InkWell(
             borderRadius: BorderRadius.circular(14),
@@ -207,7 +209,7 @@ class CustomNumericKeypad extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
         child: Material(
-          color: const Color(0xFF10B981),
+          color: LsColors.income,
           borderRadius: BorderRadius.circular(14),
           child: InkWell(
             borderRadius: BorderRadius.circular(14),
@@ -235,7 +237,7 @@ class CustomNumericKeypad extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
         child: Material(
-          color: const Color(0xFF2563EB),
+          color: LsColors.brand,
           borderRadius: BorderRadius.circular(14),
           child: InkWell(
             borderRadius: BorderRadius.circular(14),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 
 class DashboardPaginatedList<T> extends StatefulWidget {
   final List<T> items;
@@ -55,10 +56,7 @@ class _DashboardPaginatedListState<T> extends State<DashboardPaginatedList<T>> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              widget.title,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF1F2937)),
-            ),
+            Expanded(child: LsSectionHeader(title: widget.title)),
             Row(
               children: [
                 _buildLimitButton(3, '3'),
@@ -71,9 +69,9 @@ class _DashboardPaginatedListState<T> extends State<DashboardPaginatedList<T>> {
         const SizedBox(height: 4),
         Row(
           children: [
-            Icon(Icons.drag_indicator, size: 12, color: Colors.grey.shade400),
+            Icon(Icons.drag_indicator, size: 12, color: LsColors.mute(context)),
             const SizedBox(width: 4),
-            Expanded(child: Text(widget.hintText, style: TextStyle(fontSize: 11, color: Colors.grey.shade400))),
+            Expanded(child: Text(widget.hintText, style: TextStyle(fontSize: 11, color: LsColors.mute(context)))),
           ],
         ),
         const SizedBox(height: 12),
@@ -82,12 +80,12 @@ class _DashboardPaginatedListState<T> extends State<DashboardPaginatedList<T>> {
             padding: const EdgeInsets.all(20),
             width: double.infinity,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: LsColors.surface(context),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFF3F4F6), width: 1.5),
+              border: Border.all(color: LsColors.line(context)),
             ),
             child: Center(
-              child: Text(widget.emptyMessage, style: TextStyle(color: Colors.grey.shade500)),
+              child: Text(widget.emptyMessage, style: TextStyle(color: LsColors.mute(context))),
             ),
           )
         else
@@ -122,14 +120,14 @@ class _DashboardPaginatedListState<T> extends State<DashboardPaginatedList<T>> {
                   margin: const EdgeInsets.symmetric(horizontal: 4),
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: isActive ? const Color(0xFF2563EB) : Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: isActive ? const Color(0xFF2563EB) : Colors.grey.shade300),
+                    color: isActive ? LsColors.brand : LsColors.surface(context),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: isActive ? LsColors.brand : LsColors.line(context)),
                   ),
                   child: Text(
                     '${index + 1}',
                     style: TextStyle(
-                      color: isActive ? Colors.white : Colors.grey.shade600,
+                      color: isActive ? Colors.white : LsColors.mute(context),
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
                     ),
@@ -156,16 +154,16 @@ class _DashboardPaginatedListState<T> extends State<DashboardPaginatedList<T>> {
         margin: const EdgeInsets.only(left: 6),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xFF2563EB).withOpacity(0.1) : Colors.transparent,
+          color: isActive ? LsColors.brand.withValues(alpha: 0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isActive ? const Color(0xFF2563EB) : Colors.grey.shade300),
+          border: Border.all(color: isActive ? LsColors.brand : LsColors.line(context)),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 12,
             fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-            color: isActive ? const Color(0xFF2563EB) : Colors.grey.shade600,
+            color: isActive ? LsColors.brand : LsColors.mute(context),
           ),
         ),
       ),

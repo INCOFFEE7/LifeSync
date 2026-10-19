@@ -6,6 +6,7 @@ import 'package:lifesync_app/core/providers/core_providers.dart';
 import 'package:lifesync_app/domain/entities/shopping_item.dart';
 import 'package:lifesync_app/presentation/providers/shopping_providers.dart';
 import 'package:lifesync_app/presentation/widgets/calculator_input_dialog.dart';
+import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 
 class CreateShoppingPage extends ConsumerStatefulWidget {
   final ShoppingItem? existingItem;
@@ -99,19 +100,69 @@ class _CreateShoppingPageState extends ConsumerState<CreateShoppingPage> {
     }
   }
 
+  InputDecoration _deco(BuildContext context, String label, {String? hint, String? prefixText, Widget? suffixIcon}) {
+    OutlineInputBorder border(Color c, [double w = 1]) =>
+        OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: c, width: w));
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      prefixText: prefixText,
+      suffixIcon: suffixIcon,
+      labelStyle: TextStyle(color: LsColors.mute(context), fontWeight: FontWeight.w500),
+      filled: true,
+      fillColor: LsColors.paper(context),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      border: border(LsColors.line(context)),
+      enabledBorder: border(LsColors.line(context)),
+      focusedBorder: border(LsColors.brand, 1.8),
+      errorBorder: border(LsColors.expense),
+      focusedErrorBorder: border(LsColors.expense, 1.8),
+    );
+  }
+
+  Widget _section(BuildContext context, String title, IconData icon, Color color, List<Widget> children) {
+    return LsCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(color: color.withValues(alpha: 0.14), shape: BoxShape.circle),
+                child: Icon(icon, size: 16, color: color),
+              ),
+              const SizedBox(width: 10),
+              LsEyebrow(title),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ...children,
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final currencyFmt = NumberFormat('#,###', 'id_ID');
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: LsColors.paper(context),
       appBar: AppBar(
-        title: Text(_isReadOnly
-            ? 'Detail Item Belanja (Sudah Dibeli)'
-            : (widget.existingItem == null ? 'Tambah Item Belanja' : 'Edit Item Belanja')),
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-        elevation: 2,
+        title: Text(
+          _isReadOnly
+              ? 'Detail Item Belanja (Sudah Dibeli)'
+              : (widget.existingItem == null ? 'Tambah Item Belanja' : 'Edit Item Belanja'),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: -0.3, color: LsColors.ink(context)),
+        ),
+        backgroundColor: LsColors.surface(context),
+        surfaceTintColor: LsColors.surface(context),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        shape: Border(bottom: BorderSide(color: LsColors.line(context))),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -122,20 +173,20 @@ class _CreateShoppingPageState extends ConsumerState<CreateShoppingPage> {
             children: [
               if (_isReadOnly) ...[
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.green.withOpacity(0.3)),
+                    color: LsColors.income.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: LsColors.income.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.check_circle, color: Colors.green, size: 20),
-                      const SizedBox(width: 8),
+                      const Icon(Icons.check_circle, color: LsColors.income, size: 20),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           'Item belanja ini sudah dibeli pada ${DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(widget.existingItem!.purchaseDate ?? widget.existingItem!.updatedAt)} (Read-Only).',
-                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green, fontSize: 12),
+                          style: const TextStyle(fontWeight: FontWeight.w700, color: LsColors.income, fontSize: 12),
                         ),
                       ),
                     ],
@@ -144,122 +195,95 @@ class _CreateShoppingPageState extends ConsumerState<CreateShoppingPage> {
                 const SizedBox(height: 16),
               ],
 
-              // 1. Nama Barang (Wajib)
-              TextFormField(
-                controller: _nameController,
-                readOnly: _isReadOnly,
-                decoration: InputDecoration(
-                  labelText: 'Nama Barang / Item *',
-                  hintText: 'e.g. Minyak Goreng, Beras, Telur',
-                  filled: true,
-                  fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              _section(context, 'Informasi Barang', Icons.shopping_basket_rounded, LsColors.brand, [
+                TextFormField(
+                  controller: _nameController,
+                  readOnly: _isReadOnly,
+                  decoration: _deco(context, 'Nama Barang / Item *', hint: 'e.g. Minyak Goreng, Beras, Telur'),
+                  validator: (val) => (val == null || val.trim().isEmpty) ? 'Nama Barang wajib diisi' : null,
                 ),
-                validator: (val) => (val == null || val.trim().isEmpty) ? 'Nama Barang wajib diisi' : null,
-              ),
-              const SizedBox(height: 14),
-
-              // 2. Catatan / Notes (Opsional)
-              TextFormField(
-                controller: _notesController,
-                readOnly: _isReadOnly,
-                decoration: InputDecoration(
-                  labelText: 'Catatan / Notes (Opsional)',
-                  hintText: 'e.g. Merk Sania 2 Liter',
-                  filled: true,
-                  fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _notesController,
+                  readOnly: _isReadOnly,
+                  decoration: _deco(context, 'Catatan / Notes (Opsional)', hint: 'e.g. Merk Sania 2 Liter'),
                 ),
-              ),
-              const SizedBox(height: 14),
+              ]),
+              const SizedBox(height: 16),
 
-              // 3. Dibeli Oleh & Tempat / Toko (Opsional)
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _purchasedByController,
-                      readOnly: _isReadOnly,
-                      decoration: InputDecoration(
-                        labelText: 'Dibeli Oleh (Opsional)',
-                        hintText: 'e.g. Ibu, Ayah',
-                        filled: true,
-                        fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              _section(context, 'Pembelian', Icons.storefront_rounded, LsColors.violet, [
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _purchasedByController,
+                        readOnly: _isReadOnly,
+                        decoration: _deco(context, 'Dibeli Oleh (Opsional)', hint: 'e.g. Ibu, Ayah'),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _locationController,
-                      readOnly: _isReadOnly,
-                      decoration: InputDecoration(
-                        labelText: 'Tempat / Toko (Opsional)',
-                        hintText: 'e.g. Pasar, Minimarket',
-                        filled: true,
-                        fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _locationController,
+                        readOnly: _isReadOnly,
+                        decoration: _deco(context, 'Tempat / Toko (Opsional)', hint: 'e.g. Pasar, Minimarket'),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-
-              // 4. Harga / Estimasi (Opsional)
-              TextFormField(
-                controller: _priceController,
-                readOnly: true,
-                onTap: _isReadOnly
-                    ? null
-                    : () async {
-                        final val = await showCalculatorInputDialog(
-                          context: context,
-                          title: 'Input Harga / Estimasi (Opsional)',
-                          initialValue: _price,
-                        );
-                        if (val != null) {
-                          setState(() {
-                            _price = val;
-                            _priceController.text = currencyFmt.format(_price.toInt());
-                          });
-                        }
-                      },
-                decoration: InputDecoration(
-                  labelText: 'Harga / Estimasi (Opsional)',
-                  prefixText: 'Rp ',
-                  suffixIcon: Icon(Icons.calculate, color: _isReadOnly ? Colors.grey : const Color(0xFF2563EB)),
-                  filled: true,
-                  fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                  ],
                 ),
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: _isReadOnly ? Colors.grey : const Color(0xFF2563EB)),
-              ),
-              const SizedBox(height: 32),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _priceController,
+                  readOnly: true,
+                  onTap: _isReadOnly
+                      ? null
+                      : () async {
+                          final val = await showCalculatorInputDialog(
+                            context: context,
+                            title: 'Input Harga / Estimasi (Opsional)',
+                            initialValue: _price,
+                          );
+                          if (val != null) {
+                            setState(() {
+                              _price = val;
+                              _priceController.text = currencyFmt.format(_price.toInt());
+                            });
+                          }
+                        },
+                  decoration: _deco(
+                    context,
+                    'Harga / Estimasi (Opsional)',
+                    prefixText: 'Rp ',
+                    suffixIcon: Icon(Icons.calculate, color: _isReadOnly ? LsColors.mute(context) : LsColors.brand),
+                  ),
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: _isReadOnly ? LsColors.mute(context) : LsColors.brand),
+                ),
+              ]),
+              const SizedBox(height: 28),
 
               // Save or Exit Button
               if (_isReadOnly)
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    side: BorderSide(color: Colors.grey.shade400),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    side: BorderSide(color: LsColors.line(context)),
                   ),
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.exit_to_app, color: Colors.grey),
-                  label: const Text('Tutup', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey)),
+                  icon: Icon(Icons.exit_to_app, color: LsColors.mute(context)),
+                  label: Text('Tutup', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: LsColors.mute(context))),
                 )
               else
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563EB),
+                    backgroundColor: LsColors.brand,
                     foregroundColor: Colors.white,
+                    elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
                   onPressed: _saveShoppingItem,
-                  child: Text(widget.existingItem == null ? 'Simpan Item Belanja' : 'Simpan Perubahan', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  child: Text(widget.existingItem == null ? 'Simpan Item Belanja' : 'Simpan Perubahan', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                 ),
             ],
           ),

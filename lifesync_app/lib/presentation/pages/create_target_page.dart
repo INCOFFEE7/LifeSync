@@ -6,6 +6,7 @@ import 'package:lifesync_app/presentation/providers/repository_providers.dart';
 import 'package:lifesync_app/core/providers/core_providers.dart';
 import 'package:lifesync_app/domain/entities/app_settings.dart';
 import 'package:lifesync_app/presentation/widgets/calculator_input_dialog.dart';
+import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 
 class CreateTargetPage extends ConsumerStatefulWidget {
   final IncomeTarget? existingTarget;
@@ -157,230 +158,321 @@ class _CreateTargetPageState extends ConsumerState<CreateTargetPage> {
     }
   }
 
+
   InputDecoration _inputDecoration(String label) {
+    final line = LsColors.line(context);
+    OutlineInputBorder b(Color c, double w) =>
+        OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: c, width: w));
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+      labelStyle: TextStyle(color: LsColors.mute(context), fontWeight: FontWeight.w500),
       filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 2)),
-      errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.red, width: 1.5)),
-      focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.red, width: 2)),
+      fillColor: LsColors.surface(context),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      border: b(line, 1),
+      enabledBorder: b(line, 1),
+      focusedBorder: b(LsColors.brand, 2),
+      errorBorder: b(LsColors.expense, 1.5),
+      focusedErrorBorder: b(LsColors.expense, 2),
+    );
+  }
+
+  String _categoryLabel(TargetCategory c) {
+    switch (c) {
+      case TargetCategory.savings:
+        return 'Tabungan';
+      case TargetCategory.gadget:
+        return 'Gadget';
+      case TargetCategory.travel:
+        return 'Perjalanan';
+      case TargetCategory.education:
+        return 'Pendidikan';
+      case TargetCategory.investment:
+        return 'Investasi';
+      case TargetCategory.other:
+        return 'Lainnya';
+    }
+  }
+
+  void _selectCategoryValue(String val) {
+    setState(() {
+      _selectedDropdownValue = val;
+      if (val == 'ADD_NEW') {
+        _category = TargetCategory.other;
+        _customCategoryName = '';
+      } else {
+        try {
+          _category = TargetCategory.values.firstWhere((c) => c.name == val);
+          _customCategoryName = null;
+        } catch (e) {
+          _category = TargetCategory.other;
+          _customCategoryName = val;
+        }
+      }
+    });
+  }
+
+  Widget _section(String title, List<Widget> children) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: LsCard(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            LsEyebrow(title, color: LsColors.brand),
+            const SizedBox(height: 14),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _modeSegment(String label, String value, VoidCallback onTap) {
+    final selected = _mode == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected ? LsColors.brand : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 13,
+              color: selected ? Colors.white : LsColors.mute(context),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _catChip(String label, String value, {bool isAdd = false}) {
+    final selected = _selectedDropdownValue == value;
+    return GestureDetector(
+      onTap: () => _selectCategoryValue(value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? LsColors.brand : LsColors.paper(context),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: selected ? LsColors.brand : LsColors.line(context)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isAdd) ...[
+              Icon(Icons.add, size: 14, color: selected ? Colors.white : LsColors.brand),
+              const SizedBox(width: 4),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: selected ? Colors.white : (isAdd ? LsColors.brand : LsColors.ink(context)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _dateTile(String label, DateTime date, VoidCallback onTap) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: LsColors.surface(context),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: LsColors.line(context)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: TextStyle(color: LsColors.mute(context), fontSize: 12, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Icon(Icons.event_outlined, size: 15, color: LsColors.brand),
+                  const SizedBox(width: 6),
+                  Text(DateFormat('dd MMM yyyy').format(date), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: LsColors.ink(context))),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final currencyFmt = NumberFormat('#,###', 'id_ID');
+    final ink = LsColors.ink(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
+      backgroundColor: LsColors.paper(context),
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 4,
-        shadowColor: Colors.black.withOpacity(0.05),
-        surfaceTintColor: Colors.white,
-        scrolledUnderElevation: 4,
+        backgroundColor: LsColors.paper(context),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
         centerTitle: false,
+        iconTheme: IconThemeData(color: ink),
         title: Text(
           widget.existingTarget == null ? 'Target Baru' : 'Edit Target',
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Color(0xFF1F2937), letterSpacing: -0.5),
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: ink, letterSpacing: -0.5),
         ),
       ),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           children: [
-            TextFormField(
-              initialValue: _name,
-              decoration: _inputDecoration('Nama Target *'),
-              style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1F2937)),
-              validator: (val) => val == null || val.trim().isEmpty ? 'Nama target wajib diisi' : null,
-              onSaved: (val) => _name = val!,
-            ),
-            const SizedBox(height: 20),
-            TextFormField(
-              controller: _targetAmountController,
-              readOnly: true,
-              onTap: () async {
-                final val = await showCalculatorInputDialog(
-                  context: context,
-                  title: 'Input Jumlah Target',
-                  initialValue: _targetAmount,
-                );
-                if (val != null && mounted) {
-                  setState(() {
-                    _targetAmount = val;
-                    _targetAmountController.text = currencyFmt.format(val.toInt());
-                    _calculateFixedDaily();
-                  });
-                }
-              },
-              decoration: _inputDecoration('Jumlah Target * (Rp)').copyWith(
-                prefixText: 'Rp ',
-                suffixIcon: const Icon(Icons.calculate, color: Color(0xFF2563EB)),
-              ),
-              style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF2563EB)),
-              validator: (val) {
-                if (_targetAmount <= 0) return 'Nominal harus > 0';
-                return null;
-              },
-            ),
-            const SizedBox(height: 20),
-            // ── Mode Nabung (Flexible / Fixed) ─────────────────────
-            Text('Mode Nabung', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey.shade700)),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: ChoiceChip(
-                    label: const Center(child: Text('Nominal Bebas')),
-                    selected: _mode == 'flexible',
-                    selectedColor: const Color(0xFF2563EB),
-                    labelStyle: TextStyle(
-                      color: _mode == 'flexible' ? Colors.white : Colors.black87,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    onSelected: (sel) {
-                      if (sel) setState(() => _mode = 'flexible');
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ChoiceChip(
-                    label: const Center(child: Text('Nominal Tetap')),
-                    selected: _mode == 'fixed',
-                    selectedColor: const Color(0xFF2563EB),
-                    labelStyle: TextStyle(
-                      color: _mode == 'fixed' ? Colors.white : Colors.black87,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    onSelected: (sel) {
-                      if (sel) {
-                        setState(() => _mode = 'fixed');
-                        _calculateFixedDaily();
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
-            if (_mode == 'fixed') ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.teal.shade50,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.teal.shade200, width: 1.5),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.auto_awesome, color: Colors.teal, size: 24),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Nominal Nabung Harian (Otomatis)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.teal)),
-                          const SizedBox(height: 2),
-                          Text('Rp ${currencyFmt.format(_fixedDailyAmount.toInt())} / hari', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF1F2937))),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            const SizedBox(height: 20),
-            DropdownButtonFormField<String>(
-              decoration: _inputDecoration('Kategori'),
-              style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1F2937)),
-              icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4B5563)),
-              value: _selectedDropdownValue,
-              items: [
-                ...TargetCategory.values
-                    .where((c) => c != TargetCategory.other)
-                    .map((c) => DropdownMenuItem(value: c.name, child: Text(c.name.toUpperCase()))),
-                ..._existingCustomCategories.map((c) => DropdownMenuItem(value: c, child: Text(c.toUpperCase()))),
-                const DropdownMenuItem(value: 'ADD_NEW', child: Text('TAMBAH BARU...')),
-              ],
-              onChanged: (val) {
-                setState(() {
-                  _selectedDropdownValue = val!;
-                  if (val == 'ADD_NEW') {
-                    _category = TargetCategory.other;
-                    _customCategoryName = '';
-                  } else {
-                    try {
-                      _category = TargetCategory.values.firstWhere((c) => c.name == val);
-                      _customCategoryName = null;
-                    } catch (e) {
-                      _category = TargetCategory.other;
-                      _customCategoryName = val;
-                    }
-                  }
-                });
-              },
-            ),
-            if (_selectedDropdownValue == 'ADD_NEW') ...[
-              const SizedBox(height: 16),
+            _section('Informasi Target', [
               TextFormField(
-                decoration: _inputDecoration('Nama Kategori Khusus'),
-                onChanged: (val) {
-                  _customCategoryName = val;
-                },
-                validator: (value) {
-                  if (_selectedDropdownValue == 'ADD_NEW' && (value == null || value.trim().isEmpty)) {
-                    return 'Kategori khusus tidak boleh kosong';
+                initialValue: _name,
+                decoration: _inputDecoration('Nama Target *'),
+                style: TextStyle(fontWeight: FontWeight.w600, color: ink),
+                validator: (val) => val == null || val.trim().isEmpty ? 'Nama target wajib diisi' : null,
+                onSaved: (val) => _name = val!,
+              ),
+              const SizedBox(height: 14),
+              TextFormField(
+                controller: _targetAmountController,
+                readOnly: true,
+                onTap: () async {
+                  final val = await showCalculatorInputDialog(
+                    context: context,
+                    title: 'Input Jumlah Target',
+                    initialValue: _targetAmount,
+                  );
+                  if (val != null && mounted) {
+                    setState(() {
+                      _targetAmount = val;
+                      _targetAmountController.text = currencyFmt.format(val.toInt());
+                      _calculateFixedDaily();
+                    });
                   }
+                },
+                decoration: _inputDecoration('Jumlah Target * (Rp)').copyWith(
+                  prefixText: 'Rp ',
+                  suffixIcon: const Icon(Icons.calculate, color: LsColors.brand),
+                ),
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: LsColors.brand),
+                validator: (val) {
+                  if (_targetAmount <= 0) return 'Nominal harus > 0';
                   return null;
                 },
               ),
-            ],
-
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade200, width: 1.5)),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      title: Text('Tanggal Mulai', style: TextStyle(color: Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w500)),
-                      subtitle: Text(DateFormat('dd MMM yyyy').format(_startDate), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF1F2937))),
-                      onTap: _selectStartDate,
-                    ),
-                  ),
+            ]),
+            _section('Mode Nabung', [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: LsColors.paper(context),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: LsColors.line(context)),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade200, width: 1.5)),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      title: Text('Tanggal Selesai', style: TextStyle(color: Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w500)),
-                      subtitle: Text(DateFormat('dd MMM yyyy').format(_endDate), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF1F2937))),
-                      onTap: _selectEndDate,
-                    ),
+                child: Row(
+                  children: [
+                    _modeSegment('Nominal Bebas', 'flexible', () => setState(() => _mode = 'flexible')),
+                    _modeSegment('Nominal Tetap', 'fixed', () {
+                      setState(() => _mode = 'fixed');
+                      _calculateFixedDaily();
+                    }),
+                  ],
+                ),
+              ),
+              if (_mode == 'fixed') ...[
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: LsColors.income.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: LsColors.income.withValues(alpha: 0.35)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.auto_awesome, color: LsColors.income, size: 22),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Nominal Nabung Harian (Otomatis)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: LsColors.income)),
+                            const SizedBox(height: 2),
+                            Text('Rp ${currencyFmt.format(_fixedDailyAmount.toInt())} / hari', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: ink)),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 20),
-            TextFormField(
-              initialValue: _description,
-              decoration: _inputDecoration('Catatan Khusus'),
-              style: const TextStyle(color: Color(0xFF1F2937)),
-              maxLines: 3,
-              onSaved: (val) => _description = val ?? '',
-            ),
-            const SizedBox(height: 40),
+            ]),
+            _section('Kategori', [
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ...TargetCategory.values
+                      .where((c) => c != TargetCategory.other)
+                      .map((c) => _catChip(_categoryLabel(c), c.name)),
+                  ..._existingCustomCategories.map((c) => _catChip(c, c)),
+                  _catChip('Tambah Baru', 'ADD_NEW', isAdd: true),
+                ],
+              ),
+              if (_selectedDropdownValue == 'ADD_NEW') ...[
+                const SizedBox(height: 14),
+                TextFormField(
+                  decoration: _inputDecoration('Nama Kategori Khusus'),
+                  style: TextStyle(color: ink),
+                  onChanged: (val) {
+                    _customCategoryName = val;
+                  },
+                  validator: (value) {
+                    if (_selectedDropdownValue == 'ADD_NEW' && (value == null || value.trim().isEmpty)) {
+                      return 'Kategori khusus tidak boleh kosong';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ]),
+            _section('Periode & Catatan', [
+              Row(
+                children: [
+                  _dateTile('Tanggal Mulai', _startDate, _selectStartDate),
+                  const SizedBox(width: 12),
+                  _dateTile('Tanggal Selesai', _endDate, _selectEndDate),
+                ],
+              ),
+              const SizedBox(height: 14),
+              TextFormField(
+                initialValue: _description,
+                decoration: _inputDecoration('Catatan Khusus'),
+                style: TextStyle(color: ink),
+                maxLines: 3,
+                onSaved: (val) => _description = val ?? '',
+              ),
+            ]),
+            const SizedBox(height: 4),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
@@ -388,17 +480,16 @@ class _CreateTargetPageState extends ConsumerState<CreateTargetPage> {
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 18),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  backgroundColor: const Color(0xFF2563EB),
-                  elevation: 4,
-                  shadowColor: const Color(0xFF2563EB).withOpacity(0.3),
+                  backgroundColor: LsColors.brand,
+                  elevation: 0,
                 ),
                 child: Text(
                   widget.existingTarget == null ? 'Buat Target' : 'Perbarui Target',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 0.5),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0.3),
                 ),
               ),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 24),
           ],
         ),
       ),

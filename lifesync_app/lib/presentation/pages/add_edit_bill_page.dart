@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:lifesync_app/domain/entities/bill.dart';
 import 'package:lifesync_app/presentation/providers/repository_providers.dart';
 import 'package:lifesync_app/presentation/widgets/calculator_input_dialog.dart';
+import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 
 class AddEditBillPage extends ConsumerStatefulWidget {
   final Bill? existingBill;
@@ -157,33 +158,70 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
   }
 
   InputDecoration _inputDecoration(String label) {
+    final c = context;
+    OutlineInputBorder border(Color col, [double w = 1]) =>
+        OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: col, width: w));
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+      labelStyle: TextStyle(color: LsColors.mute(c), fontWeight: FontWeight.w500),
       filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 2)),
-      errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.red, width: 1.5)),
+      fillColor: LsColors.paper(c),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      border: border(LsColors.line(c)),
+      enabledBorder: border(LsColors.line(c)),
+      focusedBorder: border(LsColors.brand, 1.8),
+      errorBorder: border(LsColors.expense),
+      focusedErrorBorder: border(LsColors.expense, 1.8),
+    );
+  }
+
+  Widget _section(String title, IconData icon, Color color, List<Widget> children) {
+    return LsCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(color: color.withValues(alpha: 0.14), shape: BoxShape.circle),
+                child: Icon(icon, size: 16, color: color),
+              ),
+              const SizedBox(width: 10),
+              LsEyebrow(title),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ...children,
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final currencyFmt = NumberFormat('#,###', 'id_ID');
+    const reminderOptions = <int, String>{
+      -1: 'Tidak Ada',
+      0: 'Pada Hari H (Sesuai Jam Jatuh Tempo)',
+      1: '1 Hari Sebelumnya',
+      3: '3 Hari Sebelumnya',
+      7: '7 Hari Sebelumnya',
+    };
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
+      backgroundColor: LsColors.paper(context),
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 4,
-        shadowColor: Colors.black.withOpacity(0.05),
-        surfaceTintColor: Colors.white,
+        backgroundColor: LsColors.surface(context),
+        surfaceTintColor: LsColors.surface(context),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        shape: Border(bottom: BorderSide(color: LsColors.line(context))),
         title: Text(
           widget.existingBill == null ? 'Tambah Tagihan' : 'Edit Tagihan',
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: -0.3, color: LsColors.ink(context)),
         ),
       ),
       body: Form(
@@ -191,85 +229,116 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            TextFormField(
-              initialValue: _name,
-              decoration: _inputDecoration('Nama Tagihan * (e.g. Listrik, Internet, Air)'),
-              style: const TextStyle(fontWeight: FontWeight.bold),
-              validator: (val) => val == null || val.trim().isEmpty ? 'Nama tagihan wajib diisi' : null,
-              onSaved: (val) => _name = val!,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _amountController,
-              readOnly: true,
-              onTap: () async {
-                final val = await showCalculatorInputDialog(
-                  context: context,
-                  title: 'Input Nominal Tagihan',
-                  initialValue: _amount,
-                );
-                if (val != null && mounted) {
-                  setState(() {
-                    _amount = val;
-                    _amountController.text = currencyFmt.format(val.toInt());
-                  });
-                }
-              },
-              decoration: _inputDecoration('Nominal Rencana Tagihan * (Rp)').copyWith(
-                prefixText: 'Rp ',
-                suffixIcon: const Icon(Icons.calculate, color: Color(0xFF2563EB)),
+            _section('Detail Tagihan', Icons.receipt_long_rounded, LsColors.brand, [
+              TextFormField(
+                initialValue: _name,
+                decoration: _inputDecoration('Nama Tagihan * (e.g. Listrik, Internet, Air)'),
+                style: const TextStyle(fontWeight: FontWeight.bold),
+                validator: (val) => val == null || val.trim().isEmpty ? 'Nama tagihan wajib diisi' : null,
+                onSaved: (val) => _name = val!,
               ),
-              style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2563EB)),
-              validator: (val) {
-                if (_amount <= 0) return 'Nominal harus > 0';
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade200, width: 1.5),
-              ),
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                title: Text('Tanggal & Jam Jatuh Tempo', style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500)),
-                subtitle: Text(
-                  DateFormat('dd MMMM yyyy, HH:mm', 'id_ID').format(_dueDate),
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
+              const SizedBox(height: 14),
+              TextFormField(
+                controller: _amountController,
+                readOnly: true,
+                onTap: () async {
+                  final val = await showCalculatorInputDialog(
+                    context: context,
+                    title: 'Input Nominal Tagihan',
+                    initialValue: _amount,
+                  );
+                  if (val != null && mounted) {
+                    setState(() {
+                      _amount = val;
+                      _amountController.text = currencyFmt.format(val.toInt());
+                    });
+                  }
+                },
+                decoration: _inputDecoration('Nominal Rencana Tagihan * (Rp)').copyWith(
+                  prefixText: 'Rp ',
+                  suffixIcon: const Icon(Icons.calculate, color: LsColors.brand),
                 ),
-                trailing: const Icon(Icons.access_time_filled, color: Color(0xFF2563EB)),
-                onTap: _pickDueDate,
+                style: const TextStyle(fontWeight: FontWeight.w800, color: LsColors.brand),
+                validator: (val) {
+                  if (_amount <= 0) return 'Nominal harus > 0';
+                  return null;
+                },
               ),
-            ),
+            ]),
             const SizedBox(height: 16),
-            DropdownButtonFormField<int>(
-              decoration: _inputDecoration('Pengingat Tagihan'),
-              value: _reminderDaysBefore,
-              style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
-              items: const [
-                DropdownMenuItem(value: -1, child: Text('Tidak Ada')),
-                DropdownMenuItem(value: 0, child: Text('Pada Hari H (Sesuai Jam Jatuh Tempo)')),
-                DropdownMenuItem(value: 1, child: Text('1 Hari Sebelumnya')),
-                DropdownMenuItem(value: 3, child: Text('3 Hari Sebelumnya')),
-                DropdownMenuItem(value: 7, child: Text('7 Hari Sebelumnya')),
-              ],
-              onChanged: (val) => setState(() => _reminderDaysBefore = val!),
-            ),
+            _section('Jadwal & Pengingat', Icons.event_rounded, LsColors.violet, [
+              InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: _pickDueDate,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: LsColors.paper(context),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: LsColors.line(context)),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Tanggal & Jam Jatuh Tempo', style: TextStyle(color: LsColors.mute(context), fontSize: 12, fontWeight: FontWeight.w500)),
+                            const SizedBox(height: 3),
+                            Text(
+                              DateFormat('dd MMMM yyyy, HH:mm', 'id_ID').format(_dueDate),
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: LsColors.ink(context)),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.access_time_filled, color: LsColors.brand),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text('Pengingat Tagihan', style: TextStyle(color: LsColors.mute(context), fontSize: 12, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: reminderOptions.entries.map((e) {
+                  final selected = _reminderDaysBefore == e.key;
+                  return ChoiceChip(
+                    label: Text(e.value),
+                    selected: selected,
+                    showCheckmark: false,
+                    onSelected: (_) => setState(() => _reminderDaysBefore = e.key),
+                    selectedColor: LsColors.brand,
+                    backgroundColor: LsColors.paper(context),
+                    side: BorderSide(color: selected ? LsColors.brand : LsColors.line(context)),
+                    shape: const StadiumBorder(),
+                    labelStyle: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: selected ? Colors.white : LsColors.ink(context),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ]),
             const SizedBox(height: 16),
-            TextFormField(
-              initialValue: _notes,
-              decoration: _inputDecoration('Catatan (Opsional)'),
-              maxLines: 2,
-              onSaved: (val) => _notes = val,
-            ),
-            const SizedBox(height: 30),
+            _section('Catatan', Icons.notes_rounded, LsColors.amber, [
+              TextFormField(
+                initialValue: _notes,
+                decoration: _inputDecoration('Catatan (Opsional)'),
+                maxLines: 2,
+                onSaved: (val) => _notes = val,
+              ),
+            ]),
+            const SizedBox(height: 28),
             SizedBox(
               height: 52,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2563EB),
+                  backgroundColor: LsColors.brand,
+                  elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
                 onPressed: _isSaving ? null : _saveBill,
@@ -277,7 +346,7 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
                     ? const CircularProgressIndicator(color: Colors.white)
                     : Text(
                         widget.existingBill == null ? 'Simpan Tagihan' : 'Perbarui Tagihan',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white),
                       ),
               ),
             ),

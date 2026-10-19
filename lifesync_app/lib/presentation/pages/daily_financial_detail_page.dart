@@ -5,6 +5,7 @@ import 'package:lifesync_app/domain/entities/financial_category.dart';
 import 'package:lifesync_app/domain/entities/financial_record.dart';
 import 'package:lifesync_app/core/utils/translations.dart';
 import 'package:lifesync_app/presentation/providers/localization_provider.dart';
+import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 
 class DailyFinancialDetailPage extends ConsumerWidget {
   final DateTime date;
@@ -30,69 +31,84 @@ class DailyFinancialDetailPage extends ConsumerWidget {
     final totalExpense = expenses.fold(0.0, (sum, r) => sum + r.amount);
     final netBalance = totalIncome - totalExpense;
 
+    Widget sub(String label, double v, Color c) => Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(16)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: Colors.white70)),
+                const SizedBox(height: 6),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text('Rp ${fmt.format(v.toInt())}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: c)),
+                ),
+              ],
+            ),
+          ),
+        );
+
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: LsColors.paper(context),
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: LsColors.surface(context),
+        surfaceTintColor: Colors.transparent,
+        scrolledUnderElevation: 0,
         elevation: 0,
+        shape: Border(bottom: BorderSide(color: LsColors.line(context))),
         title: Text(
           dateLabel,
-          style: TextStyle(
-            color: isDark ? Colors.white : const Color(0xFF0F172A),
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: LsColors.ink(context), fontWeight: FontWeight.w800),
         ),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+          icon: Icon(Icons.arrow_back, color: LsColors.ink(context)),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: Column(
         children: [
-          // Period Net Balance Summary
-          Container(
-            margin: const EdgeInsets.all(16),
+          Padding(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 10, offset: const Offset(0, 4))],
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _summaryTile('Rp ${fmt.format(totalIncome.toInt())}', AppTranslations.get(lang, 'pemasukan'), const Color(0xFF10B981), isDark),
-                ),
-                Container(width: 1, height: 40, color: isDark ? Colors.white10 : const Color(0xFFE2E8F0)),
-                Expanded(
-                  child: _summaryTile('Rp ${fmt.format(totalExpense.toInt())}', AppTranslations.get(lang, 'pengeluaran'), const Color(0xFFEF4444), isDark),
-                ),
-                Container(width: 1, height: 40, color: isDark ? Colors.white10 : const Color(0xFFE2E8F0)),
-                Expanded(
-                  child: _summaryTile(
-                    '${netBalance >= 0 ? '+' : '-'}Rp ${fmt.format(netBalance.abs().toInt())}',
-                    AppTranslations.get(lang, 'saldo_bersih'),
-                    netBalance >= 0 ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-                    isDark,
+            child: LsHeroCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  LsEyebrow(AppTranslations.get(lang, 'saldo_bersih'), color: Colors.white70),
+                  const SizedBox(height: 6),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '${netBalance >= 0 ? '+' : '-'}Rp ${fmt.format(netBalance.abs().toInt())}',
+                      style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w800, height: 1.1, letterSpacing: -1, color: Colors.white),
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      sub(AppTranslations.get(lang, 'pemasukan'), totalIncome, const Color(0xFF6EE7B7)),
+                      const SizedBox(width: 10),
+                      sub(AppTranslations.get(lang, 'pengeluaran'), totalExpense, const Color(0xFFFCA5A5)),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-
-          // All transactions
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               children: [
                 if (incomes.isNotEmpty) ...[
-                  _sectionHeader(AppTranslations.get(lang, 'pemasukan'), const Color(0xFF10B981)),
-                  ...incomes.map((r) => _transactionTile(r, isDark, fmt)),
+                  _sectionHeader(AppTranslations.get(lang, 'pemasukan'), LsColors.income),
+                  ...incomes.map((r) => _transactionTile(context, r, isDark, fmt)),
                   const SizedBox(height: 12),
                 ],
                 if (expenses.isNotEmpty) ...[
-                  _sectionHeader(AppTranslations.get(lang, 'pengeluaran'), const Color(0xFFEF4444)),
-                  ...expenses.map((r) => _transactionTile(r, isDark, fmt)),
+                  _sectionHeader(AppTranslations.get(lang, 'pengeluaran'), LsColors.expense),
+                  ...expenses.map((r) => _transactionTile(context, r, isDark, fmt)),
                 ],
                 const SizedBox(height: 80),
               ],
@@ -103,16 +119,6 @@ class DailyFinancialDetailPage extends ConsumerWidget {
     );
   }
 
-  Widget _summaryTile(String amount, String label, Color color, bool isDark) {
-    return Column(
-      children: [
-        Text(amount, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color)),
-        const SizedBox(height: 2),
-        Text(label, style: TextStyle(fontSize: 10, color: isDark ? Colors.white54 : const Color(0xFF64748B))),
-      ],
-    );
-  }
-
   Widget _sectionHeader(String title, Color color) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -120,40 +126,38 @@ class DailyFinancialDetailPage extends ConsumerWidget {
     );
   }
 
-  Widget _transactionTile(FinancialRecord record, bool isDark, NumberFormat fmt) {
+  Widget _transactionTile(BuildContext context, FinancialRecord record, bool isDark, NumberFormat fmt) {
     final cat = FinancialCategory.findById(record.categoryId);
     final isIncome = record.type == 'income';
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: isDark ? Colors.white10 : const Color(0xFFE2E8F0)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: cat.color.withAlpha(25), shape: BoxShape.circle),
-            child: Icon(cat.icon, size: 18, color: cat.color),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(cat.name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF1E293B))),
-                if (record.description != null && record.description!.isNotEmpty)
-                  Text(record.description!, style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : const Color(0xFF64748B))),
-              ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: LsCard(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(color: cat.color.withValues(alpha: 0.14), shape: BoxShape.circle),
+              child: Icon(cat.icon, size: 18, color: cat.color),
             ),
-          ),
-          Text(
-            '${isIncome ? '+' : '-'}Rp ${fmt.format(record.amount.toInt())}',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isIncome ? const Color(0xFF10B981) : const Color(0xFFEF4444)),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(cat.name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: LsColors.ink(context))),
+                  if (record.description != null && record.description!.isNotEmpty)
+                    Text(record.description!, style: TextStyle(fontSize: 12, color: LsColors.mute(context))),
+                ],
+              ),
+            ),
+            Text(
+              '${isIncome ? '+' : '-'}Rp ${fmt.format(record.amount.toInt())}',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: isIncome ? LsColors.income : LsColors.expense),
+            ),
+          ],
+        ),
       ),
     );
   }

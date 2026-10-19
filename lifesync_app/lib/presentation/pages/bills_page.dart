@@ -6,6 +6,7 @@ import 'package:lifesync_app/presentation/providers/repository_providers.dart';
 import 'package:lifesync_app/presentation/pages/add_edit_bill_page.dart';
 import 'package:lifesync_app/presentation/widgets/calculator_input_dialog.dart';
 import 'package:lifesync_app/config/app_variant.dart';
+import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 
 class BillsPage extends ConsumerStatefulWidget {
   const BillsPage({super.key});
@@ -160,7 +161,7 @@ class _BillsPageState extends ConsumerState<BillsPage> {
                                 Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF10B981).withOpacity(0.12),
+                                    color: const Color(0xFF10B981).withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: const Icon(Icons.payments_rounded, color: Color(0xFF10B981), size: 22),
@@ -226,7 +227,7 @@ class _BillsPageState extends ConsumerState<BillsPage> {
                                 decoration: BoxDecoration(
                                   color: isDark ? const Color(0xFF0F172A) : Colors.white,
                                   borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(color: const Color(0xFF10B981).withOpacity(0.5), width: 1.5),
+                                  border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.5), width: 1.5),
                                 ),
                                 child: Row(
                                   children: [
@@ -242,7 +243,7 @@ class _BillsPageState extends ConsumerState<BillsPage> {
                                     ),
                                     Container(
                                       padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(color: const Color(0xFF10B981).withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                                      decoration: BoxDecoration(color: const Color(0xFF10B981).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
                                       child: const Icon(Icons.calculate_rounded, color: Color(0xFF10B981), size: 20),
                                     ),
                                   ],
@@ -416,6 +417,301 @@ class _BillsPageState extends ConsumerState<BillsPage> {
       }
     }
   }
+  Widget _monthNav(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: LsCard(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            IconButton(
+              icon: Icon(Icons.chevron_left, size: 26, color: LsColors.ink(context)),
+              onPressed: _prevMonth,
+            ),
+            Text(
+              DateFormat('MMMM yyyy', 'id_ID').format(_selectedMonthDate),
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, letterSpacing: -0.3, color: LsColors.ink(context)),
+            ),
+            IconButton(
+              icon: Icon(Icons.chevron_right, size: 26, color: LsColors.ink(context)),
+              onPressed: _nextMonth,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _heroStat(String label, String value) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            LsEyebrow(label, color: Colors.white70),
+            const SizedBox(height: 6),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _hero(NumberFormat fmt, int paidCount, int totalCount, double totalAmount, double totalRealization, double totalRemaining) {
+    final progress = totalCount > 0 ? paidCount / totalCount : 0.0;
+    return LsHeroCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const LsEyebrow('Sisa Tagihan', color: Colors.white70),
+          const SizedBox(height: 6),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Rp ${fmt.format(totalRemaining.toInt())}',
+              style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w800, height: 1.05, letterSpacing: -1, color: Colors.white),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _heroStat('Total Rencana', 'Rp ${fmt.format(totalAmount.toInt())}'),
+              const SizedBox(width: 10),
+              _heroStat('Total Realisasi', 'Rp ${fmt.format(totalRealization.toInt())}'),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('$paidCount / $totalCount tagihan dibayar', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
+              Text('${(progress * 100).toInt()}%', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.white)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 8,
+              backgroundColor: Colors.white.withValues(alpha: 0.2),
+              valueColor: const AlwaysStoppedAnimation<Color>(LsColors.income),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dueChip(Bill bill) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final due = DateTime(bill.dueDate.year, bill.dueDate.month, bill.dueDate.day);
+    final days = due.difference(today).inDays;
+    if (days < 0) return const LsChip('Terlambat', color: LsColors.expense);
+    if (days == 0) return const LsChip('Hari ini', color: LsColors.amber);
+    return LsChip('$days hari lagi', color: days <= 3 ? LsColors.amber : LsColors.brand);
+  }
+
+  Widget _amountCol(BuildContext context, String label, String value, Color color) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          LsEyebrow(label),
+          const SizedBox(height: 4),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: color)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _billCard(BuildContext context, Bill bill, NumberFormat currencyFmt) {
+    final isPaid = bill.isPaid;
+    final realization = bill.realizationAmount ?? 0.0;
+    final diff = realization - bill.amount;
+    final remaining = (bill.amount - realization).clamp(0.0, double.infinity);
+    final mute = LsColors.mute(context);
+
+    Widget? diffChip;
+    if (isPaid) {
+      if (diff > 0) {
+        diffChip = LsChip('Kelebihan: Rp ${currencyFmt.format(diff.toInt())}', color: LsColors.expense);
+      } else if (diff < 0) {
+        diffChip = LsChip('Hemat: Rp ${currencyFmt.format(diff.abs().toInt())}', color: LsColors.income);
+      } else {
+        diffChip = const LsChip('Sesuai Rencana', color: LsColors.brand);
+      }
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: LsCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => _handleBillToggle(bill),
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: (isPaid ? LsColors.income : mute).withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        isPaid ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                        color: isPaid ? LsColors.income : mute,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          bill.name,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.2,
+                            decoration: isPaid ? TextDecoration.lineThrough : null,
+                            color: isPaid ? mute : LsColors.ink(context),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Jatuh Tempo: ${DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(bill.dueDate)}',
+                          style: TextStyle(fontSize: 12, color: mute),
+                        ),
+                        if (bill.paidAt != null)
+                          Text(
+                            'Dibayar: ${DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(bill.paidAt!)}',
+                            style: const TextStyle(fontSize: 11, color: LsColors.income, fontWeight: FontWeight.w700),
+                          ),
+                      ],
+                    ),
+                  ),
+                  PopupMenuButton<String>(
+                    icon: Icon(Icons.more_vert, size: 20, color: mute),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    onSelected: (val) async {
+                      if (val == 'copy') {
+                        await _copyBillToNextMonth(bill);
+                      } else if (val == 'edit') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AddEditBillPage(existingBill: bill),
+                          ),
+                        );
+                      } else if (val == 'delete') {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (c) => AlertDialog(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            title: const Text('Hapus Tagihan?'),
+                            content: Text('Apakah Anda yakin ingin menghapus tagihan "${bill.name}"?'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Batal')),
+                              TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Hapus', style: TextStyle(color: Colors.red))),
+                            ],
+                          ),
+                        );
+                        if (confirm == true) {
+                          await ref.read(billRepositoryProvider).deleteBill(bill.id);
+                        }
+                      }
+                    },
+                    itemBuilder: (ctx) => [
+                      const PopupMenuItem(
+                        value: 'copy',
+                        child: Row(
+                          children: [
+                            Icon(Icons.copy_rounded, size: 18, color: LsColors.brand),
+                            SizedBox(width: 8),
+                            Text('Copy ke Bulan Berikutnya'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit_outlined, size: 18, color: Colors.blueGrey),
+                            SizedBox(width: 8),
+                            Text('Edit Tagihan'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text('Hapus Tagihan', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  if (isPaid) const LsChip('Sudah Dibayar', color: LsColors.income) else ...[
+                    const LsChip('Belum Dibayar', color: LsColors.expense),
+                    _dueChip(bill),
+                  ],
+                  if (diffChip != null) diffChip,
+                ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: LsColors.paper(context),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  children: [
+                    _amountCol(context, 'Rencana', 'Rp ${currencyFmt.format(bill.amount.toInt())}', LsColors.ink(context)),
+                    _amountCol(context, 'Realisasi', 'Rp ${currencyFmt.format(realization.toInt())}', LsColors.income),
+                    if (!isPaid)
+                      _amountCol(context, 'Sisa Tagihan', 'Rp ${currencyFmt.format(remaining.toInt())}', LsColors.expense),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final billsAsync = ref.watch(billsStreamProvider(_currentMonthKey));
@@ -423,13 +719,13 @@ class _BillsPageState extends ConsumerState<BillsPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: LsColors.paper(context),
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-        elevation: 4,
-        shadowColor: Colors.black.withAlpha(25),
-        surfaceTintColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-        scrolledUnderElevation: 4,
+        backgroundColor: LsColors.surface(context),
+        elevation: 0,
+        surfaceTintColor: LsColors.surface(context),
+        scrolledUnderElevation: 0,
+        shape: Border(bottom: BorderSide(color: LsColors.line(context))),
         automaticallyImplyLeading: false,
         titleSpacing: 20,
         title: Padding(
@@ -443,15 +739,17 @@ class _BillsPageState extends ConsumerState<BillsPage> {
             filterQuality: FilterQuality.high,
             errorBuilder: (_, __, ___) => Text(
               AppEnvironment.config.appName,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Color(0xFF2563EB), letterSpacing: -0.5),
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: LsColors.brand, letterSpacing: -0.5),
             ),
           ),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'add_bill_fab',
-        backgroundColor: const Color(0xFF2563EB),
+        backgroundColor: LsColors.brand,
         foregroundColor: Colors.white,
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         onPressed: () {
           Navigator.push(
             context,
@@ -461,34 +759,11 @@ class _BillsPageState extends ConsumerState<BillsPage> {
           );
         },
         icon: const Icon(Icons.add),
-        label: const Text('Tagihan Baru', style: TextStyle(fontWeight: FontWeight.bold)),
+        label: const Text('Tagihan Baru', style: TextStyle(fontWeight: FontWeight.w800)),
       ),
       body: Column(
         children: [
-          // ── Month Selector Header ──────────────────────────────────────────
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.chevron_left, size: 28),
-                  onPressed: _prevMonth,
-                ),
-                Text(
-                  DateFormat('MMMM yyyy', 'id_ID').format(_selectedMonthDate),
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF1E293B)),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.chevron_right, size: 28),
-                  onPressed: _nextMonth,
-                ),
-              ],
-            ),
-          ),
-
-          // ── Bills List ─────────────────────────────────────────────────────
+          _monthNav(context),
           Expanded(
             child: billsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
@@ -501,303 +776,42 @@ class _BillsPageState extends ConsumerState<BillsPage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.receipt_long_outlined, size: 72, color: Colors.grey.shade400),
+                          Container(
+                            width: 88,
+                            height: 88,
+                            decoration: BoxDecoration(color: LsColors.brand.withValues(alpha: 0.12), shape: BoxShape.circle),
+                            child: const Icon(Icons.receipt_long_outlined, size: 40, color: LsColors.brand),
+                          ),
                           const SizedBox(height: 16),
                           Text(
                             'Belum ada tagihan di bulan ${DateFormat('MMMM yyyy', 'id_ID').format(_selectedMonthDate)}',
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.grey.shade400),
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: LsColors.ink(context)),
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 8),
-                          Text('Klik "+ Tagihan Baru" untuk mencatatkan tagihan bulanan.', style: TextStyle(fontSize: 13, color: Colors.grey.shade500), textAlign: TextAlign.center),
+                          Text('Klik "+ Tagihan Baru" untuk mencatatkan tagihan bulanan.', style: TextStyle(fontSize: 13, color: LsColors.mute(context)), textAlign: TextAlign.center),
                         ],
                       ),
                     ),
                   );
                 }
 
-                int paidCount = bills.where((b) => b.isPaid).length;
-                int totalCount = bills.length;
-                double billProgress = totalCount > 0 ? (paidCount / totalCount) : 0.0;
-
-                double totalAmount = bills.fold(0.0, (s, b) => s + b.amount);
-                double totalRealization = bills.fold(0.0, (s, b) => s + (b.realizationAmount ?? 0.0));
-                double totalRemaining = bills
+                final paidCount = bills.where((b) => b.isPaid).length;
+                final totalCount = bills.length;
+                final totalAmount = bills.fold(0.0, (s, b) => s + b.amount);
+                final totalRealization = bills.fold(0.0, (s, b) => s + (b.realizationAmount ?? 0.0));
+                final totalRemaining = bills
                     .where((b) => !b.isPaid)
                     .fold(0.0, (s, b) => s + (b.amount - (b.realizationAmount ?? 0.0)).clamp(0.0, double.infinity));
 
-                return Column(
+                return ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
                   children: [
-                    // Summary header for the month
-                    Container(
-                      margin: const EdgeInsets.all(16),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 3))],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('Total Rencana', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
-                                    const SizedBox(height: 4),
-                                    Text('Rp ${currencyFmt.format(totalAmount.toInt())}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF2563EB))),
-                                  ],
-                                ),
-                              ),
-                              Container(width: 1, height: 32, color: Colors.grey.shade200),
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text('Total Realisasi', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
-                                      const SizedBox(height: 4),
-                                      Text('Rp ${currencyFmt.format(totalRealization.toInt())}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              Container(width: 1, height: 32, color: Colors.grey.shade200),
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.only(left: 8.0),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text('Sisa Tagihan', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
-                                      const SizedBox(height: 4),
-                                      Text('Rp ${currencyFmt.format(totalRemaining.toInt())}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: totalRemaining > 0 ? Colors.red : Colors.grey)),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          const Divider(height: 1),
-                          const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                '$paidCount / $totalCount tagihan dibayar',
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.black87),
-                              ),
-                              Text(
-                                '${(billProgress * 100).toInt()}%',
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(6),
-                            child: LinearProgressIndicator(
-                              value: billProgress,
-                              minHeight: 8,
-                              backgroundColor: isDark ? Colors.white10 : Colors.grey.shade200,
-                              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    Expanded(
-                      child: ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
-                        itemCount: bills.length,
-                        itemBuilder: (context, idx) {
-                          final bill = bills[idx];
-                          final isPaid = bill.isPaid;
-                          final realization = bill.realizationAmount ?? 0.0;
-                          final diff = realization - bill.amount;
-                          final remaining = (bill.amount - realization).clamp(0.0, double.infinity);
-
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            elevation: 0,
-                            color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              side: BorderSide(
-                                color: isPaid ? Colors.green.shade200 : Colors.grey.shade200,
-                                width: 1.5,
-                              ),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      // Checklist Box
-                                      InkWell(
-                                        onTap: () => _handleBillToggle(bill),
-                                        child: Container(
-                                          padding: const EdgeInsets.all(8),
-                                          decoration: BoxDecoration(
-                                            color: isPaid ? const Color(0xFF10B981).withOpacity(0.1) : Colors.grey.shade100,
-                                            borderRadius: BorderRadius.circular(10),
-                                          ),
-                                          child: Icon(
-                                            isPaid ? Icons.check_box : Icons.check_box_outline_blank,
-                                            color: isPaid ? const Color(0xFF10B981) : Colors.grey.shade400,
-                                            size: 24,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              bill.name,
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                                decoration: isPaid ? TextDecoration.lineThrough : null,
-                                                color: isPaid ? Colors.grey.shade500 : (isDark ? Colors.white : const Color(0xFF1F2937)),
-                                              ),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              'Jatuh Tempo: ${DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(bill.dueDate)}',
-                                              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                                            ),
-                                            if (bill.paidAt != null)
-                                              Text(
-                                                'Dibayar: ${DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(bill.paidAt!)}',
-                                                style: const TextStyle(fontSize: 11, color: Color(0xFF10B981), fontWeight: FontWeight.w600),
-                                              ),
-                                          ],
-                                        ),
-                                      ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: isPaid ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: Text(
-                                          isPaid ? 'Sudah Dibayar' : 'Belum Dibayar',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                            color: isPaid ? Colors.green : Colors.red,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const Divider(height: 24),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text('Rencana: Rp ${currencyFmt.format(bill.amount.toInt())}', style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : Colors.grey.shade700, fontWeight: FontWeight.w600)),
-                                          Text('Realisasi: Rp ${currencyFmt.format(realization.toInt())}', style: const TextStyle(fontSize: 12, color: Color(0xFF10B981), fontWeight: FontWeight.bold)),
-                                          if (isPaid) ...[
-                                            if (diff > 0)
-                                              Text('Kelebihan: Rp ${currencyFmt.format(diff.toInt())}', style: const TextStyle(fontSize: 11, color: Color(0xFF2563EB), fontWeight: FontWeight.bold))
-                                            else if (diff < 0)
-                                              Text('Hemat: Rp ${currencyFmt.format(diff.abs().toInt())}', style: TextStyle(fontSize: 11, color: Colors.amber, fontWeight: FontWeight.bold))
-                                            else
-                                              Text('Sesuai Rencana', style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
-                                          ] else ...[
-                                            Text('Sisa Tagihan: Rp ${currencyFmt.format(remaining.toInt())}', style: const TextStyle(fontSize: 11, color: Colors.red, fontWeight: FontWeight.bold)),
-                                          ],
-                                        ],
-                                      ),
-                                      Row(
-                                        children: [
-                                          PopupMenuButton<String>(
-                                            icon: const Icon(Icons.more_vert, size: 20, color: Colors.grey),
-                                            onSelected: (val) async {
-                                              if (val == 'copy') {
-                                                await _copyBillToNextMonth(bill);
-                                              } else if (val == 'edit') {
-                                                Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (_) => AddEditBillPage(existingBill: bill),
-                                                  ),
-                                                );
-                                              } else if (val == 'delete') {
-                                                final confirm = await showDialog<bool>(
-                                                  context: context,
-                                                  builder: (c) => AlertDialog(
-                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                                    title: const Text('Hapus Tagihan?'),
-                                                    content: Text('Apakah Anda yakin ingin menghapus tagihan "${bill.name}"?'),
-                                                    actions: [
-                                                      TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Batal')),
-                                                      TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Hapus', style: TextStyle(color: Colors.red))),
-                                                    ],
-                                                  ),
-                                                );
-                                                if (confirm == true) {
-                                                  await ref.read(billRepositoryProvider).deleteBill(bill.id);
-                                                }
-                                              }
-                                            },
-                                            itemBuilder: (ctx) => [
-                                              const PopupMenuItem(
-                                                value: 'copy',
-                                                child: Row(
-                                                  children: [
-                                                    Icon(Icons.copy_rounded, size: 18, color: Color(0xFF2563EB)),
-                                                    SizedBox(width: 8),
-                                                    Text('Copy ke Bulan Berikutnya'),
-                                                  ],
-                                                ),
-                                              ),
-                                              const PopupMenuItem(
-                                                value: 'edit',
-                                                child: Row(
-                                                  children: [
-                                                    Icon(Icons.edit_outlined, size: 18, color: Colors.blueGrey),
-                                                    SizedBox(width: 8),
-                                                    Text('Edit Tagihan'),
-                                                  ],
-                                                ),
-                                              ),
-                                              const PopupMenuItem(
-                                                value: 'delete',
-                                                child: Row(
-                                                  children: [
-                                                    Icon(Icons.delete_outline, size: 18, color: Colors.red),
-                                                    SizedBox(width: 8),
-                                                    Text('Hapus Tagihan', style: TextStyle(color: Colors.red)),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
+                    _hero(currencyFmt, paidCount, totalCount, totalAmount, totalRealization, totalRemaining),
+                    const SizedBox(height: 20),
+                    const LsSectionHeader(title: 'Daftar Tagihan'),
+                    const SizedBox(height: 12),
+                    for (final bill in bills) _billCard(context, bill, currencyFmt),
                   ],
                 );
               },

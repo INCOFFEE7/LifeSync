@@ -7,6 +7,7 @@ import 'package:lifesync_app/core/providers/core_providers.dart';
 import 'package:lifesync_app/domain/entities/app_settings.dart';
 import 'package:lifesync_app/presentation/providers/dashboard_provider.dart';
 import 'package:lifesync_app/presentation/providers/settings_provider.dart';
+import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 
 class CreateReminderPage extends ConsumerStatefulWidget {
   final Reminder? existingReminder;
@@ -245,20 +246,21 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
     }
   }
 
-  InputDecoration _inputDecoration(String label, {bool isCompact = false}) {
+  InputDecoration _inputDecoration(String label) {
+    final line = LsColors.line(context);
+    OutlineInputBorder b(Color c, double w) =>
+        OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: c, width: w));
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w500, fontSize: isCompact ? 13 : 14),
+      labelStyle: TextStyle(color: LsColors.mute(context), fontWeight: FontWeight.w500, fontSize: 14),
       filled: true,
-      fillColor: Colors.white,
-      contentPadding: isCompact
-          ? const EdgeInsets.symmetric(horizontal: 12, vertical: 10)
-          : const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 2)),
-      errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.red, width: 1.5)),
-      focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.red, width: 2)),
+      fillColor: LsColors.surface(context),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      border: b(line, 1),
+      enabledBorder: b(line, 1),
+      focusedBorder: b(LsColors.brand, 2),
+      errorBorder: b(LsColors.expense, 1.5),
+      focusedErrorBorder: b(LsColors.expense, 2),
     );
   }
 
@@ -267,7 +269,7 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
     final newName = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: const Text('Ubah Nama Kategori', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -283,7 +285,7 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
               autofocus: true,
               decoration: InputDecoration(
                 labelText: 'Nama Kategori Baru',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
               ),
             ),
           ],
@@ -291,7 +293,7 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2563EB)),
+            style: FilledButton.styleFrom(backgroundColor: LsColors.brand),
             onPressed: () {
               final val = textController.text.trim();
               if (val.isNotEmpty) Navigator.pop(ctx, val);
@@ -328,222 +330,286 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
     }
   }
 
+  String _categoryLabel(ReminderCategory c) {
+    switch (c) {
+      case ReminderCategory.work:
+        return 'Kerja';
+      case ReminderCategory.personal:
+        return 'Pribadi';
+      case ReminderCategory.health:
+        return 'Kesehatan';
+      case ReminderCategory.finance:
+        return 'Keuangan';
+      case ReminderCategory.other:
+        return 'Lainnya';
+    }
+  }
+
+  void _selectCategoryValue(String val) {
+    setState(() {
+      _selectedCategoryValue = val;
+      if (val == 'ADD_NEW') {
+        _category = ReminderCategory.other;
+        _customCategory = '';
+      } else {
+        try {
+          _category = ReminderCategory.values.firstWhere((c) => c.name == val);
+          _customCategory = null;
+        } catch (e) {
+          _category = ReminderCategory.other;
+          _customCategory = val;
+        }
+      }
+    });
+  }
+
+  Widget _section(String title, List<Widget> children) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: LsCard(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            LsEyebrow(title, color: LsColors.brand),
+            const SizedBox(height: 14),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _pill(String label, bool selected, Color color, VoidCallback onTap, {IconData? icon}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? color : LsColors.paper(context),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: selected ? color : LsColors.line(context)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 14, color: selected ? Colors.white : color),
+              const SizedBox(width: 4),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: selected ? Colors.white : LsColors.ink(context),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _prioritySegment(String label, PriorityLevel value, Color color) {
+    final selected = _priority == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _priority = value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected ? color : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 13,
+              color: selected ? Colors.white : color,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _timeTile(String label, String value, VoidCallback onTap) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: LsColors.surface(context),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: LsColors.line(context)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: TextStyle(color: LsColors.mute(context), fontSize: 12, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 4),
+              Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: LsColors.ink(context))),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final ink = LsColors.ink(context);
+    const notifyOptions = <int, String>{
+      0: 'Tepat waktu',
+      60: '1 jam sebelumnya',
+      1440: '1 hari sebelumnya',
+      4320: '3 hari sebelumnya',
+      10080: '7 hari sebelumnya',
+    };
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
+      backgroundColor: LsColors.paper(context),
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 4,
-        shadowColor: Colors.black.withOpacity(0.05),
-        surfaceTintColor: Colors.white,
-        scrolledUnderElevation: 4,
+        backgroundColor: LsColors.paper(context),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
         centerTitle: false,
+        iconTheme: IconThemeData(color: ink),
         title: Text(
           widget.existingReminder == null ? 'Buat Pengingat' : 'Edit Pengingat',
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Color(0xFF1F2937), letterSpacing: -0.5),
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: ink, letterSpacing: -0.5),
         ),
       ),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           children: [
-            TextFormField(
-              initialValue: _title,
-              decoration: _inputDecoration('Judul Pengingat *'),
-              style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1F2937)),
-              validator: (val) => val == null || val.trim().isEmpty ? 'Judul pengingat wajib diisi' : null,
-              onSaved: (val) => _title = val!,
-            ),
-            const SizedBox(height: 20),
-            TextFormField(
-              initialValue: _description,
-              decoration: _inputDecoration('Deskripsi/Catatan'),
-              style: const TextStyle(color: Color(0xFF1F2937)),
-              maxLines: 3,
-              onSaved: (val) => _description = val ?? '',
-            ),
-            const SizedBox(height: 20),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          isDense: true,
-                          isExpanded: true,
-                          decoration: InputDecoration(
-                            labelText: 'Kategori',
-                            labelStyle: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w500, fontSize: 10),
-                            filled: true,
-                            fillColor: Colors.white,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200, width: 1.2)),
-                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.8)),
-                          ),
-                          style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1F2937), fontSize: 11),
-                          icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4B5563), size: 14),
-                          value: _selectedCategoryValue,
-                          items: [
-                            ...ReminderCategory.values
-                                .where((c) => c != ReminderCategory.other)
-                                .map((c) => DropdownMenuItem(value: c.name, child: Text(c.name.toUpperCase(), style: const TextStyle(fontSize: 10)))),
-                            ..._existingCustomCategories.map((c) => DropdownMenuItem(value: c, child: Text(c.toUpperCase(), style: const TextStyle(fontSize: 10)))),
-                            const DropdownMenuItem(value: 'ADD_NEW', child: Text('TAMBAH BARU...', style: TextStyle(fontSize: 10, color: Color(0xFF2563EB), fontWeight: FontWeight.bold))),
-                          ],
-                          onChanged: (val) {
-                            setState(() {
-                              _selectedCategoryValue = val!;
-                              if (val == 'ADD_NEW') {
-                                _category = ReminderCategory.other;
-                                _customCategory = '';
-                              } else {
-                                try {
-                                  _category = ReminderCategory.values.firstWhere((c) => c.name == val);
-                                  _customCategory = null;
-                                } catch (e) {
-                                  _category = ReminderCategory.other;
-                                  _customCategory = val;
-                                }
-                              }
-                            });
-                          },
-                        ),
-                      ),
-                      if (_existingCustomCategories.contains(_selectedCategoryValue)) ...[
-                        const SizedBox(width: 4),
-                        InkWell(
-                          onTap: () => _showEditCategoryDialog(_selectedCategoryValue),
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF2563EB).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(Icons.edit_outlined, size: 14, color: Color(0xFF2563EB)),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: DropdownButtonFormField<PriorityLevel>(
-                    isDense: true,
-                    isExpanded: true,
-                    decoration: InputDecoration(
-                      labelText: 'Prioritas',
-                      labelStyle: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w500, fontSize: 10),
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200, width: 1.2)),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.8)),
-                    ),
-                    style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1F2937), fontSize: 11),
-                    icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4B5563), size: 14),
-                    value: _priority,
-                    items: PriorityLevel.values.map((p) => DropdownMenuItem(value: p, child: Text(p.name.toUpperCase(), style: const TextStyle(fontSize: 10)))).toList(),
-                    onChanged: (val) => setState(() => _priority = val!),
-                  ),
-                ),
-              ],
-            ),
-            if (_selectedCategoryValue == 'ADD_NEW') ...[
-              const SizedBox(height: 16),
+            _section('Detail Agenda', [
               TextFormField(
-                initialValue: _customCategory,
-                decoration: _inputDecoration('Nama Kategori Lainnya'),
-                style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1F2937)),
-                validator: (val) => val == null || val.isEmpty ? 'Wajib diisi' : null,
-                onSaved: (val) => _customCategory = val,
+                initialValue: _title,
+                decoration: _inputDecoration('Judul Pengingat *'),
+                style: TextStyle(fontWeight: FontWeight.w600, color: ink),
+                validator: (val) => val == null || val.trim().isEmpty ? 'Judul pengingat wajib diisi' : null,
+                onSaved: (val) => _title = val!,
               ),
-            ],
-            const SizedBox(height: 20),
-            SwitchListTile(
-              title: const Text('Seharian Penuh (All Day)', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1F2937))),
-              value: _isAllDay,
-              activeColor: const Color(0xFF2563EB),
-              onChanged: (val) {
-                setState(() {
-                  _isAllDay = val;
-                  if (val) {
-                    _targetDateTime = DateTime(_targetDateTime.year, _targetDateTime.month, _targetDateTime.day);
-                  }
-                });
-              },
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey.shade200, width: 1.5),
-                    ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                      title: Text('Waktu Mulai', style: TextStyle(color: Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w500)),
-                      subtitle: Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Text(
-                          _isAllDay ? DateFormat('dd MMM yyyy').format(_targetDateTime) : DateFormat('dd MMM yyyy, HH:mm').format(_targetDateTime),
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF1F2937)),
+              const SizedBox(height: 14),
+              TextFormField(
+                initialValue: _description,
+                decoration: _inputDecoration('Deskripsi/Catatan'),
+                style: TextStyle(color: ink),
+                maxLines: 3,
+                onSaved: (val) => _description = val ?? '',
+              ),
+            ]),
+            _section('Kategori', [
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ...ReminderCategory.values
+                      .where((c) => c != ReminderCategory.other)
+                      .map((c) => _pill(_categoryLabel(c), _selectedCategoryValue == c.name, LsColors.brand, () => _selectCategoryValue(c.name))),
+                  ..._existingCustomCategories.map((c) => _pill(c, _selectedCategoryValue == c, LsColors.brand, () => _selectCategoryValue(c))),
+                  _pill('Lainnya', _selectedCategoryValue == 'ADD_NEW', LsColors.brand, () => _selectCategoryValue('ADD_NEW'), icon: Icons.add),
+                  if (_existingCustomCategories.contains(_selectedCategoryValue))
+                    InkWell(
+                      onTap: () => _showEditCategoryDialog(_selectedCategoryValue),
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.all(9),
+                        decoration: BoxDecoration(
+                          color: LsColors.brand.withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
                         ),
+                        child: const Icon(Icons.edit_outlined, size: 14, color: LsColors.brand),
                       ),
-                      onTap: _selectStartDateTime,
                     ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey.shade200, width: 1.5),
-                    ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                      title: Text('Waktu Selesai', style: TextStyle(color: Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w500)),
-                      subtitle: Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Text(
-                          _isAllDay ? DateFormat('dd MMM yyyy').format(_endTime) : DateFormat('dd MMM yyyy, HH:mm').format(_endTime),
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF1F2937)),
-                        ),
-                      ),
-                      onTap: _selectEndDateTime,
-                    ),
-                  ),
+                ],
+              ),
+              if (_selectedCategoryValue == 'ADD_NEW') ...[
+                const SizedBox(height: 14),
+                TextFormField(
+                  initialValue: _customCategory,
+                  decoration: _inputDecoration('Nama Kategori Lainnya'),
+                  style: TextStyle(fontWeight: FontWeight.w600, color: ink),
+                  validator: (val) => val == null || val.isEmpty ? 'Wajib diisi' : null,
+                  onSaved: (val) => _customCategory = val,
                 ),
               ],
-            ),
-            const SizedBox(height: 20),
-            DropdownButtonFormField<int>(
-              decoration: _inputDecoration('Ingatkan saya'),
-              style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1F2937)),
-              icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF4B5563)),
-              value: _notificationMinutes,
-              items: const [
-                DropdownMenuItem(value: 0, child: Text('Tepat waktu')),
-                DropdownMenuItem(value: 60, child: Text('1 jam sebelumnya')),
-                DropdownMenuItem(value: 1440, child: Text('1 hari sebelumnya')),
-                DropdownMenuItem(value: 4320, child: Text('3 hari sebelumnya')),
-                DropdownMenuItem(value: 10080, child: Text('7 hari sebelumnya')),
-              ],
-              onChanged: (val) => setState(() => _notificationMinutes = val!),
-            ),
-            const SizedBox(height: 40),
+            ]),
+            _section('Prioritas', [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: LsColors.paper(context),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: LsColors.line(context)),
+                ),
+                child: Row(
+                  children: [
+                    _prioritySegment('Rendah', PriorityLevel.low, LsColors.income),
+                    _prioritySegment('Sedang', PriorityLevel.medium, LsColors.amber),
+                    _prioritySegment('Tinggi', PriorityLevel.high, LsColors.expense),
+                  ],
+                ),
+              ),
+            ]),
+            _section('Waktu', [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text('Seharian Penuh (All Day)', style: TextStyle(fontWeight: FontWeight.w700, color: ink)),
+                  ),
+                  Switch(
+                    value: _isAllDay,
+                    activeColor: LsColors.brand,
+                    onChanged: (val) {
+                      setState(() {
+                        _isAllDay = val;
+                        if (val) {
+                          _targetDateTime = DateTime(_targetDateTime.year, _targetDateTime.month, _targetDateTime.day);
+                        }
+                      });
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  _timeTile(
+                    'Waktu Mulai',
+                    _isAllDay ? DateFormat('dd MMM yyyy').format(_targetDateTime) : DateFormat('dd MMM yyyy, HH:mm').format(_targetDateTime),
+                    _selectStartDateTime,
+                  ),
+                  const SizedBox(width: 10),
+                  _timeTile(
+                    'Waktu Selesai',
+                    _isAllDay ? DateFormat('dd MMM yyyy').format(_endTime) : DateFormat('dd MMM yyyy, HH:mm').format(_endTime),
+                    _selectEndDateTime,
+                  ),
+                ],
+              ),
+            ]),
+            _section('Ingatkan Saya', [
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: notifyOptions.entries
+                    .map((e) => _pill(e.value, _notificationMinutes == e.key, LsColors.violet, () => setState(() => _notificationMinutes = e.key), icon: Icons.notifications_none_rounded))
+                    .toList(),
+              ),
+            ]),
+            const SizedBox(height: 4),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
@@ -551,14 +617,13 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 18),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  backgroundColor: const Color(0xFF2563EB),
-                  elevation: 4,
-                  shadowColor: const Color(0xFF2563EB).withOpacity(0.3),
+                  backgroundColor: LsColors.brand,
+                  elevation: 0,
                 ),
-                child: const Text('Simpan Pengingat', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                child: const Text('Simpan Pengingat', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0.3)),
               ),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 24),
           ],
         ),
       ),

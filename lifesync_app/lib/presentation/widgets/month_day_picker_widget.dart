@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 
 class MonthDayPickerWidget extends StatefulWidget {
   final DateTime selectedDate;
@@ -123,10 +124,10 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
 
                   return Card(
                     margin: const EdgeInsets.only(bottom: 8),
-                    color: isSel ? const Color(0xFF2563EB).withOpacity(0.1) : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+                    color: isSel ? const Color(0xFF2563EB).withValues(alpha: 0.1) : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
-                      side: BorderSide(color: isSel ? const Color(0xFF2563EB) : Colors.grey.shade300),
+                      side: BorderSide(color: isSel ? const Color(0xFF2563EB) : LsColors.line(ctx)),
                     ),
                     child: ListTile(
                       dense: true,
@@ -231,10 +232,10 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
 
                   return Card(
                     margin: const EdgeInsets.only(bottom: 8),
-                    color: isSel ? color.withOpacity(0.1) : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+                    color: isSel ? color.withValues(alpha: 0.1) : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
-                      side: BorderSide(color: isSel ? color : Colors.grey.shade300),
+                      side: BorderSide(color: isSel ? color : LsColors.line(ctx)),
                     ),
                     child: ListTile(
                       dense: true,
@@ -299,7 +300,7 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF2563EB).withOpacity(0.1),
+                                color: const Color(0xFF2563EB).withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: const Icon(Icons.calendar_month, color: Color(0xFF2563EB), size: 24),
@@ -338,7 +339,7 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
                           decoration: BoxDecoration(
                             color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFF2563EB).withOpacity(0.3)),
+                            border: Border.all(color: const Color(0xFF2563EB).withValues(alpha: 0.3)),
                           ),
                           child: Text(
                             '$selectedYear',
@@ -388,7 +389,7 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
                               color: isSel ? const Color(0xFF2563EB) : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: isSel ? const Color(0xFF2563EB) : Colors.grey.shade300,
+                                color: isSel ? const Color(0xFF2563EB) : LsColors.line(ctx),
                                 width: isSel ? 2 : 1,
                               ),
                             ),
@@ -462,7 +463,7 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+        border: Border(bottom: BorderSide(color: LsColors.line(context))),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -482,7 +483,7 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
                     decoration: BoxDecoration(
                       color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFF2563EB).withOpacity(0.2)),
+                      border: Border.all(color: const Color(0xFF2563EB).withValues(alpha: 0.2)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -510,7 +511,7 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFF2563EB).withOpacity(0.2)),
+                  border: Border.all(color: const Color(0xFF2563EB).withValues(alpha: 0.2)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -570,7 +571,7 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
                     decoration: BoxDecoration(
                       color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFF2563EB).withOpacity(0.2)),
+                      border: Border.all(color: const Color(0xFF2563EB).withValues(alpha: 0.2)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -623,7 +624,7 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
                             : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isSelected ? const Color(0xFF2563EB) : Colors.grey.shade200,
+                          color: isSelected ? const Color(0xFF2563EB) : LsColors.line(context),
                           width: isSelected ? 2 : 1,
                         ),
                       ),
