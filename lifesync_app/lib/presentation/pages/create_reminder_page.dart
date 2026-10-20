@@ -571,7 +571,7 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
                   ),
                   Switch(
                     value: _isAllDay,
-                    activeColor: LsColors.brand,
+                    activeThumbColor: LsColors.brand,
                     onChanged: (val) {
                       setState(() {
                         _isAllDay = val;
