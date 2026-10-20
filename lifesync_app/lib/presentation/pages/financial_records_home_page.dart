@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import 'package:lifesync_app/presentation/providers/financial_note_providers.dart';
 import 'package:lifesync_app/presentation/pages/add_edit_financial_note_page.dart';
 import 'package:lifesync_app/presentation/pages/financial_note_detail_page.dart';
-import 'package:lifesync_app/presentation/widgets/month_day_picker_widget.dart';
 import 'package:lifesync_app/config/app_variant.dart';
 import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 
@@ -18,12 +17,14 @@ class FinancialRecordsHomePage extends ConsumerStatefulWidget {
 class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomePage> {
   final NumberFormat _fmt = NumberFormat('#,###', 'id_ID');
   DateTime _selectedDate = DateTime.now();
+  DateTime? _selectedDay;
   String _periodScope = 'month'; // 'month', 'all', 'range'
   DateTimeRange? _selectedDateRange;
 
   void resetToToday() {
     setState(() {
       _selectedDate = DateTime.now();
+      _selectedDay = null;
       _periodScope = 'month';
       _selectedDateRange = null;
     });
@@ -36,12 +37,19 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
       final end = DateTime(_selectedDateRange!.end.year, _selectedDateRange!.end.month, _selectedDateRange!.end.day, 23, 59, 59);
       return date.isAfter(start.subtract(const Duration(seconds: 1))) && date.isBefore(end.add(const Duration(seconds: 1)));
     }
-    return date.year == _selectedDate.year && date.month == _selectedDate.month;
+    // Scope: month
+    final isSameMonth = date.year == _selectedDate.year && date.month == _selectedDate.month;
+    if (!isSameMonth) return false;
+    if (_selectedDay != null) {
+      return date.day == _selectedDay!.day;
+    }
+    return true;
   }
 
   void _shiftMonth(int delta) {
     setState(() {
       _selectedDate = DateTime(_selectedDate.year, _selectedDate.month + delta, 1);
+      _selectedDay = null;
     });
   }
 
@@ -55,6 +63,7 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
     if (picked != null && mounted) {
       setState(() {
         _selectedDate = picked;
+        _selectedDay = null;
         _periodScope = 'month';
       });
     }
@@ -85,6 +94,7 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
       setState(() {
         _selectedDateRange = picked;
         _periodScope = 'range';
+        _selectedDay = null;
       });
     }
   }
@@ -161,59 +171,184 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
     );
   }
 
-  Widget _filterHeader() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // ── Baris 1: navigasi bulan + capsule dropdown scope ──────────
-        Container(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-          decoration: BoxDecoration(
-            color: LsColors.surface(context),
-            border: Border(bottom: BorderSide(color: LsColors.line(context))),
-          ),
-          child: Row(
-            children: [
-              // Navigasi bulan (panah kiri/kanan + label bulan di tengah)
-              _monthNav(),
-              const SizedBox(width: 10),
-              // Capsule scope dropdown
-              LsCapsuleDropdown<String>(
-                width: 130,
-                value: _periodScope,
-                isHighlighted: _periodScope != 'month',
-                options: const [
-                  LsDropdownOption(value: 'month', label: 'Bulan Ini', icon: Icons.calendar_today_outlined),
-                  LsDropdownOption(value: 'all', label: 'Semua Data', icon: Icons.all_inclusive_outlined),
-                  LsDropdownOption(value: 'range', label: 'Pilih Rentang', icon: Icons.date_range_outlined),
-                ],
-                onSelected: (val) {
-                  if (val == 'range') {
-                    _pickDateRange();
-                  } else {
-                    setState(() {
-                      _periodScope = val;
-                      if (val == 'month') _selectedDate = DateTime.now();
-                    });
-                  }
-                },
-              ),
-            ],
-          ),
-        ),
-        // ── Baris 2: day strip (hanya tampil saat scope 'month') ──────
-        if (_periodScope == 'month')
-          MonthDayPickerWidget(
-            selectedDate: _selectedDate,
-            showDayStrip: true,
-            isSeeAll: false,
-            onDateChanged: (date) {
+  Widget _buildDayStrip(List<NoteWithItems> allNotes) {
+    final daysInMonth = DateTime(_selectedDate.year, _selectedDate.month + 1, 0).day;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final activeDays = <int>{};
+    for (final note in allNotes) {
+      if (note.note.date.year == _selectedDate.year && note.note.date.month == _selectedDate.month) {
+        activeDays.add(note.note.date.day);
+      }
+    }
+
+    return Container(
+      height: 60,
+      padding: const EdgeInsets.only(bottom: 6),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        itemCount: daysInMonth,
+        itemBuilder: (context, idx) {
+          final day = idx + 1;
+          final date = DateTime(_selectedDate.year, _selectedDate.month, day);
+          final isSelected = _selectedDay != null &&
+              _selectedDay!.year == date.year &&
+              _selectedDay!.month == date.month &&
+              _selectedDay!.day == date.day;
+          final isToday = DateTime.now().year == date.year &&
+              DateTime.now().month == date.month &&
+              DateTime.now().day == date.day;
+          final hasNotes = activeDays.contains(day);
+          final dayName = DateFormat('E', 'id_ID').format(date);
+
+          return GestureDetector(
+            onTap: () {
               setState(() {
-                _selectedDate = date;
+                if (isSelected) {
+                  _selectedDay = null;
+                } else {
+                  _selectedDay = date;
+                }
               });
             },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              width: 44,
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? LsColors.brand
+                    : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isSelected
+                      ? LsColors.brand
+                      : (isToday
+                          ? LsColors.brand.withValues(alpha: 0.5)
+                          : Colors.transparent),
+                  width: isToday ? 1.5 : 1.0,
+                ),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    dayName,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected
+                          ? Colors.white.withValues(alpha: 0.85)
+                          : LsColors.mute(context),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '$day',
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w800,
+                      color: isSelected
+                          ? Colors.white
+                          : LsColors.ink(context),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Container(
+                    width: 4,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isSelected
+                          ? Colors.white
+                          : (hasNotes ? LsColors.brand : Colors.transparent),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _filterHeader(List<NoteWithItems> allNotes) {
+    return Container(
+      decoration: BoxDecoration(
+        color: LsColors.surface(context),
+        border: Border(bottom: BorderSide(color: LsColors.line(context))),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Baris 1: Navigasi Bulan (identik dengan Pengingat)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
+            child: _monthNav(),
           ),
-      ],
+          // Baris 2: Capsule scope dropdown
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Row(
+              children: [
+                LsCapsuleDropdown<String>(
+                  width: 135,
+                  value: _periodScope,
+                  isHighlighted: _periodScope != 'all',
+                  options: const [
+                    LsDropdownOption(value: 'month', label: 'Bulan Ini', icon: Icons.calendar_today_outlined),
+                    LsDropdownOption(value: 'all', label: 'Semua Data', icon: Icons.all_inclusive_outlined),
+                    LsDropdownOption(value: 'range', label: 'Pilih Rentang', icon: Icons.date_range_outlined),
+                  ],
+                  onSelected: (val) {
+                    if (val == 'range') {
+                      _pickDateRange();
+                    } else {
+                      setState(() {
+                        _periodScope = val;
+                        _selectedDay = null;
+                        if (val == 'month') _selectedDate = DateTime.now();
+                      });
+                    }
+                  },
+                ),
+                if (_periodScope == 'month' && _selectedDay != null) ...[
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: () => setState(() => _selectedDay = null),
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: LsColors.brand.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: LsColors.brand.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Tgl ${_selectedDay!.day} (Reset)',
+                            style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: LsColors.brand),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.close_rounded, size: 14, color: LsColors.brand),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          // Baris 3: Strip pilihan tanggal (hanya saat scope 'month')
+          if (_periodScope == 'month')
+            _buildDayStrip(allNotes),
+        ],
+      ),
     );
   }
 
@@ -257,7 +392,7 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => AddEditFinancialNotePage(initialDate: _selectedDate)),
+            MaterialPageRoute(builder: (_) => AddEditFinancialNotePage(initialDate: _selectedDay ?? _selectedDate)),
           );
         },
         icon: Icons.add_rounded,
@@ -280,7 +415,7 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
 
           return Column(
             children: [
-              _filterHeader(),
+              _filterHeader(allNotes),
 
               // Period Summary (Total Pemasukan, Total Pengeluaran, Saldo)
               _buildSummaryHeader(totalIncome, totalExpense, balance, isDark),
