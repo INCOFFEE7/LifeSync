@@ -131,7 +131,7 @@ class HomeWidgetService {
       }
       await HomeWidget.updateWidget(
         name: 'TargetWidgetProvider',
-        androidName: 'com.example.lifesync_app.TargetWidgetProvider',
+        androidName: 'TargetWidgetProvider',
       );
     } catch (e) {
       debugPrint('Error updating multi-target widget: $e');
@@ -161,7 +161,7 @@ class HomeWidgetService {
       }
       await HomeWidget.updateWidget(
         name: 'ReminderWidgetProvider',
-        androidName: 'com.example.lifesync_app.ReminderWidgetProvider',
+        androidName: 'ReminderWidgetProvider',
       );
     } catch (e) {
       debugPrint('Error updating multi-reminder widget: $e');
@@ -175,7 +175,7 @@ class HomeWidgetService {
     try {
       await HomeWidget.requestPinWidget(
         name: 'TargetWidgetProvider',
-        androidName: 'com.example.lifesync_app.TargetWidgetProvider',
+        androidName: 'TargetWidgetProvider',
       );
     } catch (e) {
       debugPrint('Error pinning target widget: $e');
@@ -187,7 +187,7 @@ class HomeWidgetService {
     try {
       await HomeWidget.requestPinWidget(
         name: 'ReminderWidgetProvider',
-        androidName: 'com.example.lifesync_app.ReminderWidgetProvider',
+        androidName: 'ReminderWidgetProvider',
       );
     } catch (e) {
       debugPrint('Error pinning reminder widget: $e');

@@ -324,11 +324,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       await HomeWidget.saveWidgetData(
                           'pinned_reminder_ids', '');
                       await HomeWidget.updateWidget(
-                          androidName:
-                              'com.example.lifesync_app.TargetWidgetProvider');
+                          androidName: 'TargetWidgetProvider');
                       await HomeWidget.updateWidget(
-                          androidName:
-                              'com.example.lifesync_app.ReminderWidgetProvider');
+                          androidName: 'ReminderWidgetProvider');
                     } catch (_) {}
 
                     final prefs = await SharedPreferences.getInstance();
