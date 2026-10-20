@@ -162,13 +162,13 @@ class _CreateTargetPageState extends ConsumerState<CreateTargetPage> {
   InputDecoration _inputDecoration(String label) {
     final line = LsColors.line(context);
     OutlineInputBorder b(Color c, double w) =>
-        OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: c, width: w));
+        OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: c, width: w));
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(color: LsColors.mute(context), fontWeight: FontWeight.w500),
+      labelStyle: TextStyle(color: LsColors.mute(context), fontWeight: FontWeight.w500, fontSize: 13),
       filled: true,
       fillColor: LsColors.surface(context),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       border: b(line, 1),
       enabledBorder: b(line, 1),
       focusedBorder: b(LsColors.brand, 2),
@@ -214,14 +214,14 @@ class _CreateTargetPageState extends ConsumerState<CreateTargetPage> {
 
   Widget _section(String title, List<Widget> children) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: 12),
       child: LsCard(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             LsEyebrow(title, color: LsColors.brand),
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
             ...children,
           ],
         ),
@@ -341,7 +341,7 @@ class _CreateTargetPageState extends ConsumerState<CreateTargetPage> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+          padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
           children: [
             _section('Informasi Target', [
               TextFormField(
@@ -351,7 +351,7 @@ class _CreateTargetPageState extends ConsumerState<CreateTargetPage> {
                 validator: (val) => val == null || val.trim().isEmpty ? 'Nama target wajib diisi' : null,
                 onSaved: (val) => _name = val!,
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 10),
               TextFormField(
                 controller: _targetAmountController,
                 readOnly: true,
@@ -472,24 +472,24 @@ class _CreateTargetPageState extends ConsumerState<CreateTargetPage> {
                 onSaved: (val) => _description = val ?? '',
               ),
             ]),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
                 onPressed: _saveTarget,
                 style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   backgroundColor: LsColors.brand,
                   elevation: 0,
                 ),
                 child: Text(
                   widget.existingTarget == null ? 'Buat Target' : 'Perbarui Target',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0.3),
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 0.2),
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 12),
           ],
         ),
       ),

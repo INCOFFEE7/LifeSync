@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:lifesync_app/presentation/providers/financial_note_providers.dart';
 import 'package:lifesync_app/presentation/pages/add_edit_financial_note_page.dart';
 import 'package:lifesync_app/presentation/pages/financial_note_detail_page.dart';
+import 'package:lifesync_app/presentation/widgets/month_day_picker_widget.dart';
 import 'package:lifesync_app/config/app_variant.dart';
 import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 
@@ -161,22 +162,26 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
   }
 
   Widget _filterHeader() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
-      decoration: BoxDecoration(
-        color: LsColors.surface(context),
-        border: Border(bottom: BorderSide(color: LsColors.line(context))),
-      ),
-      child: Column(
-        children: [
-          _monthNav(),
-          const SizedBox(height: 8),
-          Row(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // ── Baris 1: navigasi bulan + capsule dropdown scope ──────────
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          decoration: BoxDecoration(
+            color: LsColors.surface(context),
+            border: Border(bottom: BorderSide(color: LsColors.line(context))),
+          ),
+          child: Row(
             children: [
+              // Navigasi bulan (panah kiri/kanan + label bulan di tengah)
+              _monthNav(),
+              const SizedBox(width: 10),
+              // Capsule scope dropdown
               LsCapsuleDropdown<String>(
-                width: 140,
+                width: 130,
                 value: _periodScope,
-                isHighlighted: _periodScope != 'all',
+                isHighlighted: _periodScope != 'month',
                 options: const [
                   LsDropdownOption(value: 'month', label: 'Bulan Ini', icon: Icons.calendar_today_outlined),
                   LsDropdownOption(value: 'all', label: 'Semua Data', icon: Icons.all_inclusive_outlined),
@@ -195,8 +200,20 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
               ),
             ],
           ),
-        ],
-      ),
+        ),
+        // ── Baris 2: day strip (hanya tampil saat scope 'month') ──────
+        if (_periodScope == 'month')
+          MonthDayPickerWidget(
+            selectedDate: _selectedDate,
+            showDayStrip: true,
+            isSeeAll: false,
+            onDateChanged: (date) {
+              setState(() {
+                _selectedDate = date;
+              });
+            },
+          ),
+      ],
     );
   }
 

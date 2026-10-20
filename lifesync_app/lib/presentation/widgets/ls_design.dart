@@ -416,29 +416,33 @@ class LsCompactFab extends StatelessWidget {
   Widget build(BuildContext context) {
     final bg = backgroundColor ?? LsColors.brand;
     final fg = foregroundColor ?? Colors.white;
+    // FAB needs to clear the custom bottom nav bar (height ~56px) plus safe area.
+    // We use a SafeArea-aware bottom margin so it never overlaps the + center button.
+    final bottomPad = MediaQuery.of(context).padding.bottom;
+    final fabBottom = 56.0 + bottomPad + 8.0; // 8 px above nav bar top
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 22, right: 4),
-      height: 38,
+      margin: EdgeInsets.only(bottom: fabBottom, right: 12),
+      height: 42,
       child: Material(
         color: bg,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(21),
         elevation: 4,
         shadowColor: bg.withValues(alpha: 0.35),
         child: InkWell(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(21),
           onTap: onPressed,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 13),
+            padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 17, color: fg),
-                const SizedBox(width: 6),
+                Icon(icon, size: 18, color: fg),
+                const SizedBox(width: 7),
                 Text(
                   label,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 12.5,
                     fontWeight: FontWeight.w800,
                     color: fg,
                     letterSpacing: -0.2,

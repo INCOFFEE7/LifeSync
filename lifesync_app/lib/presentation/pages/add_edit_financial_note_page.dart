@@ -471,7 +471,7 @@ class _AddEditFinancialNotePageState extends ConsumerState<AddEditFinancialNoteP
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -567,11 +567,11 @@ class _AddEditFinancialNotePageState extends ConsumerState<AddEditFinancialNoteP
                       },
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
 
                     // ── 3. Total Income & Expenses directly below Title ─────────
                     Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       decoration: BoxDecoration(
                         color: LsColors.surface(context),
                         borderRadius: BorderRadius.circular(20),
@@ -598,7 +598,7 @@ class _AddEditFinancialNotePageState extends ConsumerState<AddEditFinancialNoteP
                       ),
                     ),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 14),
 
                     // ── 4. Transaction List (Daftar Item / Daftar Transaksi) ────
                     Row(
@@ -618,7 +618,7 @@ class _AddEditFinancialNotePageState extends ConsumerState<AddEditFinancialNoteP
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
 
                     if (_draftItems.isEmpty)
                       LsCard(
@@ -677,7 +677,7 @@ class _AddEditFinancialNotePageState extends ConsumerState<AddEditFinancialNoteP
                         },
                       ),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 14),
 
                     // ── 5. Notes Section (Moved below transaction list) ────────
                     TextField(
@@ -693,20 +693,20 @@ class _AddEditFinancialNotePageState extends ConsumerState<AddEditFinancialNoteP
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
               child: SizedBox(
                 width: double.infinity,
-                height: 50,
+                height: 46,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: LsColors.brand,
                     elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
                   ),
                   onPressed: _isSaving ? null : _saveNote,
                   child: _isSaving
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Simpan Catatan', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                      : const Text('Simpan Catatan', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
                 ),
               ),
             ),

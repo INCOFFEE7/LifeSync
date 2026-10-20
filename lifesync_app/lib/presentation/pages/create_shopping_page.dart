@@ -102,16 +102,16 @@ class _CreateShoppingPageState extends ConsumerState<CreateShoppingPage> {
 
   InputDecoration _deco(BuildContext context, String label, {String? hint, String? prefixText, Widget? suffixIcon}) {
     OutlineInputBorder border(Color c, [double w = 1]) =>
-        OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: c, width: w));
+        OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: c, width: w));
     return InputDecoration(
       labelText: label,
       hintText: hint,
       prefixText: prefixText,
       suffixIcon: suffixIcon,
-      labelStyle: TextStyle(color: LsColors.mute(context), fontWeight: FontWeight.w500),
+      labelStyle: TextStyle(color: LsColors.mute(context), fontWeight: FontWeight.w500, fontSize: 13),
       filled: true,
       fillColor: LsColors.paper(context),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       border: border(LsColors.line(context)),
       enabledBorder: border(LsColors.line(context)),
       focusedBorder: border(LsColors.brand, 1.8),
@@ -122,23 +122,23 @@ class _CreateShoppingPageState extends ConsumerState<CreateShoppingPage> {
 
   Widget _section(BuildContext context, String title, IconData icon, Color color, List<Widget> children) {
     return LsCard(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
               Container(
-                width: 32,
-                height: 32,
+                width: 28,
+                height: 28,
                 decoration: BoxDecoration(color: color.withValues(alpha: 0.14), shape: BoxShape.circle),
-                child: Icon(icon, size: 16, color: color),
+                child: Icon(icon, size: 14, color: color),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               LsEyebrow(title),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
           ...children,
         ],
       ),
@@ -165,7 +165,7 @@ class _CreateShoppingPageState extends ConsumerState<CreateShoppingPage> {
         shape: Border(bottom: BorderSide(color: LsColors.line(context))),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
         child: Form(
           key: _formKey,
           child: Column(
@@ -202,14 +202,14 @@ class _CreateShoppingPageState extends ConsumerState<CreateShoppingPage> {
                   decoration: _deco(context, 'Nama Barang / Item *', hint: 'e.g. Minyak Goreng, Beras, Telur'),
                   validator: (val) => (val == null || val.trim().isEmpty) ? 'Nama Barang wajib diisi' : null,
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
                 TextFormField(
                   controller: _notesController,
                   readOnly: _isReadOnly,
                   decoration: _deco(context, 'Catatan / Notes (Opsional)', hint: 'e.g. Merk Sania 2 Liter'),
                 ),
               ]),
-              const SizedBox(height: 16),
+              const SizedBox(height: 10),
 
               _section(context, 'Pembelian', Icons.storefront_rounded, LsColors.violet, [
                 Row(
@@ -231,7 +231,7 @@ class _CreateShoppingPageState extends ConsumerState<CreateShoppingPage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
                 TextFormField(
                   controller: _priceController,
                   readOnly: true,
@@ -259,7 +259,7 @@ class _CreateShoppingPageState extends ConsumerState<CreateShoppingPage> {
                   style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: _isReadOnly ? LsColors.mute(context) : LsColors.brand),
                 ),
               ]),
-              const SizedBox(height: 28),
+              const SizedBox(height: 14),
 
               // Save or Exit Button
               if (_isReadOnly)
@@ -279,11 +279,11 @@ class _CreateShoppingPageState extends ConsumerState<CreateShoppingPage> {
                     backgroundColor: LsColors.brand,
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                   onPressed: _saveShoppingItem,
-                  child: Text(widget.existingItem == null ? 'Simpan Item Belanja' : 'Simpan Perubahan', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                  child: Text(widget.existingItem == null ? 'Simpan Item Belanja' : 'Simpan Perubahan', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
                 ),
             ],
           ),

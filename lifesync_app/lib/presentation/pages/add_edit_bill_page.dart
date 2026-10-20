@@ -160,13 +160,13 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
   InputDecoration _inputDecoration(String label) {
     final c = context;
     OutlineInputBorder border(Color col, [double w = 1]) =>
-        OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: col, width: w));
+        OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: col, width: w));
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(color: LsColors.mute(c), fontWeight: FontWeight.w500),
+      labelStyle: TextStyle(color: LsColors.mute(c), fontWeight: FontWeight.w500, fontSize: 13),
       filled: true,
       fillColor: LsColors.paper(c),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       border: border(LsColors.line(c)),
       enabledBorder: border(LsColors.line(c)),
       focusedBorder: border(LsColors.brand, 1.8),
@@ -177,23 +177,23 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
 
   Widget _section(String title, IconData icon, Color color, List<Widget> children) {
     return LsCard(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
               Container(
-                width: 32,
-                height: 32,
+                width: 28,
+                height: 28,
                 decoration: BoxDecoration(color: color.withValues(alpha: 0.14), shape: BoxShape.circle),
-                child: Icon(icon, size: 16, color: color),
+                child: Icon(icon, size: 14, color: color),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               LsEyebrow(title),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
           ...children,
         ],
       ),
@@ -227,7 +227,7 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
           children: [
             _section('Detail Tagihan', Icons.receipt_long_rounded, LsColors.brand, [
               TextFormField(
@@ -237,7 +237,7 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
                 validator: (val) => val == null || val.trim().isEmpty ? 'Nama tagihan wajib diisi' : null,
                 onSaved: (val) => _name = val!,
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 10),
               TextFormField(
                 controller: _amountController,
                 readOnly: true,
@@ -265,7 +265,7 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
                 },
               ),
             ]),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             _section('Jadwal & Pengingat', Icons.event_rounded, LsColors.violet, [
               InkWell(
                 borderRadius: BorderRadius.circular(14),
@@ -323,7 +323,7 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
                 }).toList(),
               ),
             ]),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             _section('Catatan', Icons.notes_rounded, LsColors.amber, [
               TextFormField(
                 initialValue: _notes,
@@ -332,21 +332,21 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
                 onSaved: (val) => _notes = val,
               ),
             ]),
-            const SizedBox(height: 28),
+            const SizedBox(height: 14),
             SizedBox(
-              height: 52,
+              height: 48,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: LsColors.brand,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
                 onPressed: _isSaving ? null : _saveBill,
                 child: _isSaving
                     ? const CircularProgressIndicator(color: Colors.white)
                     : Text(
                         widget.existingBill == null ? 'Simpan Tagihan' : 'Perbarui Tagihan',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white),
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white),
                       ),
               ),
             ),
