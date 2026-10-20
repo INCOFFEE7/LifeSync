@@ -29,19 +29,30 @@ class TargetsPage extends ConsumerWidget {
                 padding: const EdgeInsets.all(24.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Icon(Icons.savings_outlined, size: 80, color: Colors.grey.shade400),
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: LsColors.brand.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.savings_outlined, size: 34, color: LsColors.brand),
+                    ),
                     const SizedBox(height: 16),
                     Text(
                       'Belum ada target nabung.',
-                      style: TextStyle(color: Colors.grey.shade700, fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: LsColors.ink(context),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Buat target nabung pertama Anda untuk mulai menabung!',
-                      style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                      'Buat target nabung pertama untuk mulai mengumpulkan impianmu.',
+                      style: TextStyle(color: LsColors.mute(context), fontSize: 12),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -78,7 +89,7 @@ class TargetsPage extends ConsumerWidget {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateTargetPage()));
         },
         icon: Icons.add_rounded,
-        label: 'Buat Target',
+        label: 'Target Baru',
       ),
     );
 
@@ -87,11 +98,11 @@ class TargetsPage extends ConsumerWidget {
   PreferredSizeWidget _buildHeader(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return AppBar(
-      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-      elevation: 4,
-      shadowColor: Colors.black.withOpacity(0.1),
-      surfaceTintColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-      scrolledUnderElevation: 4,
+      backgroundColor: LsColors.surface(context),
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      shape: Border(bottom: BorderSide(color: LsColors.line(context))),
+      automaticallyImplyLeading: false,
       titleSpacing: 20,
       title: Padding(
         padding: const EdgeInsets.symmetric(vertical: 6.0),

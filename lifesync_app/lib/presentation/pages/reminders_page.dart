@@ -11,7 +11,6 @@ import 'package:lifesync_app/presentation/providers/shopping_providers.dart';
 import 'package:lifesync_app/presentation/pages/create_reminder_page.dart';
 import 'package:lifesync_app/presentation/pages/add_edit_bill_page.dart';
 import 'package:lifesync_app/presentation/pages/create_shopping_page.dart';
-import 'package:lifesync_app/presentation/widgets/circular_fab_menu.dart';
 import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 import 'package:lifesync_app/presentation/widgets/calculator_input_dialog.dart';
 import 'package:lifesync_app/config/app_variant.dart';
@@ -1927,7 +1926,7 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
           onPressed: () {
             Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateReminderPage()));
           },
-          label: 'Pengingat Agenda',
+          label: 'Agenda Baru',
         );
       case 2:
         return LsCompactFab(
@@ -1935,27 +1934,16 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
           onPressed: () {
             Navigator.push(context, MaterialPageRoute(builder: (_) => const AddEditBillPage()));
           },
-          label: 'Pengingat Tagihan',
+          label: 'Tagihan Baru',
         );
       case 3:
         return LsCompactFab(
           heroTag: 'fab_shopping',
           onPressed: _showQuickAddShoppingDialog,
-          label: 'Pengingat Belanja',
+          label: 'Catat Belanja',
         );
       default:
-        return Container(
-          margin: const EdgeInsets.only(bottom: 22, right: 4),
-          child: CircularFabMenu(
-            onAddAgenda: () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateReminderPage()));
-            },
-            onAddBill: () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const AddEditBillPage()));
-            },
-            onAddShopping: _showQuickAddShoppingDialog,
-          ),
-        );
+        return const SizedBox.shrink();
     }
   }
 
@@ -2012,19 +2000,19 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
                   children: [
                     LsRing(
                       progress: progress,
-                      size: 92,
-                      stroke: 10,
+                      size: 72,
+                      stroke: 8,
                       color: LsColors.income,
-                      child: Text('${(progress * 100).round()}%', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white)),
+                      child: Text('${(progress * 100).round()}%', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
                     ),
-                    const SizedBox(width: 18),
+                    const SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const LsEyebrow('Pengingat Tersisa', color: Colors.white70),
                           const SizedBox(height: 4),
-                          Text('${totalAll - doneAll}', style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w800, color: Colors.white, height: 1.05, letterSpacing: -1)),
+                          Text('${totalAll - doneAll}', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white, height: 1.1, letterSpacing: -0.5)),
                           Text('$doneAll dari $totalAll selesai', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white70)),
                         ],
                       ),

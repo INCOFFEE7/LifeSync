@@ -30,19 +30,11 @@ class DashboardPage extends ConsumerStatefulWidget {
 
 class _DashboardPageState extends ConsumerState<DashboardPage> {
   Set<int> _pinnedReminderIds = {};
-  final PageController _recommendationPageController = PageController();
-  int _recommendationPage = 0;
 
   @override
   void initState() {
     super.initState();
     _loadLocalData();
-  }
-
-  @override
-  void dispose() {
-    _recommendationPageController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadLocalData() async {
@@ -75,38 +67,35 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       body: dashboardAsync.when(
         data: (data) {
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 92),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // ── 0. SAPAAN, HERO SALDO & RINGKASAN CEPAT ──────────────────
                 _buildGreeting(),
-                const SizedBox(height: 16),
-                _buildHeroBalance(financialSummary, currencyFmt),
                 const SizedBox(height: 12),
+                _buildHeroBalance(financialSummary, currencyFmt),
+                const SizedBox(height: 10),
                 _buildQuickTiles(data, shoppingAsync, billsAsync, now, lang),
-                const SizedBox(height: 28),
+                const SizedBox(height: 18),
 
                 // ── 1. PENGINGAT (Agenda Hari Ini & Reminders) ───────────────
                 _buildSectionTitle(AppTranslations.get(lang, 'pengingat')),
-                const SizedBox(height: 12),
-                _buildAgendaSummaryCard(data, lang),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 _buildRemindersSection(data.upcomingReminders),
-                const SizedBox(height: 24),
+                const SizedBox(height: 18),
 
                 // ── 2. DAFTAR BELANJA BELUM DIBELI ───────────────────────────
                 _buildSectionTitle('Daftar Belanja Belum Dibeli'),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 _buildShoppingListSection(shoppingAsync, currencyFmt, isDark),
-                const SizedBox(height: 24),
+                const SizedBox(height: 18),
 
                 // ── 3. KEUANGAN (Rangkuman Transaksi & Tagihan 7 Hari) ───────
                 _buildSectionTitle('Tagihan Jatuh Tempo'),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 billsAsync.when(
                   data: (bills) {
-                    // Tagihan belum dibayar yang jatuh tempo dalam kisaran 7 hari
                     final upcomingBills = bills.where((b) {
                       if (b.deleted || b.isPaid) return false;
                       final diffDays = b.dueDate.difference(now).inDays;
@@ -119,13 +108,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   loading: () => const Center(child: CircularProgressIndicator()),
                   error: (_, __) => const SizedBox.shrink(),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 18),
 
                 // ── 4. NABUNG (Total Tabungan & Recommendations) ───────────────
                 _buildSectionTitle('Nabung'),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 _buildSavingsOverviewCard(data, lang, currencyFmt),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 _buildNabungSection(data.topTargets),
               ],
             ),
@@ -256,108 +245,85 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildAgendaSummaryCard(DashboardData data, String lang) {
-    return _buildFlatCard(
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                AppTranslations.get(lang, 'agenda_hari_ini'),
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '${data.todayRemindersCount} ${AppTranslations.get(lang, 'hari_ini_unit')}',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF2563EB)),
-              ),
-            ],
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2563EB).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              'Total Agenda: ${data.activeRemindersCount}',
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF2563EB)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildUpcomingBillsSection(List<Bill> upcomingBills, NumberFormat fmt) {
     if (upcomingBills.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const RemindersPage()),
-        );
-      },
-      borderRadius: BorderRadius.circular(14),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Tagihan Mendatang (7 Hari)',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(10)),
-                  child: Text('${upcomingBills.length} Tagihan', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.orange.shade800)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            ...upcomingBills.map((b) {
-              final daysLeft = b.dueDate.difference(DateTime.now()).inDays;
-              String timeText = daysLeft == 0 ? 'Hari ini' : '$daysLeft hari lagi';
+    return Column(
+      children: upcomingBills.map((b) {
+        final daysLeft = b.dueDate.difference(DateTime.now()).inDays;
+        final timeText = daysLeft == 0
+            ? 'Hari ini'
+            : (daysLeft < 0 ? 'Terlambat ${daysLeft.abs()} hari' : '$daysLeft hari lagi');
+        final isOverdue = daysLeft < 0;
 
-              return Card(
-                margin: const EdgeInsets.only(bottom: 8),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  side: BorderSide(color: Colors.orange.shade200, width: 1.5),
-                ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: Colors.orange.shade50, shape: BoxShape.circle),
-                    child: const Icon(Icons.receipt_long, color: Colors.orange, size: 20),
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: LsCard(
+            padding: const EdgeInsets.all(12),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const RemindersPage()),
+              );
+            },
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: (isOverdue ? LsColors.expense : LsColors.amber).withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
                   ),
-                  title: Text(b.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  subtitle: Text('Jatuh tempo: ${DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(b.dueDate)}', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-                  trailing: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                  child: Icon(
+                    Icons.receipt_long_rounded,
+                    color: isOverdue ? LsColors.expense : LsColors.amber,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Rp ${fmt.format(b.amount.toInt())}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF2563EB))),
-                      Text(timeText, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.orange)),
+                      Text(
+                        b.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                          color: LsColors.ink(context),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Jatuh tempo: ${DateFormat('d MMM yyyy, HH:mm', 'id_ID').format(b.dueDate)}',
+                        style: TextStyle(fontSize: 11, color: LsColors.mute(context)),
+                      ),
                     ],
                   ),
                 ),
-              );
-            }),
-          ],
-        ),
-      ),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'Rp ${fmt.format(b.amount.toInt())}',
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: LsColors.brand),
+                    ),
+                    const SizedBox(height: 2),
+                    LsChip(timeText, color: isOverdue ? LsColors.expense : LsColors.amber),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -498,7 +464,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF10B981).withOpacity(0.1),
+                                color: const Color(0xFF10B981).withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: const Icon(Icons.shopping_bag_outlined, color: Color(0xFF10B981), size: 24),
@@ -743,11 +709,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   PreferredSizeWidget _buildHeader() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return AppBar(
-      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-      elevation: 4,
-      shadowColor: Colors.black.withOpacity(0.1),
-      surfaceTintColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-      scrolledUnderElevation: 4,
+      backgroundColor: LsColors.surface(context),
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      shape: Border(bottom: BorderSide(color: LsColors.line(context))),
+      automaticallyImplyLeading: false,
       titleSpacing: 20,
       title: Padding(
         padding: const EdgeInsets.symmetric(vertical: 6.0),
@@ -771,7 +737,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       ),
       actions: [
         Padding(
-          padding: const EdgeInsets.only(right: 16.0),
+          padding: const EdgeInsets.only(right: 8.0),
           child: InkWell(
             onTap: () {
               Navigator.push(
@@ -779,21 +745,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 MaterialPageRoute(builder: (_) => const CloudBackupSettingsScreen()),
               );
             },
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
             child: Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(7),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                color: LsColors.paper(context),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: LsColors.line(context)),
               ),
-              child: const Icon(Icons.cloud_upload_outlined, color: Color(0xFF2563EB), size: 22),
+              child: const Icon(Icons.cloud_upload_outlined, color: LsColors.brand, size: 20),
             ),
           ),
         ),
@@ -803,21 +763,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             onTap: () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsPage()));
             },
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
             child: Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(7),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                color: LsColors.paper(context),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: LsColors.line(context)),
               ),
-              child: const Icon(Icons.settings_outlined, color: Color(0xFF2563EB), size: 22),
+              child: const Icon(Icons.settings_outlined, color: LsColors.brand, size: 20),
             ),
           ),
         ),
@@ -896,116 +850,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildRecommendationCarousel(List<TargetDashboardInfo> targets, String lang) {
-    return Column(
-      children: [
-        SizedBox(
-          height: 160,
-          child: PageView.builder(
-            controller: _recommendationPageController,
-            itemCount: targets.length,
-            onPageChanged: (page) {
-              setState(() => _recommendationPage = page);
-            },
-            itemBuilder: (context, index) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2.0),
-                child: _buildRecommendationPage(targets[index], lang),
-              );
-            },
-          ),
-        ),
-        if (targets.length > 1) ...[
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(targets.length, (i) {
-              final isActive = i == _recommendationPage;
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                margin: const EdgeInsets.symmetric(horizontal: 3),
-                width: isActive ? 18 : 7,
-                height: 7,
-                decoration: BoxDecoration(
-                  color: isActive ? const Color(0xFF2563EB) : Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              );
-            }),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildRecommendationPage(TargetDashboardInfo info, String lang) {
-    final double remainingToday = info.recommendedDailySaving - info.savedToday;
-    final bool isDoneToday = remainingToday <= 0;
-
-    return _buildFlatCard(
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  AppTranslations.get(lang, 'rekomendasi_tabungan'),
-                  style: const TextStyle(fontSize: 13, color: Color(0xFF2563EB), fontWeight: FontWeight.w600),
-                ),
-                Text(
-                  '(${info.target.name})',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Rp ${NumberFormat('#,###', 'id_ID').format(info.recommendedDailySaving.toInt())}',
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Color(0xFF2563EB)),
-                ),
-                const SizedBox(height: 6),
-                if (isDoneToday)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.green.withOpacity(0.3)),
-                    ),
-                    child: Text(
-                      AppTranslations.get(lang, 'selesai_hari_ini'),
-                      style: const TextStyle(fontSize: 12, color: Colors.green, fontWeight: FontWeight.w700),
-                    ),
-                  )
-                else
-                  Text(
-                    '${AppTranslations.get(lang, 'kurang')} Rp ${NumberFormat('#,###', 'id_ID').format(remainingToday.toInt())}',
-                    style: const TextStyle(fontSize: 12, color: Colors.orange, fontWeight: FontWeight.w700),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEFF6FF),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.insights, color: Color(0xFF2563EB), size: 28),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildReminderCard(Reminder r) {
     final isPinned = _pinnedReminderIds.contains(r.id);
     final status = r.realtimeStatus;
     final isRunning = status == 'Sedang Berjalan';
+    final isDone = status == 'Selesai';
+    final statusColor = isRunning
+        ? LsColors.amber
+        : (isDone ? LsColors.income : LsColors.brand);
 
     final timeStr = '${DateFormat('HH:mm', 'id_ID').format(r.targetDateTime)} - ${DateFormat('HH:mm', 'id_ID').format(r.effectiveEndTime)}';
 
@@ -1013,18 +866,18 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(9),
             decoration: BoxDecoration(
-              color: isRunning ? Colors.orange.withOpacity(0.1) : const Color(0xFFEFF6FF),
-              borderRadius: BorderRadius.circular(14),
+              color: statusColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
               Icons.notifications_active_outlined,
-              color: isRunning ? Colors.orange : const Color(0xFF2563EB),
-              size: 24,
+              color: statusColor,
+              size: 20,
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1034,32 +887,23 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                     Expanded(
                       child: Text(
                         r.title,
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF1F2937)),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: LsColors.ink(context),
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: isRunning ? Colors.orange.withOpacity(0.15) : const Color(0xFF2563EB).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        status,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: isRunning ? Colors.orange.shade800 : const Color(0xFF2563EB),
-                        ),
-                      ),
-                    ),
+                    const SizedBox(width: 6),
+                    LsChip(status, color: statusColor),
                   ],
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  '${DateFormat('dd MMM yyyy', 'id_ID').format(r.targetDateTime)} ($timeStr)',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  '${DateFormat('d MMM yyyy', 'id_ID').format(r.targetDateTime)} ($timeStr)',
+                  style: TextStyle(fontSize: 11.5, color: LsColors.mute(context)),
                 ),
                 const SizedBox(height: 3),
                 StreamBuilder(
@@ -1069,8 +913,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       CountdownUseCase.calculateCountdown(DateTime.now(), r.targetDateTime),
                       style: TextStyle(
                         fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: isRunning ? Colors.orange.shade800 : const Color(0xFF2563EB),
+                        fontWeight: FontWeight.w700,
+                        color: statusColor,
                       ),
                     );
                   },
@@ -1099,13 +943,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               padding: const EdgeInsets.all(7),
               margin: const EdgeInsets.only(left: 8),
               decoration: BoxDecoration(
-                color: isPinned ? const Color(0xFF2563EB) : const Color(0xFFF3F4F6),
+                color: isPinned ? LsColors.brand : LsColors.brand.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
                 isPinned ? Icons.push_pin : Icons.push_pin_outlined,
                 size: 15,
-                color: isPinned ? Colors.white : Colors.grey.shade500,
+                color: isPinned ? Colors.white : LsColors.mute(context),
               ),
             ),
           ),
@@ -1119,11 +963,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       child: Center(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Text(message, style: TextStyle(color: Colors.grey.shade500)),
+          child: Text(message, style: TextStyle(color: LsColors.mute(context), fontSize: 12.5)),
         ),
       ),
     );
   }
 
-  Widget _buildFlatCard({required Widget child}) => LsCard(padding: const EdgeInsets.all(18), child: child);
+  Widget _buildFlatCard({required Widget child}) => LsCard(padding: const EdgeInsets.all(13), child: child);
 }
