@@ -12,7 +12,6 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 
 import 'package:lifesync_app/presentation/pages/financial_records_home_page.dart';
-import 'package:lifesync_app/presentation/pages/add_financial_record_page.dart';
 import 'package:lifesync_app/presentation/pages/create_reminder_page.dart';
 import 'package:lifesync_app/presentation/pages/add_edit_bill_page.dart';
 import 'package:lifesync_app/presentation/pages/create_shopping_page.dart';
@@ -249,8 +248,8 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
 
   void _showAddSheet() {
     final actions = <_AddAction>[
-      _AddAction('transaksi', 'Transaksi', 'Catat pemasukan atau pengeluaran', Icons.swap_vert_rounded, LsColors.brand,
-          (_) => const AddFinancialRecordPage()),
+      _AddAction('transaksi', 'Transaksi / Catatan Baru', 'Catat pemasukan atau pengeluaran', Icons.account_balance_wallet_rounded, LsColors.brand,
+          (_) => const AddEditFinancialNotePage()),
       _AddAction('agenda', 'Pengingat Agenda', 'Jadwal dan kegiatan', Icons.event_rounded, LsColors.violet,
           (_) => const CreateReminderPage()),
       _AddAction('tagihan', 'Pengingat Tagihan', 'Tagihan rutin dan jatuh tempo', Icons.receipt_long_rounded, LsColors.expense,
@@ -259,10 +258,9 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
           (_) => const CreateShoppingPage()),
       _AddAction('target', 'Target Nabung', 'Mulai menabung untuk tujuan baru', Icons.savings_rounded, LsColors.income,
           (_) => const CreateTargetPage()),
-      _AddAction('catatan', 'Catatan Keuangan', 'Simpan catatan keuangan', Icons.sticky_note_2_rounded, LsColors.brand,
-          (_) => const AddEditFinancialNotePage()),
     ];
     final preferred = switch (_currentIndex) {
+      1 => 'transaksi',
       2 => 'target',
       3 => 'agenda',
       _ => 'transaksi',
