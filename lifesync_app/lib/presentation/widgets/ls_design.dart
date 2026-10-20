@@ -416,39 +416,55 @@ class LsCompactFab extends StatelessWidget {
   Widget build(BuildContext context) {
     final bg = backgroundColor ?? LsColors.brand;
     final fg = foregroundColor ?? Colors.white;
-    // FAB needs to clear the custom bottom nav bar (height ~56px) plus safe area.
-    // We use a SafeArea-aware bottom margin so it never overlaps the + center button.
-    final bottomPad = MediaQuery.of(context).padding.bottom;
-    final fabBottom = 56.0 + bottomPad + 8.0; // 8 px above nav bar top
+
+    // Bottom nav bar height is ~56px.
+    // FloatingActionButtonLocation.endFloat default offset already includes (16.0 + safeArea.bottom).
+    // Adding 44.0 margin places the FAB bottom at ~4px right above the bottom nav bar.
+    const fabBottom = 44.0;
+
+    // Capsule pill with flat right edge flush against the screen boundary
+    const radius = BorderRadius.only(
+      topLeft: Radius.circular(22),
+      bottomLeft: Radius.circular(22),
+      topRight: Radius.zero,
+      bottomRight: Radius.zero,
+    );
 
     return Container(
-      margin: EdgeInsets.only(bottom: fabBottom, right: 12),
-      height: 42,
-      child: Material(
-        color: bg,
-        borderRadius: BorderRadius.circular(21),
-        elevation: 4,
-        shadowColor: bg.withValues(alpha: 0.35),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(21),
-          onTap: onPressed,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: 18, color: fg),
-                const SizedBox(width: 7),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w800,
-                    color: fg,
-                    letterSpacing: -0.2,
-                  ),
+      margin: const EdgeInsets.only(bottom: fabBottom),
+      child: Transform.translate(
+        // Shift right 16px to cancel FloatingActionButtonLocation.endFloat's 16px right margin,
+        // docking the flat edge flush to the device screen's right boundary.
+        offset: const Offset(16.0, 0),
+        child: SizedBox(
+          height: 42,
+          child: Material(
+            color: bg,
+            borderRadius: radius,
+            elevation: 4,
+            shadowColor: bg.withValues(alpha: 0.35),
+            child: InkWell(
+              borderRadius: radius,
+              onTap: onPressed,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 0, 16, 0),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon, size: 18, color: fg),
+                    const SizedBox(width: 6),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w800,
+                        color: fg,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
