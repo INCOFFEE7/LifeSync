@@ -18,7 +18,6 @@ class TargetsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final targetsAsync = ref.watch(targetsStreamProvider);
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: LsColors.paper(context),
       appBar: _buildHeader(context),
@@ -73,17 +72,13 @@ class TargetsPage extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, st) => Center(child: Text('Error: $e')),
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: LsCompactFab(
         heroTag: 'targets_fab',
-        backgroundColor: const Color(0xFF2563EB),
-        foregroundColor: Colors.white,
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         onPressed: () {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateTargetPage()));
         },
-        icon: const Icon(Icons.add, size: 24),
-        label: const Text('Buat Target Nabung', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        icon: Icons.add_rounded,
+        label: 'Buat Target',
       ),
     );
 
@@ -150,7 +145,7 @@ class _TargetCardState extends ConsumerState<_TargetCard> {
   }
 
   Future<void> _togglePin() async {
-    final result = await HomeWidgetService.togglePinTarget(widget.target.id!);
+    final result = await HomeWidgetService.togglePinTarget(widget.target.id);
     if (result == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -172,7 +167,7 @@ class _TargetCardState extends ConsumerState<_TargetCard> {
 
   @override
   Widget build(BuildContext context) {
-    final recordsAsync = ref.watch(targetRecordsStreamProvider(widget.target.id!));
+    final recordsAsync = ref.watch(targetRecordsStreamProvider(widget.target.id));
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -213,30 +208,30 @@ class _TargetCardState extends ConsumerState<_TargetCard> {
                   children: [
                     LsRing(
                       progress: progress,
-                      size: 68,
-                      stroke: 8,
+                      size: 54,
+                      stroke: 6,
                       color: statusColor,
                       child: Text(
                         '${(progress * 100).round()}%',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: LsColors.ink(context)),
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: LsColors.ink(context)),
                       ),
                     ),
-                    const SizedBox(width: 14),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           LsChip(statusLabel, color: statusColor),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 3),
                           Text(
                             widget.target.name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: -0.3, color: LsColors.ink(context)),
+                            style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800, letterSpacing: -0.3, color: LsColors.ink(context)),
                           ),
                           Text(
                             '${DateFormat('d MMM').format(widget.target.startDate)} – ${DateFormat('d MMM yyyy').format(widget.target.endDate)}',
-                            style: TextStyle(fontSize: 11.5, color: LsColors.mute(context)),
+                            style: TextStyle(fontSize: 11, color: LsColors.mute(context)),
                           ),
                         ],
                       ),
@@ -322,7 +317,7 @@ class _SavingsHero extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: Text(
               'Rp ${money.format(total.toInt())}',
-              style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w800, height: 1, letterSpacing: -1, color: Colors.white),
+              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, height: 1.1, letterSpacing: -0.5, color: Colors.white),
             ),
           ),
           const SizedBox(height: 16),

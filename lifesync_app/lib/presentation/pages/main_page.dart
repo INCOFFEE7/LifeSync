@@ -320,24 +320,24 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
       child: InkWell(
         onTap: () => _onTabTapped(index),
         child: SizedBox(
-          height: 64,
+          height: 56,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                 decoration: BoxDecoration(
                   color: selected ? LsColors.brand.withValues(alpha: 0.14) : Colors.transparent,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(selected ? selectedIcon : icon, color: color, size: 24),
+                child: Icon(selected ? selectedIcon : icon, color: color, size: 21),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 1),
               Text(
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 11.5, fontWeight: selected ? FontWeight.w800 : FontWeight.w600, color: color),
+                style: TextStyle(fontSize: 10.5, fontWeight: selected ? FontWeight.w800 : FontWeight.w600, color: color),
               ),
             ],
           ),
@@ -370,32 +370,32 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
                   _navItem(0, Icons.home_outlined, Icons.home_rounded, AppTranslations.get(lang, 'beranda')),
                   _navItem(1, Icons.account_balance_wallet_outlined, Icons.account_balance_wallet,
                       AppTranslations.get(lang, 'keuangan')),
-                  const Expanded(child: SizedBox(height: 64)),
+                  const Expanded(child: SizedBox(height: 56)),
                   _navItem(2, Icons.savings_outlined, Icons.savings, 'Nabung'),
                   _navItem(3, Icons.notifications_none_outlined, Icons.notifications, AppTranslations.get(lang, 'pengingat')),
                 ],
               ),
               Positioned(
-                top: -18,
+                top: -14,
                 child: Semantics(
                   button: true,
                   label: 'Tambah Baru',
                   child: Material(
                     color: LsColors.brand,
                     shape: const CircleBorder(),
-                    elevation: 8,
-                    shadowColor: LsColors.brand.withValues(alpha: 0.5),
+                    elevation: 6,
+                    shadowColor: LsColors.brand.withValues(alpha: 0.45),
                     child: InkWell(
                       customBorder: const CircleBorder(),
                       onTap: _showAddSheet,
                       child: Container(
-                        width: 56,
-                        height: 56,
+                        width: 50,
+                        height: 50,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: LsColors.surface(context), width: 3),
+                          border: Border.all(color: LsColors.surface(context), width: 2.5),
                         ),
-                        child: const Icon(Icons.add_rounded, color: Colors.white, size: 30),
+                        child: const Icon(Icons.add_rounded, color: Colors.white, size: 26),
                       ),
                     ),
                   ),

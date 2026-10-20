@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:table_calendar/table_calendar.dart';
 import 'package:lifesync_app/presentation/providers/financial_note_providers.dart';
 import 'package:lifesync_app/presentation/pages/add_edit_financial_note_page.dart';
 import 'package:lifesync_app/presentation/pages/financial_note_detail_page.dart';
-import 'package:lifesync_app/presentation/widgets/month_day_picker_widget.dart';
 import 'package:lifesync_app/config/app_variant.dart';
 import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 
@@ -19,13 +17,187 @@ class FinancialRecordsHomePage extends ConsumerStatefulWidget {
 class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomePage> {
   final NumberFormat _fmt = NumberFormat('#,###', 'id_ID');
   DateTime _selectedDate = DateTime.now();
-  bool _showAllFinancial = false;
+  String _periodScope = 'month'; // 'month', 'all', 'range'
+  DateTimeRange? _selectedDateRange;
 
   void resetToToday() {
     setState(() {
       _selectedDate = DateTime.now();
-      _showAllFinancial = false;
+      _periodScope = 'month';
+      _selectedDateRange = null;
     });
+  }
+
+  bool _matchesPeriod(DateTime date) {
+    if (_periodScope == 'all') return true;
+    if (_periodScope == 'range' && _selectedDateRange != null) {
+      final start = DateTime(_selectedDateRange!.start.year, _selectedDateRange!.start.month, _selectedDateRange!.start.day);
+      final end = DateTime(_selectedDateRange!.end.year, _selectedDateRange!.end.month, _selectedDateRange!.end.day, 23, 59, 59);
+      return date.isAfter(start.subtract(const Duration(seconds: 1))) && date.isBefore(end.add(const Duration(seconds: 1)));
+    }
+    return date.year == _selectedDate.year && date.month == _selectedDate.month;
+  }
+
+  void _shiftMonth(int delta) {
+    setState(() {
+      _selectedDate = DateTime(_selectedDate.year, _selectedDate.month + delta, 1);
+    });
+  }
+
+  Future<void> _pickMonth() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+    );
+    if (picked != null && mounted) {
+      setState(() {
+        _selectedDate = picked;
+        _periodScope = 'month';
+      });
+    }
+  }
+
+  Future<void> _pickDateRange() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+      initialDateRange: _selectedDateRange ?? DateTimeRange(
+        start: DateTime(_selectedDate.year, _selectedDate.month, 1),
+        end: DateTime(_selectedDate.year, _selectedDate.month + 1, 0),
+      ),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: LsColors.brand,
+              brightness: Theme.of(context).brightness,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && mounted) {
+      setState(() {
+        _selectedDateRange = picked;
+        _periodScope = 'range';
+      });
+    }
+  }
+
+  Widget _monthNav() {
+    String label;
+    if (_periodScope == 'all') {
+      label = 'Semua Data';
+    } else if (_periodScope == 'range' && _selectedDateRange != null) {
+      final s = _selectedDateRange!.start;
+      final e = _selectedDateRange!.end;
+      label = '${DateFormat('d MMM', 'id_ID').format(s)} – ${DateFormat('d MMM yyyy', 'id_ID').format(e)}';
+    } else {
+      label = DateFormat('MMMM yyyy', 'id_ID').format(_selectedDate);
+    }
+
+    final isMonth = _periodScope == 'month';
+
+    Widget arrow(IconData icon, int delta) => InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: isMonth ? () => _shiftMonth(delta) : null,
+          child: Opacity(
+            opacity: isMonth ? 1.0 : 0.25,
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: LsColors.paper(context),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: LsColors.line(context)),
+              ),
+              child: Icon(icon, size: 18, color: LsColors.ink(context)),
+            ),
+          ),
+        );
+
+    return Row(
+      children: [
+        arrow(Icons.chevron_left_rounded, -1),
+        Expanded(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () {
+              if (_periodScope == 'range') {
+                _pickDateRange();
+              } else {
+                _pickMonth();
+              }
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Column(
+                children: [
+                  const LsEyebrow('Periode'),
+                  const SizedBox(height: 2),
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w800,
+                      color: LsColors.ink(context),
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        arrow(Icons.chevron_right_rounded, 1),
+      ],
+    );
+  }
+
+  Widget _filterHeader() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+      decoration: BoxDecoration(
+        color: LsColors.surface(context),
+        border: Border(bottom: BorderSide(color: LsColors.line(context))),
+      ),
+      child: Column(
+        children: [
+          _monthNav(),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              LsCapsuleDropdown<String>(
+                width: 140,
+                value: _periodScope,
+                isHighlighted: _periodScope != 'all',
+                options: const [
+                  LsDropdownOption(value: 'month', label: 'Bulan Ini', icon: Icons.calendar_today_outlined),
+                  LsDropdownOption(value: 'all', label: 'Semua Data', icon: Icons.all_inclusive_outlined),
+                  LsDropdownOption(value: 'range', label: 'Pilih Rentang', icon: Icons.date_range_outlined),
+                ],
+                onSelected: (val) {
+                  if (val == 'range') {
+                    _pickDateRange();
+                  } else {
+                    setState(() {
+                      _periodScope = val;
+                      if (val == 'month') _selectedDate = DateTime.now();
+                    });
+                  }
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   String _formatAmount(double amount) => 'Rp ${_fmt.format(amount.toInt())}';
@@ -63,28 +235,23 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: LsCompactFab(
         heroTag: 'financial_note_fab',
-        backgroundColor: const Color(0xFF2563EB),
-        foregroundColor: Colors.white,
-        elevation: 4,
-        shape: const StadiumBorder(),
         onPressed: () {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => AddEditFinancialNotePage(initialDate: _selectedDate)),
           );
         },
-        icon: const Icon(Icons.add, size: 24),
-        label: const Text('Catatan Baru', style: TextStyle(fontWeight: FontWeight.w800)),
+        icon: Icons.add_rounded,
+        label: 'Catatan Baru',
       ),
       body: notesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(child: Text('Error: $err')),
         data: (allNotes) {
-          final displayNotes = _showAllFinancial
-              ? allNotes
-              : allNotes.where((n) => isSameDay(n.note.date, _selectedDate)).toList();
+          final displayNotes = allNotes.where((n) => _matchesPeriod(n.note.date)).toList()
+            ..sort((a, b) => b.note.date.compareTo(a.note.date));
 
           double totalIncome = 0.0;
           double totalExpense = 0.0;
@@ -96,22 +263,7 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
 
           return Column(
             children: [
-              // Reusable Month & Day Strip Picker Widget
-              MonthDayPickerWidget(
-                selectedDate: _selectedDate,
-                isSeeAll: _showAllFinancial,
-                dateScope: _showAllFinancial ? 'all' : 'this_month',
-                onDateScopeChanged: (scope) {
-                  setState(() {
-                    _showAllFinancial = scope == 'all';
-                    if (!_showAllFinancial) _selectedDate = DateTime.now();
-                  });
-                },
-                onDateChanged: (date) => setState(() {
-                  _selectedDate = date;
-                  _showAllFinancial = false;
-                }),
-              ),
+              _filterHeader(),
 
               // Period Summary (Total Pemasukan, Total Pengeluaran, Saldo)
               _buildSummaryHeader(totalIncome, totalExpense, balance, isDark),
@@ -177,7 +329,7 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
               alignment: Alignment.centerLeft,
               child: Text(
                 '${balance < 0 ? '-' : ''}${_formatAmount(balance.abs())}',
-                style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w800, height: 1.1, color: Colors.white, letterSpacing: -1),
+                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, height: 1.1, color: Colors.white, letterSpacing: -0.5),
               ),
             ),
             const SizedBox(height: 14),

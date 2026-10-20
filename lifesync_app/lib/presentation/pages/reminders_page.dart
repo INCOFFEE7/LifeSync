@@ -27,11 +27,12 @@ class RemindersPage extends ConsumerStatefulWidget {
 class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   late TabController _tabController;
   DateTime _selectedDate = DateTime.now();
-  bool _showAllAgenda = false;
-  bool _showAllBills = false;
-  bool _showAllShopping = false;
-  bool _purchasedExpanded = false;
+  String _periodScope = 'month'; // 'month', 'all', 'range'
+  DateTimeRange? _selectedDateRange;
   String _agendaFilterMode = 'upcoming'; // 'upcoming', 'completed', 'all'
+  String _shoppingFilterMode = 'unbought'; // 'unbought', 'bought', 'all'
+  String _billFilterMode = 'all'; // 'all', 'unpaid', 'paid'
+  bool _purchasedExpanded = false;
 
   @override
   void initState() {
@@ -1063,15 +1064,24 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
     ];
   }
 
-  // ── Navigasi bulan & filter ───────────────────────────────────────────────
-  void _shiftMonth(int delta, void Function() resetAll) {
+  // ── Navigasi periode & filter ─────────────────────────────────────────────
+  bool _matchesPeriod(DateTime date) {
+    if (_periodScope == 'all') return true;
+    if (_periodScope == 'range' && _selectedDateRange != null) {
+      final start = DateTime(_selectedDateRange!.start.year, _selectedDateRange!.start.month, _selectedDateRange!.start.day);
+      final end = DateTime(_selectedDateRange!.end.year, _selectedDateRange!.end.month, _selectedDateRange!.end.day, 23, 59, 59);
+      return date.isAfter(start.subtract(const Duration(seconds: 1))) && date.isBefore(end.add(const Duration(seconds: 1)));
+    }
+    return date.year == _selectedDate.year && date.month == _selectedDate.month;
+  }
+
+  void _shiftMonth(int delta) {
     setState(() {
       _selectedDate = DateTime(_selectedDate.year, _selectedDate.month + delta, 1);
-      resetAll();
     });
   }
 
-  Future<void> _pickMonth(void Function() resetAll) async {
+  Future<void> _pickMonth() async {
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
@@ -1081,76 +1091,101 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
     if (picked != null && mounted) {
       setState(() {
         _selectedDate = picked;
-        resetAll();
+        _periodScope = 'month';
       });
     }
   }
 
-  Widget _pillChip(String label, bool selected, VoidCallback onTap, {IconData? icon, Color? color}) {
-    final c = color ?? LsColors.brand;
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? c : LsColors.surface(context),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: selected ? c : LsColors.line(context)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 14, color: selected ? Colors.white : LsColors.mute(context)),
-              const SizedBox(width: 5),
-            ],
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                color: selected ? Colors.white : LsColors.mute(context),
-              ),
-            ),
-          ],
-        ),
+  Future<void> _pickDateRange() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+      initialDateRange: _selectedDateRange ?? DateTimeRange(
+        start: DateTime(_selectedDate.year, _selectedDate.month, 1),
+        end: DateTime(_selectedDate.year, _selectedDate.month + 1, 0),
       ),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: LsColors.brand,
+              brightness: Theme.of(context).brightness,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
+    if (picked != null && mounted) {
+      setState(() {
+        _selectedDateRange = picked;
+        _periodScope = 'range';
+      });
+    }
   }
 
-  Widget _monthNav(bool showAll, void Function() resetAll) {
-    final label = showAll ? 'Semua Data' : DateFormat('MMMM yyyy', 'id_ID').format(_selectedDate);
+  Widget _monthNav() {
+    String label;
+    if (_periodScope == 'all') {
+      label = 'Semua Data';
+    } else if (_periodScope == 'range' && _selectedDateRange != null) {
+      final s = _selectedDateRange!.start;
+      final e = _selectedDateRange!.end;
+      label = '${DateFormat('d MMM', 'id_ID').format(s)} – ${DateFormat('d MMM yyyy', 'id_ID').format(e)}';
+    } else {
+      label = DateFormat('MMMM yyyy', 'id_ID').format(_selectedDate);
+    }
+
+    final isMonth = _periodScope == 'month';
+
     Widget arrow(IconData icon, int delta) => InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () => _shiftMonth(delta, resetAll),
-          child: Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: LsColors.paper(context),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: LsColors.line(context)),
+          borderRadius: BorderRadius.circular(10),
+          onTap: isMonth ? () => _shiftMonth(delta) : null,
+          child: Opacity(
+            opacity: isMonth ? 1.0 : 0.25,
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: LsColors.paper(context),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: LsColors.line(context)),
+              ),
+              child: Icon(icon, size: 18, color: LsColors.ink(context)),
             ),
-            child: Icon(icon, size: 20, color: LsColors.ink(context)),
           ),
         );
+
     return Row(
       children: [
         arrow(Icons.chevron_left_rounded, -1),
         Expanded(
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
-            onTap: () => _pickMonth(resetAll),
+            onTap: () {
+              if (_periodScope == 'range') {
+                _pickDateRange();
+              } else {
+                _pickMonth();
+              }
+            },
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
+              padding: const EdgeInsets.symmetric(vertical: 2),
               child: Column(
                 children: [
                   const LsEyebrow('Periode'),
                   const SizedBox(height: 2),
                   Text(
                     label,
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: LsColors.ink(context), letterSpacing: -0.3),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w800,
+                      color: LsColors.ink(context),
+                      letterSpacing: -0.3,
+                    ),
                   ),
                 ],
               ),
@@ -1162,27 +1197,44 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
     );
   }
 
-  Widget _filterHeader({required bool showAll, required void Function() resetAll, required ValueChanged<bool> onScope, Widget? extra}) {
+  Widget _filterHeader({Widget? extraDropdown}) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
       decoration: BoxDecoration(
         color: LsColors.surface(context),
         border: Border(bottom: BorderSide(color: LsColors.line(context))),
       ),
       child: Column(
         children: [
-          _monthNav(showAll, resetAll),
-          const SizedBox(height: 10),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                if (extra != null) ...[extra, const SizedBox(width: 12)],
-                _pillChip('Bulan Ini', !showAll, () => onScope(false), icon: Icons.calendar_today_outlined),
+          _monthNav(),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              LsCapsuleDropdown<String>(
+                width: 135,
+                value: _periodScope,
+                isHighlighted: _periodScope != 'all',
+                options: const [
+                  LsDropdownOption(value: 'month', label: 'Bulan Ini', icon: Icons.calendar_today_outlined),
+                  LsDropdownOption(value: 'all', label: 'Semua Data', icon: Icons.all_inclusive_outlined),
+                  LsDropdownOption(value: 'range', label: 'Pilih Rentang', icon: Icons.date_range_outlined),
+                ],
+                onSelected: (val) {
+                  if (val == 'range') {
+                    _pickDateRange();
+                  } else {
+                    setState(() {
+                      _periodScope = val;
+                      if (val == 'month') _selectedDate = DateTime.now();
+                    });
+                  }
+                },
+              ),
+              if (extraDropdown != null) ...[
                 const SizedBox(width: 8),
-                _pillChip('Semua Data', showAll, () => onScope(true), icon: Icons.all_inclusive_outlined),
+                extraDropdown,
               ],
-            ),
+            ],
           ),
         ],
       ),
@@ -1328,53 +1380,29 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
 
   // ── Tab Agenda ──────────────────────────────────────────────────────────────
   Widget _buildAgendaTab(AsyncValue<List<Reminder>> remindersAsync) {
-    void resetAll() => _showAllAgenda = false;
-    const modes = [
-      ['upcoming', 'Mendatang'],
-      ['completed', 'Selesai'],
-      ['all', 'Semua Agenda'],
-    ];
     return Column(
       children: [
         _filterHeader(
-          showAll: _showAllAgenda,
-          resetAll: resetAll,
-          onScope: (all) => setState(() {
-            _showAllAgenda = all;
-            if (!all) _selectedDate = DateTime.now();
-          }),
-        ),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                for (final m in modes) ...[
-                  _pillChip(
-                    m[1],
-                    _agendaFilterMode == m[0],
-                    () => setState(() => _agendaFilterMode = m[0]),
-                    color: m[0] == 'completed' ? LsColors.income : LsColors.brand,
-                  ),
-                  const SizedBox(width: 8),
-                ],
-              ],
-            ),
+          extraDropdown: LsCapsuleDropdown<String>(
+            width: 140,
+            value: _agendaFilterMode,
+            isHighlighted: _agendaFilterMode != 'all',
+            activeColor: _agendaFilterMode == 'completed' ? LsColors.income : LsColors.brand,
+            options: const [
+              LsDropdownOption(value: 'upcoming', label: 'Mendatang', icon: Icons.upcoming_outlined),
+              LsDropdownOption(value: 'completed', label: 'Selesai', icon: Icons.check_circle_outline),
+              LsDropdownOption(value: 'all', label: 'Semua Agenda', icon: Icons.list_alt_rounded),
+            ],
+            onSelected: (val) => setState(() => _agendaFilterMode = val),
           ),
         ),
         Expanded(
           child: remindersAsync.when(
             data: (reminders) {
               final activeReminders = reminders.where((r) => !r.deleted).toList();
-              final monthFiltered = _showAllAgenda
-                  ? activeReminders
-                  : activeReminders
-                      .where((r) => r.targetDateTime.year == _selectedDate.year && r.targetDateTime.month == _selectedDate.month)
-                      .toList();
+              final periodFiltered = activeReminders.where((r) => _matchesPeriod(r.targetDateTime)).toList();
 
-              final filtered = monthFiltered.where((r) {
+              final filtered = periodFiltered.where((r) {
                 if (_agendaFilterMode == 'upcoming') {
                   return r.realtimeStatus != 'Selesai';
                 } else if (_agendaFilterMode == 'completed') {
@@ -1459,21 +1487,30 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
     return Column(
       children: [
         _filterHeader(
-          showAll: _showAllBills,
-          resetAll: () => _showAllBills = false,
-          onScope: (all) => setState(() {
-            _showAllBills = all;
-            if (!all) _selectedDate = DateTime.now();
-          }),
+          extraDropdown: LsCapsuleDropdown<String>(
+            width: 140,
+            value: _billFilterMode,
+            isHighlighted: _billFilterMode != 'all',
+            activeColor: _billFilterMode == 'paid' ? LsColors.income : (_billFilterMode == 'unpaid' ? LsColors.expense : LsColors.brand),
+            options: const [
+              LsDropdownOption(value: 'all', label: 'Semua Tagihan', icon: Icons.receipt_long_outlined),
+              LsDropdownOption(value: 'unpaid', label: 'Belum Lunas', icon: Icons.hourglass_empty_rounded, color: LsColors.expense),
+              LsDropdownOption(value: 'paid', label: 'Lunas', icon: Icons.check_circle_outline, color: LsColors.income),
+            ],
+            onSelected: (val) => setState(() => _billFilterMode = val),
+          ),
         ),
         Expanded(
           child: billsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (err, _) => Center(child: Text('Error: $err')),
             data: (bills) {
-              final displayBills = _showAllBills
-                  ? bills
-                  : bills.where((b) => b.dueDate.year == _selectedDate.year && b.dueDate.month == _selectedDate.month).toList();
+              final periodFiltered = bills.where((b) => !b.deleted && _matchesPeriod(b.dueDate)).toList();
+              final displayBills = periodFiltered.where((b) {
+                if (_billFilterMode == 'unpaid') return !b.isPaid;
+                if (_billFilterMode == 'paid') return b.isPaid;
+                return true;
+              }).toList();
 
               if (displayBills.isEmpty) {
                 return _emptyState(Icons.receipt_long_outlined, 'Belum ada data tagihan.');
@@ -1516,7 +1553,7 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
                           alignment: Alignment.centerLeft,
                           child: Text(
                             'Rp ${fmt.format(totalRemaining.toInt())}',
-                            style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w800, color: Colors.white, height: 1.05, letterSpacing: -1),
+                            style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white, height: 1.1, letterSpacing: -0.5),
                           ),
                         ),
                         const SizedBox(height: 14),
@@ -1693,23 +1730,33 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
     return Column(
       children: [
         _filterHeader(
-          showAll: _showAllShopping,
-          resetAll: () => _showAllShopping = false,
-          onScope: (all) => setState(() {
-            _showAllShopping = all;
-            if (!all) _selectedDate = DateTime.now();
-          }),
+          extraDropdown: LsCapsuleDropdown<String>(
+            width: 140,
+            value: _shoppingFilterMode,
+            isHighlighted: _shoppingFilterMode != 'all',
+            activeColor: _shoppingFilterMode == 'bought' ? LsColors.income : LsColors.amber,
+            options: const [
+              LsDropdownOption(value: 'unbought', label: 'Belum Dibeli', icon: Icons.radio_button_unchecked),
+              LsDropdownOption(value: 'bought', label: 'Sudah Dibeli', icon: Icons.check_circle_outline),
+              LsDropdownOption(value: 'all', label: 'Semua Belanja', icon: Icons.shopping_bag_outlined),
+            ],
+            onSelected: (val) => setState(() => _shoppingFilterMode = val),
+          ),
         ),
         Expanded(
           child: shoppingAsync.when(
             data: (items) {
               final activeItems = items.where((i) => !i.deleted).toList();
-              final filtered = _showAllShopping
-                  ? activeItems
-                  : activeItems.where((item) {
-                      if (item.purchaseDate == null) return true;
-                      return item.purchaseDate!.year == _selectedDate.year && item.purchaseDate!.month == _selectedDate.month;
-                    }).toList();
+              final periodFiltered = activeItems.where((item) {
+                if (item.purchaseDate == null) return true;
+                return _matchesPeriod(item.purchaseDate!);
+              }).toList();
+
+              final filtered = periodFiltered.where((i) {
+                if (_shoppingFilterMode == 'unbought') return !i.isChecked;
+                if (_shoppingFilterMode == 'bought') return i.isChecked;
+                return true;
+              }).toList();
 
               if (filtered.isEmpty) {
                 return _emptyState(Icons.shopping_cart_outlined, 'Belum ada pengingat belanja.');
@@ -1875,45 +1922,39 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
   Widget _buildFAB() {
     switch (_tabController.index) {
       case 1:
-        return FloatingActionButton.extended(
+        return LsCompactFab(
           heroTag: 'fab_agenda',
-          backgroundColor: const Color(0xFF2563EB),
-          foregroundColor: Colors.white,
           onPressed: () {
             Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateReminderPage()));
           },
-          icon: const Icon(Icons.add),
-          label: const Text('Pengingat Agenda', style: TextStyle(fontWeight: FontWeight.bold)),
+          label: 'Pengingat Agenda',
         );
       case 2:
-        return FloatingActionButton.extended(
+        return LsCompactFab(
           heroTag: 'fab_bill',
-          backgroundColor: const Color(0xFF2563EB),
-          foregroundColor: Colors.white,
           onPressed: () {
             Navigator.push(context, MaterialPageRoute(builder: (_) => const AddEditBillPage()));
           },
-          icon: const Icon(Icons.add),
-          label: const Text('Pengingat Tagihan', style: TextStyle(fontWeight: FontWeight.bold)),
+          label: 'Pengingat Tagihan',
         );
       case 3:
-        return FloatingActionButton.extended(
+        return LsCompactFab(
           heroTag: 'fab_shopping',
-          backgroundColor: const Color(0xFF2563EB),
-          foregroundColor: Colors.white,
           onPressed: _showQuickAddShoppingDialog,
-          icon: const Icon(Icons.add),
-          label: const Text('Pengingat Belanja', style: TextStyle(fontWeight: FontWeight.bold)),
+          label: 'Pengingat Belanja',
         );
       default:
-        return CircularFabMenu(
-          onAddAgenda: () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateReminderPage()));
-          },
-          onAddBill: () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const AddEditBillPage()));
-          },
-          onAddShopping: _showQuickAddShoppingDialog,
+        return Container(
+          margin: const EdgeInsets.only(bottom: 22, right: 4),
+          child: CircularFabMenu(
+            onAddAgenda: () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateReminderPage()));
+            },
+            onAddBill: () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const AddEditBillPage()));
+            },
+            onAddShopping: _showQuickAddShoppingDialog,
+          ),
         );
     }
   }

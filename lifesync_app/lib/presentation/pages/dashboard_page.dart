@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,7 +7,6 @@ import 'package:lifesync_app/domain/entities/shopping_item.dart';
 import 'package:lifesync_app/presentation/providers/repository_providers.dart';
 import 'package:lifesync_app/presentation/providers/financial_note_providers.dart';
 import 'package:lifesync_app/presentation/providers/shopping_providers.dart';
-import 'package:lifesync_app/presentation/pages/create_shopping_page.dart';
 import 'package:lifesync_app/presentation/screens/cloud_backup_settings_screen.dart';
 import 'package:lifesync_app/presentation/providers/dashboard_provider.dart';
 import 'package:lifesync_app/domain/usecases/countdown_usecase.dart';
@@ -146,10 +144,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         LsEyebrow(DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(DateTime.now())),
-        const SizedBox(height: 4),
+        const SizedBox(height: 2),
         Text(
           '$greet.',
-          style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, height: 1.1, letterSpacing: -0.8, color: LsColors.ink(context)),
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, height: 1.1, letterSpacing: -0.5, color: LsColors.ink(context)),
         ),
       ],
     );
@@ -168,10 +166,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             alignment: Alignment.centerLeft,
             child: Text(
               '${positive ? '' : '-'}Rp ${fmt.format(s.netBalance.abs().toInt())}',
-              style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w800, height: 1, letterSpacing: -1, color: Colors.white),
+              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, height: 1.1, letterSpacing: -0.5, color: Colors.white),
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(child: _heroFlow('Pemasukan', s.totalIncome, const Color(0xFF6EE7B7), Icons.south_west, fmt)),
@@ -186,21 +184,21 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   Widget _heroFlow(String label, double v, Color c, IconData icon, NumberFormat fmt) {
     return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(16)),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(14)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xB3FFFFFF))),
+          Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xB3FFFFFF))),
           const SizedBox(height: 2),
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
             child: Row(
               children: [
-                Icon(icon, size: 14, color: c),
+                Icon(icon, size: 12, color: c),
                 const SizedBox(width: 4),
-                Text('Rp ${fmt.format(v.toInt())}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: c)),
+                Text('Rp ${fmt.format(v.toInt())}', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: c)),
               ],
             ),
           ),

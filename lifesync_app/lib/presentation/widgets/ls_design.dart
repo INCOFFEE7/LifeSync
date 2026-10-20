@@ -28,20 +28,20 @@ class LsCard extends StatelessWidget {
   final EdgeInsetsGeometry padding;
   final VoidCallback? onTap;
 
-  const LsCard({super.key, required this.child, this.padding = const EdgeInsets.all(16), this.onTap});
+  const LsCard({super.key, required this.child, this.padding = const EdgeInsets.all(12), this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: LsColors.surface(context),
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         onTap: onTap,
         child: Container(
           padding: padding,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(color: LsColors.line(context)),
           ),
           child: child,
@@ -59,41 +59,41 @@ class LsHeroCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(20),
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [LsColors.heroTop, LsColors.heroBottom],
         ),
         boxShadow: [
-          BoxShadow(color: LsColors.heroTop.withValues(alpha: 0.25), blurRadius: 24, offset: const Offset(0, 12)),
+          BoxShadow(color: LsColors.heroTop.withValues(alpha: 0.2), blurRadius: 18, offset: const Offset(0, 8)),
         ],
       ),
       child: Stack(
         children: [
           Positioned(
-            right: -60,
-            top: -70,
+            right: -50,
+            top: -60,
             child: Container(
-              width: 180,
-              height: 180,
+              width: 140,
+              height: 140,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: LsColors.violet.withValues(alpha: 0.28),
+                color: LsColors.violet.withValues(alpha: 0.24),
               ),
             ),
           ),
           Positioned(
-            left: -50,
-            bottom: -80,
+            left: -40,
+            bottom: -70,
             child: Container(
-              width: 160,
-              height: 160,
+              width: 130,
+              height: 130,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: LsColors.income.withValues(alpha: 0.18),
+                color: LsColors.income.withValues(alpha: 0.16),
               ),
             ),
           ),
@@ -270,3 +270,186 @@ class _RingPainter extends CustomPainter {
   bool shouldRepaint(covariant _RingPainter old) =>
       old.progress != progress || old.color != color || old.track != track || old.stroke != stroke;
 }
+
+class LsDropdownOption<T> {
+  final T value;
+  final String label;
+  final IconData? icon;
+  final Color? color;
+
+  const LsDropdownOption({
+    required this.value,
+    required this.label,
+    this.icon,
+    this.color,
+  });
+}
+
+class LsCapsuleDropdown<T> extends StatelessWidget {
+  final T value;
+  final List<LsDropdownOption<T>> options;
+  final ValueChanged<T> onSelected;
+  final double? width;
+  final IconData? icon;
+  final Color? activeColor;
+  final bool isHighlighted;
+
+  const LsCapsuleDropdown({
+    super.key,
+    required this.value,
+    required this.options,
+    required this.onSelected,
+    this.width,
+    this.icon,
+    this.activeColor,
+    this.isHighlighted = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final current = options.firstWhere(
+      (o) => o.value == value,
+      orElse: () => options.first,
+    );
+    final color = activeColor ?? (isHighlighted ? LsColors.brand : LsColors.ink(context));
+    final bgColor = isHighlighted
+        ? (activeColor ?? LsColors.brand).withValues(alpha: 0.12)
+        : LsColors.surface(context);
+    final borderColor = isHighlighted
+        ? (activeColor ?? LsColors.brand).withValues(alpha: 0.35)
+        : LsColors.line(context);
+
+    return SizedBox(
+      width: width,
+      height: 32,
+      child: PopupMenuButton<T>(
+        tooltip: current.label,
+        onSelected: onSelected,
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        color: LsColors.surface(context),
+        itemBuilder: (ctx) => options.map((opt) {
+          final isSel = opt.value == value;
+          final optColor = opt.color ?? (isSel ? LsColors.brand : LsColors.ink(context));
+          return PopupMenuItem<T>(
+            value: opt.value,
+            height: 38,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (opt.icon != null) ...[
+                  Icon(opt.icon, size: 15, color: optColor),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  opt.label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
+                    color: optColor,
+                  ),
+                ),
+                if (isSel) ...[
+                  const Spacer(),
+                  const Icon(Icons.check_rounded, size: 15, color: LsColors.brand),
+                ],
+              ],
+            ),
+          );
+        }).toList(),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: borderColor),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              if (icon != null || current.icon != null) ...[
+                Icon(icon ?? current.icon, size: 13, color: color),
+                const SizedBox(width: 5),
+              ],
+              Flexible(
+                child: Text(
+                  current.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 3),
+              Icon(Icons.keyboard_arrow_down_rounded, size: 15, color: color),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class LsCompactFab extends StatelessWidget {
+  final VoidCallback onPressed;
+  final IconData icon;
+  final String label;
+  final Color? backgroundColor;
+  final Color? foregroundColor;
+  final String? heroTag;
+
+  const LsCompactFab({
+    super.key,
+    required this.onPressed,
+    this.icon = Icons.add_rounded,
+    required this.label,
+    this.backgroundColor,
+    this.foregroundColor,
+    this.heroTag,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = backgroundColor ?? LsColors.brand;
+    final fg = foregroundColor ?? Colors.white;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 22, right: 4),
+      height: 38,
+      child: Material(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+        elevation: 4,
+        shadowColor: bg.withValues(alpha: 0.35),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onPressed,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 13),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 17, color: fg),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: fg,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
