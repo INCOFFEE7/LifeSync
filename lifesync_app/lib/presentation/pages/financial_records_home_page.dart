@@ -1,8 +1,9 @@
+import 'package:lifesync_app/core/utils/translations.dart';
+import 'package:lifesync_app/presentation/providers/localization_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:lifesync_app/presentation/providers/financial_note_providers.dart';
-import 'package:lifesync_app/presentation/pages/add_edit_financial_note_page.dart';
 import 'package:lifesync_app/presentation/pages/financial_note_detail_page.dart';
 import 'package:lifesync_app/config/app_variant.dart';
 import 'package:lifesync_app/presentation/widgets/ls_design.dart';
@@ -20,6 +21,7 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
   DateTime? _selectedDay;
   String _periodScope = 'month'; // 'month', 'all', 'range'
   DateTimeRange? _selectedDateRange;
+  String _searchQuery = '';
 
   void resetToToday() {
     setState(() {
@@ -106,7 +108,7 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
     } else if (_periodScope == 'range' && _selectedDateRange != null) {
       final s = _selectedDateRange!.start;
       final e = _selectedDateRange!.end;
-      label = '${DateFormat('d MMM', 'id_ID').format(s)} – ${DateFormat('d MMM yyyy', 'id_ID').format(e)}';
+      label = '${DateFormat('d MMM', 'id_ID').format(s)} - ${DateFormat('d MMM yyyy', 'id_ID').format(e)}';
     } else {
       label = DateFormat('MMMM yyyy', 'id_ID').format(_selectedDate);
     }
@@ -207,8 +209,10 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
               setState(() {
                 if (isSelected) {
                   _selectedDay = null;
+                  ref.read(selectedFinancialDateProvider.notifier).state = _selectedDate;
                 } else {
                   _selectedDay = date;
+                  ref.read(selectedFinancialDateProvider.notifier).state = date;
                 }
               });
             },
@@ -387,22 +391,20 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
           ),
         ),
       ),
-      floatingActionButton: LsCompactFab(
-        heroTag: 'financial_note_fab',
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => AddEditFinancialNotePage(initialDate: _selectedDay ?? _selectedDate)),
-          );
-        },
-        icon: Icons.add_rounded,
-        label: 'Catatan Baru',
-      ),
       body: notesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(child: Text('Error: $err')),
         data: (allNotes) {
-          final displayNotes = allNotes.where((n) => _matchesPeriod(n.note.date)).toList()
+          final displayNotes = allNotes.where((n) {
+            if (!_matchesPeriod(n.note.date)) return false;
+            if (_searchQuery.isNotEmpty) {
+              final q = _searchQuery.toLowerCase();
+              final matchTitle = n.note.title.toLowerCase().contains(q);
+              final matchItem = n.items.any((it) => it.description.toLowerCase().contains(q));
+              if (!matchTitle && !matchItem) return false;
+            }
+            return true;
+          }).toList()
             ..sort((a, b) => b.note.date.compareTo(a.note.date));
 
           double totalIncome = 0.0;
@@ -419,6 +421,36 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
 
               // Period Summary (Total Pemasukan, Total Pengeluaran, Saldo)
               _buildSummaryHeader(totalIncome, totalExpense, balance, isDark),
+
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                child: TextField(
+                  onChanged: (val) => setState(() => _searchQuery = val.trim()),
+                  decoration: InputDecoration(
+                    hintText: AppTranslations.get(ref.watch(localeProvider).languageCode, 'cari_catatan_transaksi'),
+                    hintStyle: TextStyle(fontSize: 13, color: LsColors.mute(context)),
+                    prefixIcon: const Icon(Icons.search, size: 20, color: LsColors.brand),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            onPressed: () => setState(() => _searchQuery = ''),
+                          )
+                        : null,
+                    isDense: true,
+                    filled: true,
+                    fillColor: LsColors.surface(context),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: LsColors.line(context)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: LsColors.line(context)),
+                    ),
+                  ),
+                ),
+              ),
 
               // Notes List
               Expanded(

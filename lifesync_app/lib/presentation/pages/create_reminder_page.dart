@@ -136,6 +136,15 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
         );
         return;
       }
+
+      final confirm = await showLsConfirmDialog(
+        context: context,
+        title: widget.existingReminder == null ? 'Simpan Agenda?' : 'Perbarui Agenda?',
+        message: 'Apakah detail dan jadwal agenda yang dimasukkan sudah sesuai?',
+        confirmLabel: 'Ya, Simpan',
+        cancelLabel: 'Batal',
+      );
+      if (!confirm || !mounted) return;
       
       final reminder = Reminder()
         ..id = widget.existingReminder?.id ?? DateTime.now().millisecondsSinceEpoch
@@ -269,36 +278,91 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
     final newName = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('Ubah Nama Kategori', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(color: LsColors.line(ctx), width: 1.2),
+        ),
+        backgroundColor: LsColors.surface(ctx),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        titlePadding: const EdgeInsets.fromLTRB(20, 24, 20, 10),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        actionsPadding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+        title: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: LsColors.brand.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+                border: Border.all(color: LsColors.brand.withValues(alpha: 0.25), width: 1.5),
+              ),
+              child: const Icon(Icons.edit_note_rounded, size: 22, color: LsColors.brand),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Ubah Nama Kategori',
+                style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w800, letterSpacing: -0.3, color: LsColors.ink(ctx)),
+              ),
+            ),
+          ],
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Perubahan hanya berlaku untuk pengingat yang dibuat saat ini dan seterusnya.',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+              style: TextStyle(fontSize: 12, color: LsColors.mute(ctx)),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: textController,
               autofocus: true,
               decoration: InputDecoration(
-                labelText: 'Nama Kategori Baru',
+                labelText: 'Nama Kategori Baru *',
+                filled: true,
+                fillColor: LsColors.paper(ctx),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
               ),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: LsColors.brand),
-            onPressed: () {
-              final val = textController.text.trim();
-              if (val.isNotEmpty) Navigator.pop(ctx, val);
-            },
-            child: const Text('Simpan'),
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 44,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: LsColors.line(ctx), width: 1.2),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text('Batal', style: TextStyle(color: LsColors.ink(ctx), fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: SizedBox(
+                  height: 44,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: LsColors.brand,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    onPressed: () {
+                      final val = textController.text.trim();
+                      if (val.isNotEmpty) Navigator.pop(ctx, val);
+                    },
+                    child: const Text('Simpan', style: TextStyle(fontWeight: FontWeight.w800, color: Colors.white)),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

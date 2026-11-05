@@ -17,6 +17,7 @@ import 'package:lifesync_app/presentation/pages/add_edit_bill_page.dart';
 import 'package:lifesync_app/presentation/pages/create_shopping_page.dart';
 import 'package:lifesync_app/presentation/pages/create_target_page.dart';
 import 'package:lifesync_app/presentation/pages/add_edit_financial_note_page.dart';
+import 'package:lifesync_app/presentation/providers/financial_note_providers.dart';
 
 import 'dart:async';
 import 'package:intl/intl.dart';
@@ -247,13 +248,16 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
   }
 
   void _showAddSheet() {
+    final selectedFinDate = ref.read(selectedFinancialDateProvider);
     final actions = <_AddAction>[
       _AddAction('transaksi', 'Transaksi / Catatan Baru', 'Catat pemasukan atau pengeluaran', Icons.account_balance_wallet_rounded, LsColors.brand,
-          (_) => const AddEditFinancialNotePage()),
+          (_) => AddEditFinancialNotePage(initialDate: selectedFinDate)),
       _AddAction('agenda', 'Pengingat Agenda', 'Jadwal dan kegiatan', Icons.event_rounded, LsColors.violet,
           (_) => const CreateReminderPage()),
-      _AddAction('tagihan', 'Pengingat Tagihan', 'Tagihan rutin dan jatuh tempo', Icons.receipt_long_rounded, LsColors.expense,
-          (_) => const AddEditBillPage()),
+      _AddAction('tagihan', 'Pengingat Tagihan Bulanan', 'Tagihan rutin bulanan', Icons.receipt_long_rounded, LsColors.expense,
+          (_) => const AddEditBillPage(initialBillType: 'monthly')),
+      _AddAction('piutang', 'Pengingat Tagihan Piutang', 'Catatan penagihan piutang orang lain', Icons.handshake_rounded, LsColors.income,
+          (_) => const AddEditBillPage(initialBillType: 'receivable')),
       _AddAction('belanja', 'Pengingat Belanja', 'Daftar belanjaan', Icons.shopping_cart_rounded, LsColors.amber,
           (_) => const CreateShoppingPage()),
       _AddAction('target', 'Target Nabung', 'Mulai menabung untuk tujuan baru', Icons.savings_rounded, LsColors.income,
@@ -272,7 +276,9 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
       backgroundColor: LsColors.surface(context),
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-      builder: (sheetContext) => SafeArea(
+      builder: (sheetContext) => ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.85),
+        child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
           child: Column(
@@ -307,6 +313,7 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
             ],
           ),
         ),
+      ),
       ),
     );
   }
@@ -451,8 +458,13 @@ class _AddActionRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(action.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800, color: LsColors.ink(context))),
-                    Text(action.subtitle, style: TextStyle(fontSize: 11.5, color: LsColors.mute(context))),
+                    Text(action.subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 11.5, color: LsColors.mute(context))),
                   ],
                 ),
               ),

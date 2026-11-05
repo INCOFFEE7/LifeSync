@@ -22,68 +22,83 @@ const BillSchema = CollectionSchema(
       name: r'amount',
       type: IsarType.double,
     ),
-    r'createdAt': PropertySchema(
+    r'billType': PropertySchema(
       id: 1,
+      name: r'billType',
+      type: IsarType.string,
+    ),
+    r'createdAt': PropertySchema(
+      id: 2,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'deleted': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'deleted',
       type: IsarType.bool,
     ),
     r'dueDate': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'dueDate',
       type: IsarType.dateTime,
     ),
     r'isPaid': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'isPaid',
       type: IsarType.bool,
     ),
     r'month': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'month',
       type: IsarType.string,
     ),
     r'name': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'name',
       type: IsarType.string,
     ),
     r'notes': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'notes',
       type: IsarType.string,
     ),
     r'paidAt': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'paidAt',
       type: IsarType.dateTime,
     ),
+    r'paidBy': PropertySchema(
+      id: 10,
+      name: r'paidBy',
+      type: IsarType.string,
+    ),
     r'prePaymentRealization': PropertySchema(
-      id: 9,
+      id: 11,
       name: r'prePaymentRealization',
       type: IsarType.double,
     ),
     r'realizationAmount': PropertySchema(
-      id: 10,
+      id: 12,
       name: r'realizationAmount',
       type: IsarType.double,
     ),
+    r'receivedBy': PropertySchema(
+      id: 13,
+      name: r'receivedBy',
+      type: IsarType.string,
+    ),
     r'reminderDaysBefore': PropertySchema(
-      id: 11,
+      id: 14,
       name: r'reminderDaysBefore',
       type: IsarType.long,
     ),
     r'syncId': PropertySchema(
-      id: 12,
+      id: 15,
       name: r'syncId',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 13,
+      id: 16,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -135,10 +150,23 @@ int _billEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  bytesCount += 3 + object.billType.length * 3;
   bytesCount += 3 + object.month.length * 3;
   bytesCount += 3 + object.name.length * 3;
   {
     final value = object.notes;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.paidBy;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.receivedBy;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -154,19 +182,22 @@ void _billSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeDouble(offsets[0], object.amount);
-  writer.writeDateTime(offsets[1], object.createdAt);
-  writer.writeBool(offsets[2], object.deleted);
-  writer.writeDateTime(offsets[3], object.dueDate);
-  writer.writeBool(offsets[4], object.isPaid);
-  writer.writeString(offsets[5], object.month);
-  writer.writeString(offsets[6], object.name);
-  writer.writeString(offsets[7], object.notes);
-  writer.writeDateTime(offsets[8], object.paidAt);
-  writer.writeDouble(offsets[9], object.prePaymentRealization);
-  writer.writeDouble(offsets[10], object.realizationAmount);
-  writer.writeLong(offsets[11], object.reminderDaysBefore);
-  writer.writeString(offsets[12], object.syncId);
-  writer.writeDateTime(offsets[13], object.updatedAt);
+  writer.writeString(offsets[1], object.billType);
+  writer.writeDateTime(offsets[2], object.createdAt);
+  writer.writeBool(offsets[3], object.deleted);
+  writer.writeDateTime(offsets[4], object.dueDate);
+  writer.writeBool(offsets[5], object.isPaid);
+  writer.writeString(offsets[6], object.month);
+  writer.writeString(offsets[7], object.name);
+  writer.writeString(offsets[8], object.notes);
+  writer.writeDateTime(offsets[9], object.paidAt);
+  writer.writeString(offsets[10], object.paidBy);
+  writer.writeDouble(offsets[11], object.prePaymentRealization);
+  writer.writeDouble(offsets[12], object.realizationAmount);
+  writer.writeString(offsets[13], object.receivedBy);
+  writer.writeLong(offsets[14], object.reminderDaysBefore);
+  writer.writeString(offsets[15], object.syncId);
+  writer.writeDateTime(offsets[16], object.updatedAt);
 }
 
 Bill _billDeserialize(
@@ -177,20 +208,23 @@ Bill _billDeserialize(
 ) {
   final object = Bill();
   object.amount = reader.readDouble(offsets[0]);
-  object.createdAt = reader.readDateTime(offsets[1]);
-  object.deleted = reader.readBool(offsets[2]);
-  object.dueDate = reader.readDateTime(offsets[3]);
+  object.billType = reader.readString(offsets[1]);
+  object.createdAt = reader.readDateTime(offsets[2]);
+  object.deleted = reader.readBool(offsets[3]);
+  object.dueDate = reader.readDateTime(offsets[4]);
   object.id = id;
-  object.isPaid = reader.readBool(offsets[4]);
-  object.month = reader.readString(offsets[5]);
-  object.name = reader.readString(offsets[6]);
-  object.notes = reader.readStringOrNull(offsets[7]);
-  object.paidAt = reader.readDateTimeOrNull(offsets[8]);
-  object.prePaymentRealization = reader.readDoubleOrNull(offsets[9]);
-  object.realizationAmount = reader.readDoubleOrNull(offsets[10]);
-  object.reminderDaysBefore = reader.readLong(offsets[11]);
-  object.syncId = reader.readString(offsets[12]);
-  object.updatedAt = reader.readDateTime(offsets[13]);
+  object.isPaid = reader.readBool(offsets[5]);
+  object.month = reader.readString(offsets[6]);
+  object.name = reader.readString(offsets[7]);
+  object.notes = reader.readStringOrNull(offsets[8]);
+  object.paidAt = reader.readDateTimeOrNull(offsets[9]);
+  object.paidBy = reader.readStringOrNull(offsets[10]);
+  object.prePaymentRealization = reader.readDoubleOrNull(offsets[11]);
+  object.realizationAmount = reader.readDoubleOrNull(offsets[12]);
+  object.receivedBy = reader.readStringOrNull(offsets[13]);
+  object.reminderDaysBefore = reader.readLong(offsets[14]);
+  object.syncId = reader.readString(offsets[15]);
+  object.updatedAt = reader.readDateTime(offsets[16]);
   return object;
 }
 
@@ -204,30 +238,36 @@ P _billDeserializeProp<P>(
     case 0:
       return (reader.readDouble(offset)) as P;
     case 1:
-      return (reader.readDateTime(offset)) as P;
-    case 2:
-      return (reader.readBool(offset)) as P;
-    case 3:
-      return (reader.readDateTime(offset)) as P;
-    case 4:
-      return (reader.readBool(offset)) as P;
-    case 5:
       return (reader.readString(offset)) as P;
+    case 2:
+      return (reader.readDateTime(offset)) as P;
+    case 3:
+      return (reader.readBool(offset)) as P;
+    case 4:
+      return (reader.readDateTime(offset)) as P;
+    case 5:
+      return (reader.readBool(offset)) as P;
     case 6:
       return (reader.readString(offset)) as P;
     case 7:
-      return (reader.readStringOrNull(offset)) as P;
-    case 8:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 9:
-      return (reader.readDoubleOrNull(offset)) as P;
-    case 10:
-      return (reader.readDoubleOrNull(offset)) as P;
-    case 11:
-      return (reader.readLong(offset)) as P;
-    case 12:
       return (reader.readString(offset)) as P;
+    case 8:
+      return (reader.readStringOrNull(offset)) as P;
+    case 9:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 10:
+      return (reader.readStringOrNull(offset)) as P;
+    case 11:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 12:
+      return (reader.readDoubleOrNull(offset)) as P;
     case 13:
+      return (reader.readStringOrNull(offset)) as P;
+    case 14:
+      return (reader.readLong(offset)) as P;
+    case 15:
+      return (reader.readString(offset)) as P;
+    case 16:
       return (reader.readDateTime(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -520,6 +560,135 @@ extension BillQueryFilter on QueryBuilder<Bill, Bill, QFilterCondition> {
         upper: upper,
         includeUpper: includeUpper,
         epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> billTypeEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'billType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> billTypeGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'billType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> billTypeLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'billType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> billTypeBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'billType',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> billTypeStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'billType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> billTypeEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'billType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> billTypeContains(String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'billType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> billTypeMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'billType',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> billTypeIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'billType',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> billTypeIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'billType',
+        value: '',
       ));
     });
   }
@@ -1169,6 +1338,150 @@ extension BillQueryFilter on QueryBuilder<Bill, Bill, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> paidByIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'paidBy',
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> paidByIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'paidBy',
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> paidByEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'paidBy',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> paidByGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'paidBy',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> paidByLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'paidBy',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> paidByBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'paidBy',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> paidByStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'paidBy',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> paidByEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'paidBy',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> paidByContains(String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'paidBy',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> paidByMatches(String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'paidBy',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> paidByIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'paidBy',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> paidByIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'paidBy',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<Bill, Bill, QAfterFilterCondition>
       prePaymentRealizationIsNull() {
     return QueryBuilder.apply(this, (query) {
@@ -1324,6 +1637,152 @@ extension BillQueryFilter on QueryBuilder<Bill, Bill, QFilterCondition> {
         upper: upper,
         includeUpper: includeUpper,
         epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> receivedByIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'receivedBy',
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> receivedByIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'receivedBy',
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> receivedByEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'receivedBy',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> receivedByGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'receivedBy',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> receivedByLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'receivedBy',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> receivedByBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'receivedBy',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> receivedByStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'receivedBy',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> receivedByEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'receivedBy',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> receivedByContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'receivedBy',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> receivedByMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'receivedBy',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> receivedByIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'receivedBy',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterFilterCondition> receivedByIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'receivedBy',
+        value: '',
       ));
     });
   }
@@ -1580,6 +2039,18 @@ extension BillQuerySortBy on QueryBuilder<Bill, Bill, QSortBy> {
     });
   }
 
+  QueryBuilder<Bill, Bill, QAfterSortBy> sortByBillType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'billType', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterSortBy> sortByBillTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'billType', Sort.desc);
+    });
+  }
+
   QueryBuilder<Bill, Bill, QAfterSortBy> sortByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -1676,6 +2147,18 @@ extension BillQuerySortBy on QueryBuilder<Bill, Bill, QSortBy> {
     });
   }
 
+  QueryBuilder<Bill, Bill, QAfterSortBy> sortByPaidBy() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'paidBy', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterSortBy> sortByPaidByDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'paidBy', Sort.desc);
+    });
+  }
+
   QueryBuilder<Bill, Bill, QAfterSortBy> sortByPrePaymentRealization() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'prePaymentRealization', Sort.asc);
@@ -1697,6 +2180,18 @@ extension BillQuerySortBy on QueryBuilder<Bill, Bill, QSortBy> {
   QueryBuilder<Bill, Bill, QAfterSortBy> sortByRealizationAmountDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'realizationAmount', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterSortBy> sortByReceivedBy() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'receivedBy', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterSortBy> sortByReceivedByDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'receivedBy', Sort.desc);
     });
   }
 
@@ -1747,6 +2242,18 @@ extension BillQuerySortThenBy on QueryBuilder<Bill, Bill, QSortThenBy> {
   QueryBuilder<Bill, Bill, QAfterSortBy> thenByAmountDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'amount', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterSortBy> thenByBillType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'billType', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterSortBy> thenByBillTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'billType', Sort.desc);
     });
   }
 
@@ -1858,6 +2365,18 @@ extension BillQuerySortThenBy on QueryBuilder<Bill, Bill, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Bill, Bill, QAfterSortBy> thenByPaidBy() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'paidBy', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterSortBy> thenByPaidByDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'paidBy', Sort.desc);
+    });
+  }
+
   QueryBuilder<Bill, Bill, QAfterSortBy> thenByPrePaymentRealization() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'prePaymentRealization', Sort.asc);
@@ -1879,6 +2398,18 @@ extension BillQuerySortThenBy on QueryBuilder<Bill, Bill, QSortThenBy> {
   QueryBuilder<Bill, Bill, QAfterSortBy> thenByRealizationAmountDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'realizationAmount', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterSortBy> thenByReceivedBy() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'receivedBy', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QAfterSortBy> thenByReceivedByDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'receivedBy', Sort.desc);
     });
   }
 
@@ -1923,6 +2454,13 @@ extension BillQueryWhereDistinct on QueryBuilder<Bill, Bill, QDistinct> {
   QueryBuilder<Bill, Bill, QDistinct> distinctByAmount() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'amount');
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QDistinct> distinctByBillType(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'billType', caseSensitive: caseSensitive);
     });
   }
 
@@ -1977,6 +2515,13 @@ extension BillQueryWhereDistinct on QueryBuilder<Bill, Bill, QDistinct> {
     });
   }
 
+  QueryBuilder<Bill, Bill, QDistinct> distinctByPaidBy(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'paidBy', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<Bill, Bill, QDistinct> distinctByPrePaymentRealization() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'prePaymentRealization');
@@ -1986,6 +2531,13 @@ extension BillQueryWhereDistinct on QueryBuilder<Bill, Bill, QDistinct> {
   QueryBuilder<Bill, Bill, QDistinct> distinctByRealizationAmount() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'realizationAmount');
+    });
+  }
+
+  QueryBuilder<Bill, Bill, QDistinct> distinctByReceivedBy(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'receivedBy', caseSensitive: caseSensitive);
     });
   }
 
@@ -2019,6 +2571,12 @@ extension BillQueryProperty on QueryBuilder<Bill, Bill, QQueryProperty> {
   QueryBuilder<Bill, double, QQueryOperations> amountProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'amount');
+    });
+  }
+
+  QueryBuilder<Bill, String, QQueryOperations> billTypeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'billType');
     });
   }
 
@@ -2070,6 +2628,12 @@ extension BillQueryProperty on QueryBuilder<Bill, Bill, QQueryProperty> {
     });
   }
 
+  QueryBuilder<Bill, String?, QQueryOperations> paidByProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'paidBy');
+    });
+  }
+
   QueryBuilder<Bill, double?, QQueryOperations>
       prePaymentRealizationProperty() {
     return QueryBuilder.apply(this, (query) {
@@ -2080,6 +2644,12 @@ extension BillQueryProperty on QueryBuilder<Bill, Bill, QQueryProperty> {
   QueryBuilder<Bill, double?, QQueryOperations> realizationAmountProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'realizationAmount');
+    });
+  }
+
+  QueryBuilder<Bill, String?, QQueryOperations> receivedByProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'receivedBy');
     });
   }
 

@@ -117,6 +117,15 @@ class _CreateTargetPageState extends ConsumerState<CreateTargetPage> {
   Future<void> _saveTarget() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
+
+      final confirm = await showLsConfirmDialog(
+        context: context,
+        title: widget.existingTarget == null ? 'Simpan Target Nabung?' : 'Perbarui Target Nabung?',
+        message: 'Apakah detail dan nominal target yang dimasukkan sudah benar?',
+        confirmLabel: 'Ya, Simpan',
+        cancelLabel: 'Batal',
+      );
+      if (!confirm || !mounted) return;
       
       final target = widget.existingTarget ?? IncomeTarget();
       if (widget.existingTarget == null) {

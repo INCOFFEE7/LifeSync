@@ -27,6 +27,11 @@ class Bill {
 
   String? notes;
 
+  // 'monthly' = Tagihan Bulanan, 'receivable' = Tagihan Piutang
+  String billType = 'monthly';
+  String? paidBy;
+  String? receivedBy;
+
   DateTime createdAt = DateTime.now();
   DateTime updatedAt = DateTime.now();
   bool deleted = false;

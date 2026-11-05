@@ -30,6 +30,7 @@ class DashboardPage extends ConsumerStatefulWidget {
 
 class _DashboardPageState extends ConsumerState<DashboardPage> {
   Set<int> _pinnedReminderIds = {};
+  int? _selectedYear = DateTime.now().year;
 
   @override
   void initState() {
@@ -51,7 +52,28 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     final dashboardAsync = ref.watch(dashboardDataProvider);
     final locale = ref.watch(localeProvider);
     final lang = locale.languageCode;
-    final financialSummary = ref.watch(filteredSummaryProvider);
+    final notesAsync = ref.watch(financialNotesNotifierProvider);
+    final allNotes = notesAsync.valueOrNull ?? [];
+    final availableYears = <int>{DateTime.now().year};
+    for (final n in allNotes) {
+      availableYears.add(n.note.date.year);
+    }
+    final sortedYears = availableYears.toList()..sort((a, b) => b.compareTo(a));
+
+    double yearIncome = 0;
+    double yearExpense = 0;
+    for (final n in allNotes) {
+      if (_selectedYear == null || n.note.date.year == _selectedYear) {
+        yearIncome += n.totalIncome;
+        yearExpense += n.totalExpense;
+      }
+    }
+    final yearSummary = FinancialSummary(
+      totalIncome: yearIncome,
+      totalExpense: yearExpense,
+      netBalance: yearIncome - yearExpense,
+    );
+
     final shoppingAsync = ref.watch(shoppingItemsProvider);
 
     final now = DateTime.now();
@@ -74,7 +96,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 // ── 0. SAPAAN, HERO SALDO & RINGKASAN CEPAT ──────────────────
                 _buildGreeting(),
                 const SizedBox(height: 12),
-                _buildHeroBalance(financialSummary, currencyFmt),
+                _buildHeroBalance(yearSummary, currencyFmt, sortedYears, lang),
                 const SizedBox(height: 10),
                 _buildQuickTiles(data, shoppingAsync, billsAsync, now, lang),
                 const SizedBox(height: 18),
@@ -142,13 +164,62 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildHeroBalance(FinancialSummary s, NumberFormat fmt) {
+  Widget _buildHeroBalance(FinancialSummary s, NumberFormat fmt, List<int> availableYears, String lang) {
     final positive = s.netBalance >= 0;
     return LsHeroCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const LsEyebrow('Saldo Bersih', color: Color(0xA6FFFFFF)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              LsEyebrow(
+                '${AppTranslations.get(lang, 'saldo_bersih')} (${_selectedYear == null ? AppTranslations.get(lang, 'semua_tahun') : '${AppTranslations.get(lang, 'year_label')} $_selectedYear'})',
+                color: const Color(0xA6FFFFFF),
+              ),
+              PopupMenuButton<int?>(
+                initialValue: _selectedYear,
+                tooltip: AppTranslations.get(lang, 'year_label'),
+                onSelected: (year) {
+                  setState(() => _selectedYear = year);
+                },
+                color: LsColors.surface(context),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.calendar_today, size: 12, color: Colors.white),
+                      const SizedBox(width: 4),
+                      Text(
+                        _selectedYear == null ? AppTranslations.get(lang, 'semua') : '$_selectedYear',
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
+                      ),
+                      const SizedBox(width: 2),
+                      const Icon(Icons.arrow_drop_down, size: 16, color: Colors.white),
+                    ],
+                  ),
+                ),
+                itemBuilder: (ctx) => [
+                  PopupMenuItem<int?>(
+                    value: null,
+                    child: Text(AppTranslations.get(lang, 'semua_tahun'), style: const TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                  ...availableYears.map(
+                    (y) => PopupMenuItem<int?>(
+                      value: y,
+                      child: Text('$y', style: const TextStyle(fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
           const SizedBox(height: 4),
           FittedBox(
             fit: BoxFit.scaleDown,
@@ -161,9 +232,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: _heroFlow('Pemasukan', s.totalIncome, const Color(0xFF6EE7B7), Icons.south_west, fmt)),
+              Expanded(child: _heroFlow(AppTranslations.get(lang, 'pemasukan'), s.totalIncome, const Color(0xFF6EE7B7), Icons.south_west, fmt)),
               const SizedBox(width: 8),
-              Expanded(child: _heroFlow('Pengeluaran', s.totalExpense, const Color(0xFFFCA5A5), Icons.north_east, fmt)),
+              Expanded(child: _heroFlow(AppTranslations.get(lang, 'pengeluaran'), s.totalExpense, const Color(0xFFFCA5A5), Icons.north_east, fmt)),
             ],
           ),
         ],

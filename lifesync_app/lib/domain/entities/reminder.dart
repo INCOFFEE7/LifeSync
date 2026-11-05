@@ -79,6 +79,8 @@ class Reminder {
   String? customSound; // name of audio file in assets/audios
   
   String? customCategory;
+
+  DateTime? completedAt;
 }
 
 enum ReminderCategory {
@@ -100,4 +102,3 @@ enum ReminderStatus {
   completed,
   cancelled
 }
-// trigger build

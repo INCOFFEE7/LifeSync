@@ -53,22 +53,24 @@ class LsCard extends StatelessWidget {
 
 class LsHeroCard extends StatelessWidget {
   final Widget child;
-  const LsHeroCard({super.key, required this.child});
+  final List<Color>? colors;
+  const LsHeroCard({super.key, required this.child, this.colors});
 
   @override
   Widget build(BuildContext context) {
+    final gradientColors = colors ?? const [LsColors.heroTop, LsColors.heroBottom];
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [LsColors.heroTop, LsColors.heroBottom],
+          colors: gradientColors,
         ),
         boxShadow: [
-          BoxShadow(color: LsColors.heroTop.withValues(alpha: 0.2), blurRadius: 18, offset: const Offset(0, 8)),
+          BoxShadow(color: gradientColors.first.withValues(alpha: 0.2), blurRadius: 18, offset: const Offset(0, 8)),
         ],
       ),
       child: Stack(
@@ -473,3 +475,205 @@ class LsCompactFab extends StatelessWidget {
   }
 }
 
+Future<bool> showLsConfirmDialog({
+  required BuildContext context,
+  required String title,
+  required String message,
+  String confirmLabel = 'Ya, Lanjutkan',
+  String cancelLabel = 'Batal',
+  bool isDestructive = false,
+  bool isDanger = false,
+  IconData? customIcon,
+}) async {
+  final danger = isDestructive || isDanger;
+  final accentColor = danger ? LsColors.expense : LsColors.brand;
+  final icon = customIcon ?? (danger ? Icons.delete_outline_rounded : Icons.help_outline_rounded);
+
+  final result = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(color: LsColors.line(ctx), width: 1.2),
+      ),
+      backgroundColor: LsColors.surface(ctx),
+      elevation: 6,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      titlePadding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      actionsPadding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+      title: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+              border: Border.all(color: accentColor.withValues(alpha: 0.25), width: 1.5),
+            ),
+            child: Icon(icon, size: 28, color: accentColor),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.4,
+              color: LsColors.ink(ctx),
+            ),
+          ),
+        ],
+      ),
+      content: Text(
+        message,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 13.5,
+          color: LsColors.mute(ctx),
+          height: 1.45,
+        ),
+      ),
+      actions: [
+        Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 44,
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: LsColors.line(ctx), width: 1.2),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                  ),
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: Text(
+                    cancelLabel,
+                    style: TextStyle(
+                      color: LsColors.ink(ctx),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13.5,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: SizedBox(
+                height: 44,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: accentColor,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                  ),
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  child: Text(
+                    confirmLabel,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      fontSize: 13.5,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+  return result ?? false;
+}
+
+Future<void> showLsInfoDialog({
+  required BuildContext context,
+  required String title,
+  required String message,
+  String buttonLabel = 'Mengerti',
+  IconData? icon,
+  Color? color,
+}) async {
+  final accentColor = color ?? LsColors.brand;
+  final displayIcon = icon ?? Icons.info_outline_rounded;
+
+  await showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(color: LsColors.line(ctx), width: 1.2),
+      ),
+      backgroundColor: LsColors.surface(ctx),
+      elevation: 6,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      titlePadding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      actionsPadding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+      title: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+              border: Border.all(color: accentColor.withValues(alpha: 0.25), width: 1.5),
+            ),
+            child: Icon(displayIcon, size: 28, color: accentColor),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.4,
+              color: LsColors.ink(ctx),
+            ),
+          ),
+        ],
+      ),
+      content: Text(
+        message,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 13.5,
+          color: LsColors.mute(ctx),
+          height: 1.45,
+        ),
+      ),
+      actions: [
+        SizedBox(
+          width: double.infinity,
+          height: 44,
+          child: FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: accentColor,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(
+              buttonLabel,
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}

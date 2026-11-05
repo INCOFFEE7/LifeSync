@@ -92,11 +92,11 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
     return 'Rp ${fmt.format(val.toInt())}';
   }
 
-  void _showQuickAddItemDialog(int noteId) {
+  void _showQuickAddItemDialog(int noteId, DateTime noteDate) {
     final descController = TextEditingController();
     String calcExpr = '0';
     String type = 'expense';
-    DateTime itemTimestamp = DateTime.now();
+    DateTime itemTimestamp = DateTime(noteDate.year, noteDate.month, noteDate.day, DateTime.now().hour, DateTime.now().minute);
     bool showKeypad = false;
 
     showModalBottomSheet(
@@ -294,6 +294,13 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                           return;
                         }
 
+                        final confirm = await showLsConfirmDialog(
+                          context: context,
+                          title: 'Tambah Item Transaksi',
+                          message: 'Apakah Anda yakin ingin menambahkan transaksi "$desc"?',
+                        );
+                        if (!confirm) return;
+
                         final item = FinancialItem()
                           ..noteId = noteId
                           ..description = desc
@@ -317,26 +324,19 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
     );
   }
 
-  void _confirmDeleteNote(int noteId) {
-    showDialog(
+  Future<void> _confirmDeleteNote(int noteId) async {
+    final confirm = await showLsConfirmDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Hapus Catatan?'),
-        content: const Text('Seluruh item transaksi dalam catatan ini akan ikut terhapus. Lanjutkan?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await ref.read(financialNotesNotifierProvider.notifier).deleteNote(noteId);
-              if (mounted) Navigator.pop(context);
-            },
-            child: const Text('Hapus', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+      title: 'Hapus Catatan?',
+      message: 'Seluruh item transaksi dalam catatan ini akan ikut terhapus. Lanjutkan?',
+      confirmLabel: 'Hapus',
+      cancelLabel: 'Batal',
+      isDanger: true,
     );
+    if (confirm) {
+      await ref.read(financialNotesNotifierProvider.notifier).deleteNote(noteId);
+      if (mounted) Navigator.pop(context);
+    }
   }
 
   @override
@@ -445,7 +445,7 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                                 elevation: 0,
                                 shape: const StadiumBorder(),
                               ),
-                              onPressed: () => _showQuickAddItemDialog(note.id),
+                              onPressed: () => _showQuickAddItemDialog(note.id, note.date),
                               icon: const Icon(Icons.add, color: Colors.white, size: 18),
                               label: const Text('Tambah', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
                             ),
@@ -504,7 +504,16 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                                     IconButton(
                                       icon: Icon(Icons.delete_outline, size: 18, color: LsColors.mute(context)),
                                       onPressed: () async {
-                                        await ref.read(financialNotesNotifierProvider.notifier).deleteItem(item.id);
+                                        final confirm = await showLsConfirmDialog(
+                                          context: context,
+                                          title: 'Hapus Item Transaksi',
+                                          message: 'Apakah Anda yakin ingin menghapus item transaksi "${item.description}"?',
+                                          confirmLabel: 'Hapus',
+                                          isDanger: true,
+                                        );
+                                        if (confirm) {
+                                          await ref.read(financialNotesNotifierProvider.notifier).deleteItem(item.id);
+                                        }
                                       },
                                     ),
                                   ],

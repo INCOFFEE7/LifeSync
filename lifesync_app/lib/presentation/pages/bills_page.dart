@@ -1,4 +1,6 @@
-﻿import 'package:flutter/material.dart';
+import 'package:lifesync_app/core/utils/translations.dart';
+import 'package:lifesync_app/presentation/providers/localization_provider.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:lifesync_app/domain/entities/bill.dart';
@@ -17,6 +19,8 @@ class BillsPage extends ConsumerStatefulWidget {
 
 class _BillsPageState extends ConsumerState<BillsPage> {
   late DateTime _selectedMonthDate;
+  String _selectedBillType = 'monthly'; // 'monthly' | 'receivable'
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -49,20 +53,12 @@ class _BillsPageState extends ConsumerState<BillsPage> {
 
     final isDup = await repo.checkDuplicateBill(bill.name, nextMonthKey);
     if (isDup && mounted) {
-      final confirm = await showDialog<bool>(
+      final confirm = await showLsConfirmDialog(
         context: context,
-        builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Duplikasi Tagihan'),
-          content: Text('Tagihan "${bill.name}" untuk bulan ${DateFormat('MMMM yyyy', 'id_ID').format(nextMonthDate)} sudah tersedia.\n\nApakah Anda ingin membuat salinan baru?'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Ya, Salin', style: TextStyle(color: Color(0xFF2563EB))),
-            ),
-          ],
-        ),
+        title: 'Duplikasi Tagihan',
+        message: 'Tagihan "${bill.name}" untuk bulan ${DateFormat('MMMM yyyy', 'id_ID').format(nextMonthDate)} sudah tersedia.\n\nApakah Anda ingin membuat salinan baru?',
+        confirmLabel: 'Ya, Salin',
+        cancelLabel: 'Batal',
       );
 
       if (confirm != true) return;
@@ -389,21 +385,13 @@ class _BillsPageState extends ConsumerState<BillsPage> {
         }
       }
     } else {
-      final confirm = await showDialog<bool>(
+      final confirm = await showLsConfirmDialog(
         context: context,
-        builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Batalkan Pembayaran?'),
-          content: Text('Status tagihan "${bill.name}" akan dikembalikan menjadi Belum Dibayar.'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
-            FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: Colors.red),
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Ya, Batalkan'),
-            ),
-          ],
-        ),
+        title: 'Batalkan Pembayaran?',
+        message: 'Status tagihan "${bill.name}" akan dikembalikan menjadi Belum Dibayar.',
+        confirmLabel: 'Ya, Batalkan',
+        cancelLabel: 'Batal',
+        isDanger: true,
       );
       if (confirm == true) {
         bill.isPaid = false;
@@ -467,13 +455,52 @@ class _BillsPageState extends ConsumerState<BillsPage> {
     );
   }
 
-  Widget _hero(NumberFormat fmt, int paidCount, int totalCount, double totalAmount, double totalRealization, double totalRemaining) {
+  Widget _hero(NumberFormat fmt, int paidCount, int totalCount, double totalAmount, double totalRealization, double totalRemaining, double totalDiff) {
     final progress = totalCount > 0 ? paidCount / totalCount : 0.0;
+    final isComplete = totalCount > 0 && paidCount == totalCount;
+    final isReceivable = _selectedBillType == 'receivable';
+
     return LsHeroCard(
+      colors: isComplete
+          ? const [Color(0xFF059669), Color(0xFF10B981)]
+          : (isReceivable
+              ? const [Color(0xFF0D9488), Color(0xFF14B8A6)]
+              : const [LsColors.heroTop, LsColors.heroBottom]),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const LsEyebrow('Sisa Tagihan', color: Colors.white70),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              LsEyebrow(
+                isReceivable ? 'Sisa Piutang Belum Diterima' : 'Sisa Tagihan Bulanan',
+                color: Colors.white70,
+              ),
+              if (isComplete)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.25),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check_circle, size: 14, color: Colors.white),
+                      SizedBox(width: 4),
+                      Text(
+                        'LUNAS 100%',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
           const SizedBox(height: 6),
           FittedBox(
             fit: BoxFit.scaleDown,
@@ -486,16 +513,55 @@ class _BillsPageState extends ConsumerState<BillsPage> {
           const SizedBox(height: 16),
           Row(
             children: [
-              _heroStat('Total Rencana', 'Rp ${fmt.format(totalAmount.toInt())}'),
+              _heroStat(isReceivable ? 'Total Piutang' : 'Total Rencana', 'Rp ${fmt.format(totalAmount.toInt())}'),
               const SizedBox(width: 10),
               _heroStat('Total Realisasi', 'Rp ${fmt.format(totalRealization.toInt())}'),
             ],
           ),
+          if (!isReceivable && paidCount > 0) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    totalDiff < 0 ? Icons.savings_rounded : (totalDiff > 0 ? Icons.trending_up_rounded : Icons.check_circle_rounded),
+                    size: 16,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      totalDiff < 0
+                          ? 'Total Hemat: Rp ${fmt.format(totalDiff.abs().toInt())}'
+                          : (totalDiff > 0
+                              ? 'Total Berlebih: Rp ${fmt.format(totalDiff.toInt())}'
+                              : 'Total Realisasi Sesuai Rencana'),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('$paidCount / $totalCount tagihan dibayar', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
+              Text(
+                isReceivable
+                    ? '$paidCount / $totalCount piutang lunas'
+                    : '$paidCount / $totalCount tagihan dibayar',
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
+              ),
               Text('${(progress * 100).toInt()}%', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.white)),
             ],
           ),
@@ -506,7 +572,7 @@ class _BillsPageState extends ConsumerState<BillsPage> {
               value: progress,
               minHeight: 8,
               backgroundColor: Colors.white.withValues(alpha: 0.2),
-              valueColor: const AlwaysStoppedAnimation<Color>(LsColors.income),
+              valueColor: AlwaysStoppedAnimation<Color>(isComplete ? Colors.white : LsColors.income),
             ),
           ),
         ],
@@ -559,156 +625,197 @@ class _BillsPageState extends ConsumerState<BillsPage> {
       }
     }
 
+    final isReceivable = bill.billType == 'receivable';
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: LsCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () => _handleBillToggle(bill),
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: (isPaid ? LsColors.income : mute).withValues(alpha: 0.14),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        isPaid ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                        color: isPaid ? LsColors.income : mute,
-                        size: 24,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          bill.name,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.2,
-                            decoration: isPaid ? TextDecoration.lineThrough : null,
-                            color: isPaid ? mute : LsColors.ink(context),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Jatuh Tempo: ${DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(bill.dueDate)}',
-                          style: TextStyle(fontSize: 12, color: mute),
-                        ),
-                        if (bill.paidAt != null)
-                          Text(
-                            'Dibayar: ${DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(bill.paidAt!)}',
-                            style: const TextStyle(fontSize: 11, color: LsColors.income, fontWeight: FontWeight.w700),
-                          ),
-                      ],
-                    ),
-                  ),
-                  PopupMenuButton<String>(
-                    icon: Icon(Icons.more_vert, size: 20, color: mute),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    onSelected: (val) async {
-                      if (val == 'copy') {
-                        await _copyBillToNextMonth(bill);
-                      } else if (val == 'edit') {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => AddEditBillPage(existingBill: bill),
-                          ),
-                        );
-                      } else if (val == 'delete') {
-                        final confirm = await showDialog<bool>(
-                          context: context,
-                          builder: (c) => AlertDialog(
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                            title: const Text('Hapus Tagihan?'),
-                            content: Text('Apakah Anda yakin ingin menghapus tagihan "${bill.name}"?'),
-                            actions: [
-                              TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Batal')),
-                              TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Hapus', style: TextStyle(color: Colors.red))),
-                            ],
-                          ),
-                        );
-                        if (confirm == true) {
-                          await ref.read(billRepositoryProvider).deleteBill(bill.id);
-                        }
-                      }
-                    },
-                    itemBuilder: (ctx) => [
-                      const PopupMenuItem(
-                        value: 'copy',
-                        child: Row(
-                          children: [
-                            Icon(Icons.copy_rounded, size: 18, color: LsColors.brand),
-                            SizedBox(width: 8),
-                            Text('Copy ke Bulan Berikutnya'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit_outlined, size: 18, color: Colors.blueGrey),
-                            SizedBox(width: 8),
-                            Text('Edit Tagihan'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete_outline, size: 18, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Hapus Tagihan', style: TextStyle(color: Colors.red)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  if (isPaid) const LsChip('Sudah Dibayar', color: LsColors.income) else ...[
-                    const LsChip('Belum Dibayar', color: LsColors.expense),
-                    _dueChip(bill),
-                  ],
-                  if (diffChip != null) diffChip,
-                ],
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: LsColors.paper(context),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
-                  children: [
-                    _amountCol(context, 'Rencana', 'Rp ${currencyFmt.format(bill.amount.toInt())}', LsColors.ink(context)),
-                    _amountCol(context, 'Realisasi', 'Rp ${currencyFmt.format(realization.toInt())}', LsColors.income),
-                    if (!isPaid)
-                      _amountCol(context, 'Sisa Tagihan', 'Rp ${currencyFmt.format(remaining.toInt())}', LsColors.expense),
-                  ],
-                ),
-              ),
-            ],
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: isPaid
+              ? (Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF064E3B).withValues(alpha: 0.35)
+                  : const Color(0xFFECFDF5))
+              : LsColors.surface(context),
+          border: Border.all(
+            color: isPaid
+                ? LsColors.income.withValues(alpha: 0.4)
+                : LsColors.line(context),
           ),
         ),
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () => _handleBillToggle(bill),
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: (isPaid ? LsColors.income : mute).withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      isPaid ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                      color: isPaid ? LsColors.income : mute,
+                      size: 24,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              bill.name,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.2,
+                                decoration: isPaid ? TextDecoration.lineThrough : null,
+                                color: isPaid ? LsColors.income : LsColors.ink(context),
+                              ),
+                            ),
+                          ),
+                          if (isReceivable)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: LsColors.income.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text('Piutang', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: LsColors.income)),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${isReceivable ? 'Batas Tagih' : 'Jatuh Tempo'}: ${DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(bill.dueDate)}',
+                        style: TextStyle(fontSize: 12, color: mute),
+                      ),
+                      if (bill.paidBy != null && bill.paidBy!.isNotEmpty)
+                        Text(
+                          'Peminjam: ${bill.paidBy}',
+                          style: TextStyle(fontSize: 11.5, color: LsColors.ink(context), fontWeight: FontWeight.w600),
+                        ),
+                      if (bill.receivedBy != null && bill.receivedBy!.isNotEmpty)
+                        Text(
+                          'Penerima: ${bill.receivedBy}',
+                          style: TextStyle(fontSize: 11, color: mute),
+                        ),
+                      if (bill.paidAt != null)
+                        Text(
+                          'Lunas/Dibayar: ${DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(bill.paidAt!)}',
+                          style: const TextStyle(fontSize: 11, color: LsColors.income, fontWeight: FontWeight.w700),
+                        ),
+                    ],
+                  ),
+                ),
+                PopupMenuButton<String>(
+                  icon: Icon(Icons.more_vert, size: 20, color: mute),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  onSelected: (val) async {
+                    if (val == 'copy') {
+                      await _copyBillToNextMonth(bill);
+                    } else if (val == 'edit') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => AddEditBillPage(existingBill: bill),
+                        ),
+                      );
+                    } else if (val == 'delete') {
+                      final confirm = await showLsConfirmDialog(
+                        context: context,
+                        title: bill.billType == 'receivable' ? 'Hapus Piutang?' : 'Hapus Tagihan?',
+                        message: 'Apakah Anda yakin ingin menghapus "${bill.name}"?',
+                        confirmLabel: 'Hapus',
+                        cancelLabel: 'Batal',
+                        isDanger: true,
+                      );
+                      if (confirm == true) {
+                        await ref.read(billRepositoryProvider).deleteBill(bill.id);
+                      }
+                    }
+                  },
+                  itemBuilder: (ctx) => [
+                    const PopupMenuItem(
+                      value: 'copy',
+                      child: Row(
+                        children: [
+                          Icon(Icons.copy_rounded, size: 18, color: LsColors.brand),
+                          SizedBox(width: 8),
+                          Text('Copy ke Bulan Berikutnya'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit_outlined, size: 18, color: Colors.blueGrey),
+                          SizedBox(width: 8),
+                          Text('Edit Tagihan'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text('Hapus Tagihan', style: TextStyle(color: Colors.red)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                if (isPaid)
+                  const LsChip('Lunas / Sudah Dibayar', color: LsColors.income)
+                else ...[
+                  const LsChip('Belum Dibayar', color: LsColors.expense),
+                  _dueChip(bill),
+                ],
+                if (diffChip != null) diffChip,
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isPaid
+                    ? Colors.white.withValues(alpha: 0.5)
+                    : LsColors.paper(context),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                children: [
+                  _amountCol(context, isReceivable ? 'Nominal' : 'Rencana', 'Rp ${currencyFmt.format(bill.amount.toInt())}', LsColors.ink(context)),
+                  _amountCol(context, 'Realisasi', 'Rp ${currencyFmt.format(realization.toInt())}', LsColors.income),
+                  if (!isPaid)
+                    _amountCol(context, 'Sisa', 'Rp ${currencyFmt.format(remaining.toInt())}', LsColors.expense),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -746,7 +853,7 @@ class _BillsPageState extends ConsumerState<BillsPage> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'add_bill_fab',
-        backgroundColor: LsColors.brand,
+        backgroundColor: _selectedBillType == 'receivable' ? LsColors.income : LsColors.brand,
         foregroundColor: Colors.white,
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
@@ -754,22 +861,130 @@ class _BillsPageState extends ConsumerState<BillsPage> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => AddEditBillPage(initialMonth: _currentMonthKey),
+              builder: (_) => AddEditBillPage(
+                initialMonth: _currentMonthKey,
+                initialBillType: _selectedBillType,
+              ),
             ),
           );
         },
         icon: const Icon(Icons.add),
-        label: const Text('Tagihan Baru', style: TextStyle(fontWeight: FontWeight.w800)),
+        label: Text(
+          _selectedBillType == 'receivable' ? AppTranslations.get(ref.watch(localeProvider).languageCode, 'piutang_baru') : AppTranslations.get(ref.watch(localeProvider).languageCode, 'tagihan_baru'),
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
       ),
       body: Column(
         children: [
           _monthNav(context),
+          // Tab Switch Tagihan Bulanan vs Tagihan Piutang
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: LsColors.surface(context),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: LsColors.line(context)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _selectedBillType = 'monthly'),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        decoration: BoxDecoration(
+                          color: _selectedBillType == 'monthly' ? LsColors.brand : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          AppTranslations.get(ref.watch(localeProvider).languageCode, 'tagihan_bulanan'),
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: _selectedBillType == 'monthly' ? Colors.white : LsColors.mute(context),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _selectedBillType = 'receivable'),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        decoration: BoxDecoration(
+                          color: _selectedBillType == 'receivable' ? LsColors.income : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          AppTranslations.get(ref.watch(localeProvider).languageCode, 'tagihan_piutang'),
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: _selectedBillType == 'receivable' ? Colors.white : LsColors.mute(context),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: TextField(
+              onChanged: (val) => setState(() => _searchQuery = val.trim()),
+              decoration: InputDecoration(
+                hintText: _selectedBillType == 'receivable' ? AppTranslations.get(ref.watch(localeProvider).languageCode, 'cari_piutang') : AppTranslations.get(ref.watch(localeProvider).languageCode, 'cari_tagihan'),
+                hintStyle: TextStyle(fontSize: 13, color: LsColors.mute(context)),
+                prefixIcon: const Icon(Icons.search, size: 20, color: LsColors.brand),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () => setState(() => _searchQuery = ''),
+                      )
+                    : null,
+                isDense: true,
+                filled: true,
+                fillColor: LsColors.surface(context),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: LsColors.line(context)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: LsColors.line(context)),
+                ),
+              ),
+            ),
+          ),
           Expanded(
             child: billsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (err, _) => Center(child: Text('Error: $err')),
-              data: (bills) {
+              data: (allBills) {
+                final bills = allBills.where((b) {
+                  final bType = b.billType.isEmpty ? 'monthly' : b.billType;
+                  if (bType != _selectedBillType) return false;
+                  if (_searchQuery.isNotEmpty) {
+                    final q = _searchQuery.toLowerCase();
+                    final matchName = b.name.toLowerCase().contains(q);
+                    final matchNote = (b.notes ?? '').toLowerCase().contains(q);
+                    final matchPaidBy = (b.paidBy ?? '').toLowerCase().contains(q);
+                    final matchReceivedBy = (b.receivedBy ?? '').toLowerCase().contains(q);
+                    if (!matchName && !matchNote && !matchPaidBy && !matchReceivedBy) return false;
+                  }
+                  return true;
+                }).toList();
+
                 if (bills.isEmpty) {
+                  final isRec = _selectedBillType == 'receivable';
                   return Center(
                     child: Padding(
                       padding: const EdgeInsets.all(32.0),
@@ -779,39 +994,97 @@ class _BillsPageState extends ConsumerState<BillsPage> {
                           Container(
                             width: 88,
                             height: 88,
-                            decoration: BoxDecoration(color: LsColors.brand.withValues(alpha: 0.12), shape: BoxShape.circle),
-                            child: const Icon(Icons.receipt_long_outlined, size: 40, color: LsColors.brand),
+                            decoration: BoxDecoration(
+                              color: (isRec ? LsColors.income : LsColors.brand).withValues(alpha: 0.12),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              isRec ? Icons.handshake_outlined : Icons.receipt_long_outlined,
+                              size: 40,
+                              color: isRec ? LsColors.income : LsColors.brand,
+                            ),
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Belum ada tagihan di bulan ${DateFormat('MMMM yyyy', 'id_ID').format(_selectedMonthDate)}',
+                            isRec
+                                ? 'Belum ada catatan piutang di bulan ${DateFormat('MMMM yyyy', 'id_ID').format(_selectedMonthDate)}'
+                                : 'Belum ada tagihan di bulan ${DateFormat('MMMM yyyy', 'id_ID').format(_selectedMonthDate)}',
                             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: LsColors.ink(context)),
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 8),
-                          Text('Klik "+ Tagihan Baru" untuk mencatatkan tagihan bulanan.', style: TextStyle(fontSize: 13, color: LsColors.mute(context)), textAlign: TextAlign.center),
+                          Text(
+                            isRec
+                                ? 'Klik "+ Piutang Baru" untuk mencatatkan penagihan piutang.'
+                                : 'Klik "+ Tagihan Baru" untuk mencatatkan tagihan bulanan.',
+                            style: TextStyle(fontSize: 13, color: LsColors.mute(context)),
+                            textAlign: TextAlign.center,
+                          ),
                         ],
                       ),
                     ),
                   );
                 }
 
-                final paidCount = bills.where((b) => b.isPaid).length;
+                // Sorting: Belum Lunas (merah) di atas urut tanggal, Lunas (hijau) di bawah urut tanggal
+                final unpaidBills = bills.where((b) => !b.isPaid).toList()
+                  ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
+                final paidBills = bills.where((b) => b.isPaid).toList()
+                  ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
+
+                final paidCount = paidBills.length;
                 final totalCount = bills.length;
                 final totalAmount = bills.fold(0.0, (s, b) => s + b.amount);
                 final totalRealization = bills.fold(0.0, (s, b) => s + (b.realizationAmount ?? 0.0));
-                final totalRemaining = bills
-                    .where((b) => !b.isPaid)
-                    .fold(0.0, (s, b) => s + (b.amount - (b.realizationAmount ?? 0.0)).clamp(0.0, double.infinity));
+                final totalRemaining = unpaidBills.fold(
+                  0.0,
+                  (s, b) => s + (b.amount - (b.realizationAmount ?? 0.0)).clamp(0.0, double.infinity),
+                );
+
+                // Selisih realisasi vs rencana tagihan yang sudah dibayar
+                final totalDiff = paidBills.fold(
+                  0.0,
+                  (s, b) => s + ((b.realizationAmount ?? 0.0) - b.amount),
+                );
+
+                final isRec = _selectedBillType == 'receivable';
 
                 return ListView(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
                   children: [
-                    _hero(currencyFmt, paidCount, totalCount, totalAmount, totalRealization, totalRemaining),
+                    _hero(currencyFmt, paidCount, totalCount, totalAmount, totalRealization, totalRemaining, totalDiff),
                     const SizedBox(height: 20),
-                    const LsSectionHeader(title: 'Daftar Tagihan'),
-                    const SizedBox(height: 12),
-                    for (final bill in bills) _billCard(context, bill, currencyFmt),
+
+                    if (unpaidBills.isNotEmpty) ...[
+                      Row(
+                        children: [
+                          Container(width: 8, height: 8, decoration: const BoxDecoration(color: LsColors.expense, shape: BoxShape.circle)),
+                          const SizedBox(width: 8),
+                          Text(
+                            isRec ? 'Belum Lunas (${unpaidBills.length})' : 'Belum Dibayar (${unpaidBills.length})',
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: LsColors.expense),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      for (final bill in unpaidBills) _billCard(context, bill, currencyFmt),
+                      const SizedBox(height: 16),
+                    ],
+
+                    if (paidBills.isNotEmpty) ...[
+                      Row(
+                        children: [
+                          Container(width: 8, height: 8, decoration: const BoxDecoration(color: LsColors.income, shape: BoxShape.circle)),
+                          const SizedBox(width: 8),
+                          Text(
+                            isRec ? 'Sudah Lunas (${paidBills.length})' : 'Sudah Dibayar (${paidBills.length})',
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: LsColors.income),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      for (final bill in paidBills) _billCard(context, bill, currencyFmt),
+                    ],
                   ],
                 );
               },

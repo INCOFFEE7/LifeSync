@@ -1,3 +1,5 @@
+import 'package:lifesync_app/core/utils/translations.dart';
+import 'package:lifesync_app/presentation/providers/localization_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,9 +30,10 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
   DateTime _selectedDate = DateTime.now();
   String _periodScope = 'month'; // 'month', 'all', 'range'
   DateTimeRange? _selectedDateRange;
-  String _agendaFilterMode = 'upcoming'; // 'upcoming', 'completed', 'all'
   String _shoppingFilterMode = 'unbought'; // 'unbought', 'bought', 'all'
   String _billFilterMode = 'all'; // 'all', 'unpaid', 'paid'
+  String _agendaSearchQuery = '';
+  String _shoppingSearchQuery = '';
   bool _purchasedExpanded = false;
 
   @override
@@ -63,7 +66,7 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
     }
   }
 
-  // ── Quick Pop-Up Tambah Belanja Baru (Standardized Bottom Sheet) ──────────
+  // â”€â”€ Quick Pop-Up Tambah Belanja Baru (Standardized Bottom Sheet) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Future<void> _showQuickAddShoppingDialog() async {
     final nameController = TextEditingController();
     final notesController = TextEditingController();
@@ -212,7 +215,7 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
     );
   }
 
-  // ── Modal Konfirmasi Ceklist Item Belanja (Dengan Form Opsional) ─────────
+  // â”€â”€ Modal Konfirmasi Ceklist Item Belanja (Dengan Form Opsional) â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Future<void> _showShoppingCheckoffDialog(ShoppingItem item) async {
     final purchasedByController = TextEditingController(text: item.purchasedBy ?? '');
     final locationController = TextEditingController(text: item.location ?? '');
@@ -457,7 +460,7 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
     return const Color(0xFF2563EB); // Biru untuk 1 hari dengan waktu
   }
 
-  // ── View-Only Pop-Up Detail Agenda (Card yang Diperbesar) ────────────────────
+  // â”€â”€ View-Only Pop-Up Detail Agenda (Card yang Diperbesar) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   void _showReminderDetailBottomSheet(Reminder r) {
     showModalBottomSheet(
       context: context,
@@ -626,6 +629,7 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
                           ),
                           onPressed: () async {
                             r.status = ReminderStatus.completed;
+                            r.completedAt = DateTime.now();
                             r.updatedAt = DateTime.now();
                             await ref.read(reminderRepositoryProvider).saveReminder(r);
                             ref.invalidate(dashboardDataProvider);
@@ -649,6 +653,35 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
                           },
                           icon: const Icon(Icons.check_circle_outline, size: 18),
                           label: const Text('Agenda Selesai', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                    ] else if (isCompleted) ...[
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            side: const BorderSide(color: LsColors.amber),
+                          ),
+                          onPressed: () async {
+                            r.status = ReminderStatus.pending;
+                            r.completedAt = null;
+                            r.updatedAt = DateTime.now();
+                            await ref.read(reminderRepositoryProvider).saveReminder(r);
+                            ref.invalidate(dashboardDataProvider);
+                            if (ctx.mounted) Navigator.pop(ctx);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Status agenda "${r.title}" dikembalikan menjadi Belum Selesai.'),
+                                  backgroundColor: LsColors.amber,
+                                ),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.undo_rounded, size: 18, color: LsColors.amber),
+                          label: const Text('Kembalikan Berjalan', style: TextStyle(fontWeight: FontWeight.bold, color: LsColors.amber)),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -679,7 +712,7 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
   }
 
 
-  // ── Modal Bayar / Batalkan Tagihan ─────────────────────────────────────────
+  // â”€â”€ Modal Bayar / Batalkan Tagihan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Future<void> _handleBillToggle(Bill bill) async {
     final isPaid = bill.isPaid;
 
@@ -1063,7 +1096,7 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
     ];
   }
 
-  // ── Navigasi periode & filter ─────────────────────────────────────────────
+  // â”€â”€ Navigasi periode & filter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   bool _matchesPeriod(DateTime date) {
     if (_periodScope == 'all') return true;
     if (_periodScope == 'range' && _selectedDateRange != null) {
@@ -1131,7 +1164,7 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
     } else if (_periodScope == 'range' && _selectedDateRange != null) {
       final s = _selectedDateRange!.start;
       final e = _selectedDateRange!.end;
-      label = '${DateFormat('d MMM', 'id_ID').format(s)} – ${DateFormat('d MMM yyyy', 'id_ID').format(e)}';
+      label = '${DateFormat('d MMM', 'id_ID').format(s)} â€“ ${DateFormat('d MMM yyyy', 'id_ID').format(e)}';
     } else {
       label = DateFormat('MMMM yyyy', 'id_ID').format(_selectedDate);
     }
@@ -1377,41 +1410,105 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
     );
   }
 
-  // ── Tab Agenda ──────────────────────────────────────────────────────────────
+  // â”€â”€ Tab Agenda â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildAgendaTab(AsyncValue<List<Reminder>> remindersAsync) {
     return Column(
       children: [
-        _filterHeader(
-          extraDropdown: LsCapsuleDropdown<String>(
-            width: 140,
-            value: _agendaFilterMode,
-            isHighlighted: _agendaFilterMode != 'all',
-            activeColor: _agendaFilterMode == 'completed' ? LsColors.income : LsColors.brand,
-            options: const [
-              LsDropdownOption(value: 'upcoming', label: 'Mendatang', icon: Icons.upcoming_outlined),
-              LsDropdownOption(value: 'completed', label: 'Selesai', icon: Icons.check_circle_outline),
-              LsDropdownOption(value: 'all', label: 'Semua Agenda', icon: Icons.list_alt_rounded),
-            ],
-            onSelected: (val) => setState(() => _agendaFilterMode = val),
+        _filterHeader(),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          child: TextField(
+            onChanged: (val) => setState(() => _agendaSearchQuery = val.trim()),
+            decoration: InputDecoration(
+              hintText: AppTranslations.get(ref.watch(localeProvider).languageCode, 'cari_agenda'),
+              hintStyle: TextStyle(fontSize: 13, color: LsColors.mute(context)),
+              prefixIcon: const Icon(Icons.search, size: 20, color: LsColors.brand),
+              suffixIcon: _agendaSearchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, size: 18),
+                      onPressed: () => setState(() => _agendaSearchQuery = ''),
+                    )
+                  : null,
+              isDense: true,
+              filled: true,
+              fillColor: LsColors.surface(context),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: LsColors.line(context)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: LsColors.line(context)),
+              ),
+            ),
           ),
         ),
         Expanded(
           child: remindersAsync.when(
             data: (reminders) {
               final activeReminders = reminders.where((r) => !r.deleted).toList();
-              final periodFiltered = activeReminders.where((r) => _matchesPeriod(r.targetDateTime)).toList();
-
-              final filtered = periodFiltered.where((r) {
-                if (_agendaFilterMode == 'upcoming') {
-                  return r.realtimeStatus != 'Selesai';
-                } else if (_agendaFilterMode == 'completed') {
-                  return r.realtimeStatus == 'Selesai';
+              final periodFiltered = activeReminders.where((r) {
+                if (!_matchesPeriod(r.targetDateTime)) return false;
+                if (_agendaSearchQuery.isNotEmpty) {
+                  final q = _agendaSearchQuery.toLowerCase();
+                  final matchTitle = r.title.toLowerCase().contains(q);
+                  final matchDesc = (r.description ?? '').toLowerCase().contains(q);
+                  if (!matchTitle && !matchDesc) return false;
                 }
                 return true;
-              }).toList()
+              }).toList();
+
+              // Memisahkan Agenda Berjalan & Mendatang (atas) vs Agenda Selesai (bawah)
+              final ongoing = periodFiltered
+                  .where((r) => r.realtimeStatus != 'Selesai')
+                  .toList()
                 ..sort((a, b) => a.targetDateTime.compareTo(b.targetDateTime));
 
-              return _buildAgendaList(filtered);
+              final completed = periodFiltered
+                  .where((r) => r.realtimeStatus == 'Selesai')
+                  .toList()
+                ..sort((a, b) => b.targetDateTime.compareTo(a.targetDateTime));
+
+              if (ongoing.isEmpty && completed.isEmpty) {
+                return _emptyState(Icons.event_note_outlined, 'Belum ada agenda.');
+              }
+
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                children: [
+                  if (ongoing.isNotEmpty) ...[
+                    Row(
+                      children: [
+                        Container(width: 8, height: 8, decoration: const BoxDecoration(color: LsColors.brand, shape: BoxShape.circle)),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${AppTranslations.get(ref.watch(localeProvider).languageCode, 'agenda_berjalan')} (${ongoing.length})',
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: LsColors.brand),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    for (final r in ongoing) _buildAgendaRow(r),
+                    const SizedBox(height: 16),
+                  ],
+
+                  if (completed.isNotEmpty) ...[
+                    Row(
+                      children: [
+                        Container(width: 8, height: 8, decoration: const BoxDecoration(color: LsColors.income, shape: BoxShape.circle)),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${AppTranslations.get(ref.watch(localeProvider).languageCode, 'agenda_selesai')} (${completed.length})',
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: LsColors.income),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    for (final r in completed) _buildAgendaRow(r),
+                  ],
+                ],
+              );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, st) => Center(child: Text('Error: $e')),
@@ -1421,7 +1518,7 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
     );
   }
 
-  // ── Tab Tagihan ─────────────────────────────────────────────────────────────
+  // â”€â”€ Tab Tagihan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Future<void> _copyBillToNextMonth(Bill bill) async {
     final nextMonthDate = DateTime(_selectedDate.year, _selectedDate.month + 1);
     final nextMonthKey = DateFormat('yyyy-MM').format(nextMonthDate);
@@ -1433,20 +1530,12 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
 
     final isDup = await repo.checkDuplicateBill(bill.name, nextMonthKey);
     if (isDup && mounted) {
-      final confirm = await showDialog<bool>(
+      final confirm = await showLsConfirmDialog(
         context: context,
-        builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Duplikasi Tagihan'),
-          content: Text('Tagihan "${bill.name}" untuk bulan ${DateFormat('MMMM yyyy', 'id_ID').format(nextMonthDate)} sudah tersedia.\n\nApakah Anda ingin membuat salinan baru?'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Ya, Salin', style: TextStyle(color: Color(0xFF2563EB))),
-            ),
-          ],
-        ),
+        title: 'Duplikasi Tagihan',
+        message: 'Tagihan "${bill.name}" untuk bulan ${DateFormat('MMMM yyyy', 'id_ID').format(nextMonthDate)} sudah tersedia.\n\nApakah Anda ingin membuat salinan baru?',
+        confirmLabel: 'Ya, Salin',
+        cancelLabel: 'Batal',
       );
 
       if (confirm != true) return;
@@ -1724,7 +1813,7 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
     );
   }
 
-  // ── Tab Belanja ─────────────────────────────────────────────────────────────
+  // â”€â”€ Tab Belanja â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildShoppingTab(AsyncValue<List<ShoppingItem>> shoppingAsync, NumberFormat fmt) {
     return Column(
       children: [
@@ -1742,13 +1831,49 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
             onSelected: (val) => setState(() => _shoppingFilterMode = val),
           ),
         ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          child: TextField(
+            onChanged: (val) => setState(() => _shoppingSearchQuery = val.trim()),
+            decoration: InputDecoration(
+              hintText: AppTranslations.get(ref.watch(localeProvider).languageCode, 'cari_belanja'),
+              hintStyle: TextStyle(fontSize: 13, color: LsColors.mute(context)),
+              prefixIcon: const Icon(Icons.search, size: 20, color: LsColors.brand),
+              suffixIcon: _shoppingSearchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, size: 18),
+                      onPressed: () => setState(() => _shoppingSearchQuery = ''),
+                    )
+                  : null,
+              isDense: true,
+              filled: true,
+              fillColor: LsColors.surface(context),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: LsColors.line(context)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: LsColors.line(context)),
+              ),
+            ),
+          ),
+        ),
         Expanded(
           child: shoppingAsync.when(
             data: (items) {
               final activeItems = items.where((i) => !i.deleted).toList();
               final periodFiltered = activeItems.where((item) {
-                if (item.purchaseDate == null) return true;
-                return _matchesPeriod(item.purchaseDate!);
+                if (item.purchaseDate != null && !_matchesPeriod(item.purchaseDate!)) return false;
+                if (_shoppingSearchQuery.isNotEmpty) {
+                  final q = _shoppingSearchQuery.toLowerCase();
+                  final matchName = item.name.toLowerCase().contains(q);
+                  final matchCat = (item.category ?? '').toLowerCase().contains(q);
+                  final matchLoc = (item.location ?? '').toLowerCase().contains(q);
+                  if (!matchName && !matchCat && !matchLoc) return false;
+                }
+                return true;
               }).toList();
 
               final filtered = periodFiltered.where((i) {
@@ -1763,24 +1888,39 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
 
               final pending = filtered.where((i) => !i.isChecked).toList();
               final bought = filtered.where((i) => i.isChecked).toList();
-              final byStore = <String, List<ShoppingItem>>{};
+
+              // Group by Kategori Kebutuhan
+              final byCategory = <String, List<ShoppingItem>>{};
               for (final i in pending) {
-                final store = (i.location != null && i.location!.trim().isNotEmpty) ? i.location!.trim() : 'Belum Ditentukan';
-                byStore.putIfAbsent(store, () => []).add(i);
+                final cat = (i.category != null && i.category!.trim().isNotEmpty) ? i.category!.trim() : 'Lainnya';
+                byCategory.putIfAbsent(cat, () => []).add(i);
               }
 
               return ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                 children: [
-                  for (final entry in byStore.entries) ...[
+                  // Header Counter Belum Dibeli
+                  if (pending.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        children: [
+                          Container(width: 8, height: 8, decoration: const BoxDecoration(color: LsColors.amber, shape: BoxShape.circle)),
+                          const SizedBox(width: 8),
+                          Text('Belum Dibeli (${pending.length} barang)', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: LsColors.amber)),
+                        ],
+                      ),
+                    ),
+
+                  for (final entry in byCategory.entries) ...[
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8, top: 4),
                       child: Row(
                         children: [
-                          const Icon(Icons.storefront_outlined, size: 16, color: LsColors.amber),
+                          const Icon(Icons.category_outlined, size: 16, color: LsColors.brand),
                           const SizedBox(width: 6),
                           Expanded(child: LsEyebrow(entry.key)),
-                          LsChip('${entry.value.length} item', color: LsColors.amber),
+                          LsChip('${entry.value.length} barang', color: LsColors.brand),
                         ],
                       ),
                     ),
@@ -1807,9 +1947,9 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
                           ),
                           const SizedBox(width: 10),
                           Expanded(
-                            child: Text('Sudah dibeli', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: LsColors.ink(context))),
+                            child: Text('Barang Sudah Dibeli (${bought.length} barang)', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: LsColors.ink(context))),
                           ),
-                          LsChip('${bought.length}', color: LsColors.income),
+                          LsChip('${bought.length} barang', color: LsColors.income),
                           const SizedBox(width: 6),
                           Icon(_purchasedExpanded ? Icons.expand_less_rounded : Icons.expand_more_rounded, color: LsColors.mute(context)),
                         ],
@@ -1873,14 +2013,20 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
                         color: item.isChecked ? mute : LsColors.ink(context),
                       ),
                     ),
+                    if (item.category != null && item.category!.isNotEmpty)
+                      Text('Kategori: ${item.category}', style: const TextStyle(fontSize: 11, color: LsColors.brand, fontWeight: FontWeight.bold)),
                     if (item.notes != null && item.notes!.isNotEmpty)
                       Text('Catatan: ${item.notes}', style: const TextStyle(fontSize: 11, color: LsColors.brand, fontStyle: FontStyle.italic)),
                     if (item.purchasedBy != null && item.purchasedBy!.isNotEmpty)
                       Text('Dibeli Oleh: ${item.purchasedBy}', style: TextStyle(fontSize: 11, color: mute)),
                     if (item.location != null && item.location!.isNotEmpty)
                       Text('Tempat: ${item.location}', style: TextStyle(fontSize: 11, color: mute)),
-                    if (item.price > 0)
-                      Text('Harga: Rp ${fmt.format(item.price.toInt())}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: LsColors.income)),
+                    if (item.price > 0 && (item.realizationPrice == null || item.realizationPrice == 0))
+                      Text('Estimasi: Rp ${fmt.format(item.price.toInt())}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: LsColors.income)),
+                    if (item.price > 0 && item.realizationPrice != null && item.realizationPrice! > 0)
+                      Text('Estimasi: Rp ${fmt.format(item.price.toInt())} • Realisasi: Rp ${fmt.format(item.realizationPrice!.toInt())}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: LsColors.income)),
+                    if (item.price == 0 && item.realizationPrice != null && item.realizationPrice! > 0)
+                      Text('Realisasi: Rp ${fmt.format(item.realizationPrice!.toInt())}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: LsColors.income)),
                     if (item.isChecked && item.purchaseDate != null)
                       Text('Dibeli: ${DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(item.purchaseDate!)}', style: const TextStyle(fontSize: 11, color: LsColors.income, fontWeight: FontWeight.w700)),
                   ],
@@ -1900,6 +2046,16 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
               padding: const EdgeInsets.all(6),
               constraints: const BoxConstraints(),
               onPressed: () async {
+                final confirm = await showLsConfirmDialog(
+                  context: context,
+                  title: 'Hapus Barang Belanja?',
+                  message: 'Apakah Anda yakin ingin menghapus "${item.name}" dari daftar belanja?',
+                  confirmLabel: 'Hapus',
+                  cancelLabel: 'Batal',
+                  isDanger: true,
+                );
+                if (confirm != true) return;
+
                 final dbService = ref.read(databaseServiceProvider);
                 if (!kIsWeb) {
                   await dbService.db.writeTxn(() async {
@@ -2318,12 +2474,37 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
                         const SizedBox(height: 2),
                         Text(r.description!, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: mute, fontSize: 11.5, fontStyle: FontStyle.italic)),
                       ],
+                      if (r.completedAt != null) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          'Selesai: ${DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(r.completedAt!)}',
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: LsColors.income),
+                        ),
+                      ],
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 6,
                         runSpacing: 4,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
+                          // Jambul / Badge Prioritas
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                            decoration: BoxDecoration(
+                              color: prio.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: prio.withValues(alpha: 0.4)),
+                            ),
+                            child: Text(
+                              'PRIORITAS: ${r.priority.name.toUpperCase()}',
+                              style: TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w900,
+                                color: prio,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
                           LsChip(category, color: LsColors.violet),
                           LsChip(status, color: statusColor),
                         ],
@@ -2336,8 +2517,18 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
                 IconButton(
                   icon: const Icon(Icons.delete_outline, color: LsColors.expense, size: 18),
                   onPressed: () async {
-                    await ref.read(reminderRepositoryProvider).deleteReminder(r.id);
-                    ref.invalidate(dashboardDataProvider);
+                    final confirm = await showLsConfirmDialog(
+                      context: context,
+                      title: 'Hapus Agenda?',
+                      message: 'Apakah Anda yakin ingin menghapus agenda "${r.title}"?',
+                      confirmLabel: 'Hapus',
+                      cancelLabel: 'Batal',
+                      isDanger: true,
+                    );
+                    if (confirm == true) {
+                      await ref.read(reminderRepositoryProvider).deleteReminder(r.id);
+                      ref.invalidate(dashboardDataProvider);
+                    }
                   },
                 )
               else
@@ -2346,52 +2537,6 @@ class _RemindersPageState extends ConsumerState<RemindersPage> with WidgetsBindi
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildAgendaList(List<Reminder> items) {
-    if (items.isEmpty) {
-      return _emptyState(Icons.event_note_outlined, 'Belum ada agenda.');
-    }
-
-    final entries = <Object>[];
-    DateTime? lastDay;
-    for (final r in items) {
-      final d = DateTime(r.targetDateTime.year, r.targetDateTime.month, r.targetDateTime.day);
-      if (lastDay == null || d != lastDay) {
-        entries.add(d);
-        lastDay = d;
-      }
-      entries.add(r);
-    }
-    final perDay = <DateTime, int>{};
-    for (final r in items) {
-      final d = DateTime(r.targetDateTime.year, r.targetDateTime.month, r.targetDateTime.day);
-      perDay[d] = (perDay[d] ?? 0) + 1;
-    }
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-      itemCount: entries.length,
-      itemBuilder: (context, index) {
-        final e = entries[index];
-        if (e is DateTime) {
-          final isToday = e == today;
-          return Padding(
-            padding: const EdgeInsets.only(top: 12, bottom: 8),
-            child: Row(
-              children: [
-                Expanded(child: LsEyebrow(DateFormat('EEEE, dd MMM yyyy', 'id_ID').format(e), color: isToday ? LsColors.brand : null)),
-                if (isToday) ...[const LsChip('Hari Ini', color: LsColors.brand), const SizedBox(width: 6)],
-                LsChip('${perDay[e]} agenda', color: LsColors.mute(context)),
-              ],
-            ),
-          );
-        }
-        return _buildAgendaRow(e as Reminder);
-      },
     );
   }
 }

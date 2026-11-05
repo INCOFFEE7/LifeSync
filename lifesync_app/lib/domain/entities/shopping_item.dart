@@ -22,6 +22,9 @@ class ShoppingItem {
 
   String? notes;
 
+  String? category;
+  double? realizationPrice;
+
   DateTime createdAt = DateTime.now();
   DateTime updatedAt = DateTime.now();
   bool deleted = false;

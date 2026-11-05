@@ -81,10 +81,10 @@ class _AddEditFinancialNotePageState extends ConsumerState<AddEditFinancialNoteP
     }
   }
 
-  // ── Helper: Evaluate expression string to double ──────────────────────────
+  // â”€â”€ Helper: Evaluate expression string to double â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   double _evaluateExpr(String expr) {
     try {
-      String sanitized = expr.replaceAll('×', '*').replaceAll('÷', '/').replaceAll(' ', '');
+      String sanitized = expr.replaceAll('Ã—', '*').replaceAll('Ã·', '/').replaceAll(' ', '');
       if (sanitized.isEmpty) return 0.0;
 
       List<String> tokens = [];
@@ -92,7 +92,7 @@ class _AddEditFinancialNotePageState extends ConsumerState<AddEditFinancialNoteP
 
       for (int i = 0; i < sanitized.length; i++) {
         String char = sanitized[i];
-        if (char == '+' || char == '×' || char == '*' || char == '÷' || char == '/') {
+        if (char == '+' || char == 'Ã—' || char == '*' || char == 'Ã·' || char == '/') {
           if (currentNum.isNotEmpty) {
             tokens.add(currentNum);
             currentNum = '';
@@ -143,12 +143,12 @@ class _AddEditFinancialNotePageState extends ConsumerState<AddEditFinancialNoteP
     }
   }
 
-  // ── Helper: Check if expression has operators ─────────────────────────────
+  // â”€â”€ Helper: Check if expression has operators â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   bool _hasOperator(String expr) {
-    return expr.contains('+') || expr.contains('-') || expr.contains('×') || expr.contains('÷');
+    return expr.contains('+') || expr.contains('-') || expr.contains('Ã—') || expr.contains('Ã·');
   }
 
-  // ── Helper: Format currency ───────────────────────────────────────────────
+  // â”€â”€ Helper: Format currency â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   String _formatCurrency(double val) {
     final fmt = NumberFormat('#,###', 'id_ID');
     if (val == 0) return 'Rp 0';
@@ -160,7 +160,15 @@ class _AddEditFinancialNotePageState extends ConsumerState<AddEditFinancialNoteP
     final descController = TextEditingController(text: itemToEdit?.description ?? '');
     String calcExpr = itemToEdit != null ? itemToEdit.amount.toInt().toString() : '0';
     String type = itemToEdit?.type ?? 'expense';
-    DateTime itemTimestamp = itemToEdit != null ? itemToEdit.createdAt : DateTime.now();
+    DateTime itemTimestamp = itemToEdit != null
+        ? itemToEdit.createdAt
+        : DateTime(
+            _selectedDate.year,
+            _selectedDate.month,
+            _selectedDate.day,
+            DateTime.now().hour,
+            DateTime.now().minute,
+          );
     bool showKeypad = false;
 
     showModalBottomSheet(
@@ -181,12 +189,12 @@ class _AddEditFinancialNotePageState extends ConsumerState<AddEditFinancialNoteP
                   calcExpr = '0';
                   return;
                 }
-                if (calcExpr == '0' && k != '.' && k != '+' && k != '-' && k != '×' && k != '÷') {
+                if (calcExpr == '0' && k != '.' && k != '+' && k != '-' && k != 'Ã—' && k != 'Ã·') {
                   calcExpr = k;
                   return;
                 }
                 final last = calcExpr[calcExpr.length - 1];
-                final isOp = (String c) => c == '+' || c == '-' || c == '×' || c == '÷' || c == '.';
+                final isOp = (String c) => c == '+' || c == '-' || c == 'Ã—' || c == 'Ã·' || c == '.';
                 if (isOp(k) && isOp(last)) {
                   calcExpr = calcExpr.substring(0, calcExpr.length - 1) + k;
                   return;
@@ -412,6 +420,15 @@ class _AddEditFinancialNotePageState extends ConsumerState<AddEditFinancialNoteP
       return;
     }
 
+    final confirm = await showLsConfirmDialog(
+      context: context,
+      title: widget.existingNote == null ? 'Simpan Catatan?' : 'Perbarui Catatan?',
+      message: 'Pastikan seluruh transaksi dalam catatan ini sudah sesuai.',
+      confirmLabel: 'Ya, Simpan',
+      cancelLabel: 'Batal',
+    );
+    if (!confirm || !mounted) return;
+
     setState(() => _isSaving = true);
     try {
       final noteNotifier = ref.read(financialNotesNotifierProvider.notifier);
@@ -475,7 +492,35 @@ class _AddEditFinancialNotePageState extends ConsumerState<AddEditFinancialNoteP
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // ── 1. Title Input with Clear (X) Button & Google-like Suggestions ──
+                    InkWell(
+                      onTap: _pickDate,
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: LsColors.surface(context),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: LsColors.line(context)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_today_rounded, size: 18, color: LsColors.brand),
+                            const SizedBox(width: 10),
+                            Text(
+                              'Tanggal: ',
+                              style: TextStyle(fontSize: 13, color: LsColors.mute(context)),
+                            ),
+                            Text(
+                              DateFormat('EEEE, dd MMMM yyyy', 'id_ID').format(_selectedDate),
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: LsColors.ink(context)),
+                            ),
+                            const Spacer(),
+                            Icon(Icons.arrow_drop_down, color: LsColors.mute(context)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     TextField(
                       controller: _titleController,
                       focusNode: _titleFocusNode,
@@ -498,7 +543,7 @@ class _AddEditFinancialNotePageState extends ConsumerState<AddEditFinancialNoteP
                       ),
                     ),
 
-                    // ── 2. Google-Style Dropdown Suggestions ────────────────────
+                    // â”€â”€ 2. Google-Style Dropdown Suggestions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     Builder(
                       builder: (ctx) {
                         if (_existingTitles.isEmpty || widget.existingNote != null) {
@@ -569,7 +614,7 @@ class _AddEditFinancialNotePageState extends ConsumerState<AddEditFinancialNoteP
 
                     const SizedBox(height: 12),
 
-                    // ── 3. Total Income & Expenses directly below Title ─────────
+                    // â”€â”€ 3. Total Income & Expenses directly below Title â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       decoration: BoxDecoration(
@@ -600,7 +645,7 @@ class _AddEditFinancialNotePageState extends ConsumerState<AddEditFinancialNoteP
 
                     const SizedBox(height: 14),
 
-                    // ── 4. Transaction List (Daftar Item / Daftar Transaksi) ────
+                    // â”€â”€ 4. Transaction List (Daftar Item / Daftar Transaksi) â”€â”€â”€â”€
                     Row(
                       children: [
                         Expanded(child: LsSectionHeader(title: 'Daftar Transaksi (${_draftItems.length})')),
@@ -669,7 +714,19 @@ class _AddEditFinancialNotePageState extends ConsumerState<AddEditFinancialNoteP
                                 ),
                                 IconButton(
                                   icon: Icon(Icons.delete_outline, size: 18, color: LsColors.mute(context)),
-                                  onPressed: () => setState(() => _draftItems.removeAt(idx)),
+                                  onPressed: () async {
+                                    final confirm = await showLsConfirmDialog(
+                                      context: context,
+                                      title: 'Hapus Item',
+                                      message: 'Hapus item "${item.description}" dari daftar?',
+                                      confirmLabel: 'Hapus',
+                                      cancelLabel: 'Batal',
+                                      isDanger: true,
+                                    );
+                                    if (confirm) {
+                                      setState(() => _draftItems.removeAt(idx));
+                                    }
+                                  },
                                 ),
                               ],
                             ),
@@ -679,7 +736,7 @@ class _AddEditFinancialNotePageState extends ConsumerState<AddEditFinancialNoteP
 
                     const SizedBox(height: 14),
 
-                    // ── 5. Notes Section (Moved below transaction list) ────────
+                    // â”€â”€ 5. Notes Section (Moved below transaction list) â”€â”€â”€â”€â”€â”€â”€â”€
                     TextField(
                       controller: _notesController,
                       maxLines: 2,

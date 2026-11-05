@@ -1,3 +1,5 @@
+import 'package:lifesync_app/core/utils/translations.dart';
+import 'package:lifesync_app/presentation/providers/localization_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lifesync_app/domain/entities/income_target.dart';
@@ -17,6 +19,7 @@ class TargetsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final targetsAsync = ref.watch(targetsStreamProvider);
+    final lang = ref.watch(localeProvider).languageCode;
 
     return Scaffold(
       backgroundColor: LsColors.paper(context),
@@ -41,7 +44,7 @@ class TargetsPage extends ConsumerWidget {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Belum ada target nabung.',
+                      AppTranslations.get(lang, 'belum_ada_target_nabung'),
                       style: TextStyle(
                         color: LsColors.ink(context),
                         fontSize: 15,
@@ -51,7 +54,7 @@ class TargetsPage extends ConsumerWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Buat target nabung pertama untuk mulai mengumpulkan impianmu.',
+                      AppTranslations.get(lang, 'buat_target_pertama'),
                       style: TextStyle(color: LsColors.mute(context), fontSize: 12),
                       textAlign: TextAlign.center,
                     ),
@@ -89,7 +92,7 @@ class TargetsPage extends ConsumerWidget {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateTargetPage()));
         },
         icon: Icons.add_rounded,
-        label: 'Target Baru',
+        label: AppTranslations.get(lang, 'target_baru'),
       ),
     );
 
@@ -179,6 +182,7 @@ class _TargetCardState extends ConsumerState<_TargetCard> {
   @override
   Widget build(BuildContext context) {
     final recordsAsync = ref.watch(targetRecordsStreamProvider(widget.target.id));
+    final lang = ref.watch(localeProvider).languageCode;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -202,13 +206,13 @@ class _TargetCardState extends ConsumerState<_TargetCard> {
             Color statusColor;
             String statusLabel;
             switch (status) {
-              case TargetStatus.aheadOfSchedule: statusColor = LsColors.income; statusLabel = 'Lebih Cepat'; break;
-              case TargetStatus.onTrack: statusColor = LsColors.brand; statusLabel = 'Sesuai Jalur'; break;
-              case TargetStatus.behindSchedule: statusColor = LsColors.amber; statusLabel = 'Tertinggal'; break;
-              case TargetStatus.completed: statusColor = LsColors.income; statusLabel = 'Tercapai'; break;
-              case TargetStatus.failed: statusColor = LsColors.expense; statusLabel = 'Gagal'; break;
-              case TargetStatus.active: statusColor = LsColors.brand; statusLabel = 'Aktif'; break;
-              case TargetStatus.notStarted: statusColor = LsColors.violet; statusLabel = 'Belum Mulai'; break;
+              case TargetStatus.aheadOfSchedule: statusColor = LsColors.income; statusLabel = AppTranslations.get(lang, 'lebih_cepat'); break;
+              case TargetStatus.onTrack: statusColor = LsColors.brand; statusLabel = AppTranslations.get(lang, 'sesuai_jalur'); break;
+              case TargetStatus.behindSchedule: statusColor = LsColors.amber; statusLabel = AppTranslations.get(lang, 'tertinggal'); break;
+              case TargetStatus.completed: statusColor = LsColors.income; statusLabel = AppTranslations.get(lang, 'tercapai'); break;
+              case TargetStatus.failed: statusColor = LsColors.expense; statusLabel = AppTranslations.get(lang, 'gagal'); break;
+              case TargetStatus.active: statusColor = LsColors.brand; statusLabel = AppTranslations.get(lang, 'aktif'); break;
+              case TargetStatus.notStarted: statusColor = LsColors.violet; statusLabel = AppTranslations.get(lang, 'belum_mulai'); break;
             }
             final money = NumberFormat('#,###', 'id_ID');
 
@@ -275,7 +279,7 @@ class _TargetCardState extends ConsumerState<_TargetCard> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Terkumpul', style: TextStyle(fontSize: 11, color: LsColors.mute(context))),
+                        Text(AppTranslations.get(lang, 'terkumpul'), style: TextStyle(fontSize: 11, color: LsColors.mute(context))),
                         Text.rich(TextSpan(children: [
                           TextSpan(
                             text: 'Rp ${money.format(totalCollected.toInt())}',
@@ -307,21 +311,22 @@ class _TargetCardState extends ConsumerState<_TargetCard> {
   }
 }
 
-class _SavingsHero extends StatelessWidget {
+class _SavingsHero extends ConsumerWidget {
   final double total;
   final double target;
   final int count;
   const _SavingsHero({required this.total, required this.target, required this.count});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(localeProvider).languageCode;
     final pct = target > 0 ? (total / target).clamp(0.0, 1.0) : 0.0;
     final money = NumberFormat('#,###', 'id_ID');
     return LsHeroCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          LsEyebrow('Total Tabungan · $count target', color: const Color(0xA6FFFFFF)),
+          LsEyebrow('${AppTranslations.get(lang, 'total_tabungan')} · $count target', color: const Color(0xA6FFFFFF)),
           const SizedBox(height: 4),
           FittedBox(
             fit: BoxFit.scaleDown,
@@ -343,7 +348,7 @@ class _SavingsHero extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '${(pct * 100).round()}% dari total target Rp ${money.format(target.toInt())}',
+            '${(pct * 100).round()}% ${AppTranslations.get(lang, 'dari_total_target')} Rp ${money.format(target.toInt())}',
             style: const TextStyle(fontSize: 11.5, color: Color(0xB3FFFFFF)),
           ),
         ],

@@ -1,6 +1,11 @@
+import 'package:lifesync_app/core/services/csv_export_service.dart';
+import 'package:lifesync_app/domain/entities/shopping_item.dart';
+import 'package:lifesync_app/presentation/providers/shopping_providers.dart';
+import 'package:lifesync_app/presentation/providers/financial_note_providers.dart';
+import 'package:lifesync_app/presentation/providers/dashboard_provider.dart';
+import 'package:lifesync_app/presentation/providers/repository_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:lifesync_app/presentation/providers/localization_provider.dart';
 import 'package:lifesync_app/presentation/providers/settings_provider.dart';
@@ -120,7 +125,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           const _ProfileHeader(name: 'LifeSync'),
           const SizedBox(height: 22),
           if (AppEnvironment.config.variant != AppVariant.beebee)
-            _group('Cloud', [
+            _group('Cloud & Cadangan', [
               _SettingsRow(
                 icon: Icons.cloud_sync,
                 color: LsColors.brand,
@@ -134,6 +139,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         builder: (_) => const CloudBackupSettingsScreen()),
                   );
                 },
+              ),
+              _SettingsRow(
+                icon: Icons.file_download_outlined,
+                color: LsColors.income,
+                title: AppTranslations.get(lang, 'ekspor_csv'),
+                subtitle: AppTranslations.get(lang, 'ekspor_csv_sub'),
+                trailing: const _Chevron(),
+                onTap: () => CsvExportService.showExportDialog(context, ref),
               ),
             ]),
           _group('Tampilan', [
@@ -266,42 +279,125 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               },
             ),
           ]),
-          _group('Zona Berbahaya', eyebrowColor: LsColors.expense, [
+          _group(AppTranslations.get(lang, 'zona_berbahaya'), eyebrowColor: LsColors.expense, [
             _SettingsRow(
               icon: Icons.delete_forever,
               color: LsColors.expense,
               danger: true,
-              title: 'Hapus Seluruh Data',
-              subtitle: 'Hapus semua Reminder, Finance, dan Savings',
+              title: AppTranslations.get(lang, 'hapus_semua_data'),
+              subtitle: AppTranslations.get(lang, 'hapus_semua_data_sub'),
               trailing: const _Chevron(color: LsColors.expense),
               onTap: () async {
-                final confirm = await showDialog<bool>(
+                final firstConfirm = await showLsConfirmDialog(
                   context: context,
-                  builder: (ctx) => AlertDialog(
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20)),
-                    title: const Text('Hapus Seluruh Data?',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, color: Colors.red)),
-                    content: const Text(
-                        'Semua Reminder, Finance, dan Savings akan dihapus. Tindakan ini tidak dapat dibatalkan.'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx, false),
-                        child: const Text('Batal',
-                            style: TextStyle(color: Colors.grey)),
-                      ),
-                      FilledButton(
-                        style:
-                            FilledButton.styleFrom(backgroundColor: Colors.red),
-                        onPressed: () => Navigator.pop(ctx, true),
-                        child: const Text('Hapus'),
-                      ),
-                    ],
-                  ),
+                  title: 'Hapus Seluruh Data?',
+                  message: 'Semua Catatan Keuangan, Belanja, Tagihan, Target Nabung, dan Agenda akan dihapus.',
+                  confirmLabel: 'Lanjutkan',
+                  cancelLabel: 'Batal',
+                  isDanger: true,
+                );
+                if (firstConfirm != true) return;
+
+                if (!context.mounted) return;
+                bool understood = false;
+                final secondConfirm = await showDialog<bool>(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (modalCtx) {
+                    return StatefulBuilder(
+                      builder: (ctx, setModalState) {
+                        return AlertDialog(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                          title: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: LsColors.expense.withValues(alpha: 0.12),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.warning_amber_rounded, color: LsColors.expense, size: 28),
+                              ),
+                              const SizedBox(width: 12),
+                              const Expanded(
+                                child: Text(
+                                  'Konfirmasi Terakhir',
+                                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+                                ),
+                              ),
+                            ],
+                          ),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Tindakan ini permanen. Semua data lokal di aplikasi akan dihapus bersih tanpa bisa dikembalikan.',
+                                style: TextStyle(fontSize: 13, height: 1.4),
+                              ),
+                              const SizedBox(height: 16),
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: LsColors.expense.withValues(alpha: 0.06),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: LsColors.expense.withValues(alpha: 0.2)),
+                                ),
+                                child: CheckboxListTile(
+                                  value: understood,
+                                  activeColor: LsColors.expense,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                  title: const Text(
+                                    'Saya memahami bahwa seluruh data akan dihapus permanen dan tidak dapat dipulihkan.',
+                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: LsColors.expense),
+                                  ),
+                                  controlAffinity: ListTileControlAffinity.leading,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  onChanged: (val) {
+                                    setModalState(() => understood = val ?? false);
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                          actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                          actions: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: () => Navigator.pop(modalCtx, false),
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                    ),
+                                    child: const Text('Batal'),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: FilledButton(
+                                    onPressed: understood
+                                        ? () => Navigator.pop(modalCtx, true)
+                                        : null,
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: LsColors.expense,
+                                      disabledBackgroundColor: LsColors.expense.withValues(alpha: 0.3),
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                    ),
+                                    child: const Text('Hapus Sekarang', style: TextStyle(fontWeight: FontWeight.w800)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  },
                 );
 
-                if (confirm == true) {
+                if (secondConfirm == true && context.mounted) {
                   try {
                     final dbService = ref.read(databaseServiceProvider);
                     await dbService.db.writeTxn(() async {
@@ -312,6 +408,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       await dbService.db.financialNotes.clear();
                       await dbService.db.financialItems.clear();
                       await dbService.db.bills.clear();
+                      await dbService.db.shoppingItems.clear();
                       await dbService.db.fastingDebts.clear();
                       await dbService.db.qadhaRecords.clear();
                       await dbService.db.menstruationRecords.clear();
@@ -321,23 +418,27 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     await NotificationService().cancelAll();
                     try {
                       await HomeWidget.saveWidgetData('pinned_target_ids', '');
-                      await HomeWidget.saveWidgetData(
-                          'pinned_reminder_ids', '');
-                      await HomeWidget.updateWidget(
-                          androidName: 'TargetWidgetProvider');
-                      await HomeWidget.updateWidget(
-                          androidName: 'ReminderWidgetProvider');
+                      await HomeWidget.saveWidgetData('pinned_reminder_ids', '');
+                      await HomeWidget.updateWidget(androidName: 'TargetWidgetProvider');
+                      await HomeWidget.updateWidget(androidName: 'ReminderWidgetProvider');
                     } catch (_) {}
 
                     final prefs = await SharedPreferences.getInstance();
                     await prefs.setBool('has_deleted_all', true);
                     await prefs.setBool('is_first_installation_complete', true);
 
+                    // Invalidate Riverpod states
+                    ref.invalidate(dashboardDataProvider);
+                    ref.invalidate(financialNotesNotifierProvider);
+                    ref.invalidate(shoppingItemsProvider);
+                    ref.invalidate(targetsStreamProvider);
+                    ref.invalidate(remindersStreamProvider);
+
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Seluruh data berhasil dihapus.'),
-                          backgroundColor: Colors.red,
+                          backgroundColor: LsColors.expense,
                         ),
                       );
                     }
@@ -345,8 +446,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                            content: Text('Gagal menghapus data: $e'),
-                            backgroundColor: Colors.red),
+                          content: Text('Gagal menghapus data: $e'),
+                          backgroundColor: LsColors.expense,
+                        ),
                       );
                     }
                   }

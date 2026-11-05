@@ -179,3 +179,5 @@ class FinancialSummary {
     required this.netBalance,
   });
 }
+
+final selectedFinancialDateProvider = StateProvider<DateTime>((ref) => DateTime.now());

@@ -23,95 +23,100 @@ const ReminderSchema = CollectionSchema(
       type: IsarType.byte,
       enumMap: _RemindercategoryEnumValueMap,
     ),
-    r'createdAt': PropertySchema(
+    r'completedAt': PropertySchema(
       id: 1,
+      name: r'completedAt',
+      type: IsarType.dateTime,
+    ),
+    r'createdAt': PropertySchema(
+      id: 2,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'customCategory': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'customCategory',
       type: IsarType.string,
     ),
     r'customSound': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'customSound',
       type: IsarType.string,
     ),
     r'deleted': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'deleted',
       type: IsarType.bool,
     ),
     r'deletedAt': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'deletedAt',
       type: IsarType.dateTime,
     ),
     r'description': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'description',
       type: IsarType.string,
     ),
     r'deviceId': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'deviceId',
       type: IsarType.string,
     ),
     r'endTime': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'endTime',
       type: IsarType.dateTime,
     ),
     r'isAllDay': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'isAllDay',
       type: IsarType.bool,
     ),
     r'notificationPreferenceMinutes': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'notificationPreferenceMinutes',
       type: IsarType.long,
     ),
     r'priority': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'priority',
       type: IsarType.byte,
       enumMap: _ReminderpriorityEnumValueMap,
     ),
     r'status': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'status',
       type: IsarType.byte,
       enumMap: _ReminderstatusEnumValueMap,
     ),
     r'syncId': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'syncId',
       type: IsarType.string,
     ),
     r'syncStatus': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'syncStatus',
       type: IsarType.string,
     ),
     r'targetDateTime': PropertySchema(
-      id: 15,
+      id: 16,
       name: r'targetDateTime',
       type: IsarType.dateTime,
     ),
     r'title': PropertySchema(
-      id: 16,
+      id: 17,
       name: r'title',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 17,
+      id: 18,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'version': PropertySchema(
-      id: 18,
+      id: 19,
       name: r'version',
       type: IsarType.long,
     )
@@ -182,24 +187,25 @@ void _reminderSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeByte(offsets[0], object.category.index);
-  writer.writeDateTime(offsets[1], object.createdAt);
-  writer.writeString(offsets[2], object.customCategory);
-  writer.writeString(offsets[3], object.customSound);
-  writer.writeBool(offsets[4], object.deleted);
-  writer.writeDateTime(offsets[5], object.deletedAt);
-  writer.writeString(offsets[6], object.description);
-  writer.writeString(offsets[7], object.deviceId);
-  writer.writeDateTime(offsets[8], object.endTime);
-  writer.writeBool(offsets[9], object.isAllDay);
-  writer.writeLong(offsets[10], object.notificationPreferenceMinutes);
-  writer.writeByte(offsets[11], object.priority.index);
-  writer.writeByte(offsets[12], object.status.index);
-  writer.writeString(offsets[13], object.syncId);
-  writer.writeString(offsets[14], object.syncStatus);
-  writer.writeDateTime(offsets[15], object.targetDateTime);
-  writer.writeString(offsets[16], object.title);
-  writer.writeDateTime(offsets[17], object.updatedAt);
-  writer.writeLong(offsets[18], object.version);
+  writer.writeDateTime(offsets[1], object.completedAt);
+  writer.writeDateTime(offsets[2], object.createdAt);
+  writer.writeString(offsets[3], object.customCategory);
+  writer.writeString(offsets[4], object.customSound);
+  writer.writeBool(offsets[5], object.deleted);
+  writer.writeDateTime(offsets[6], object.deletedAt);
+  writer.writeString(offsets[7], object.description);
+  writer.writeString(offsets[8], object.deviceId);
+  writer.writeDateTime(offsets[9], object.endTime);
+  writer.writeBool(offsets[10], object.isAllDay);
+  writer.writeLong(offsets[11], object.notificationPreferenceMinutes);
+  writer.writeByte(offsets[12], object.priority.index);
+  writer.writeByte(offsets[13], object.status.index);
+  writer.writeString(offsets[14], object.syncId);
+  writer.writeString(offsets[15], object.syncStatus);
+  writer.writeDateTime(offsets[16], object.targetDateTime);
+  writer.writeString(offsets[17], object.title);
+  writer.writeDateTime(offsets[18], object.updatedAt);
+  writer.writeLong(offsets[19], object.version);
 }
 
 Reminder _reminderDeserialize(
@@ -212,29 +218,30 @@ Reminder _reminderDeserialize(
   object.category =
       _RemindercategoryValueEnumMap[reader.readByteOrNull(offsets[0])] ??
           ReminderCategory.work;
-  object.createdAt = reader.readDateTime(offsets[1]);
-  object.customCategory = reader.readStringOrNull(offsets[2]);
-  object.customSound = reader.readStringOrNull(offsets[3]);
-  object.deleted = reader.readBool(offsets[4]);
-  object.deletedAt = reader.readDateTimeOrNull(offsets[5]);
-  object.description = reader.readStringOrNull(offsets[6]);
-  object.deviceId = reader.readString(offsets[7]);
-  object.endTime = reader.readDateTimeOrNull(offsets[8]);
+  object.completedAt = reader.readDateTimeOrNull(offsets[1]);
+  object.createdAt = reader.readDateTime(offsets[2]);
+  object.customCategory = reader.readStringOrNull(offsets[3]);
+  object.customSound = reader.readStringOrNull(offsets[4]);
+  object.deleted = reader.readBool(offsets[5]);
+  object.deletedAt = reader.readDateTimeOrNull(offsets[6]);
+  object.description = reader.readStringOrNull(offsets[7]);
+  object.deviceId = reader.readString(offsets[8]);
+  object.endTime = reader.readDateTimeOrNull(offsets[9]);
   object.id = id;
-  object.isAllDay = reader.readBool(offsets[9]);
-  object.notificationPreferenceMinutes = reader.readLong(offsets[10]);
+  object.isAllDay = reader.readBool(offsets[10]);
+  object.notificationPreferenceMinutes = reader.readLong(offsets[11]);
   object.priority =
-      _ReminderpriorityValueEnumMap[reader.readByteOrNull(offsets[11])] ??
+      _ReminderpriorityValueEnumMap[reader.readByteOrNull(offsets[12])] ??
           PriorityLevel.low;
   object.status =
-      _ReminderstatusValueEnumMap[reader.readByteOrNull(offsets[12])] ??
+      _ReminderstatusValueEnumMap[reader.readByteOrNull(offsets[13])] ??
           ReminderStatus.pending;
-  object.syncId = reader.readString(offsets[13]);
-  object.syncStatus = reader.readString(offsets[14]);
-  object.targetDateTime = reader.readDateTime(offsets[15]);
-  object.title = reader.readString(offsets[16]);
-  object.updatedAt = reader.readDateTime(offsets[17]);
-  object.version = reader.readLong(offsets[18]);
+  object.syncId = reader.readString(offsets[14]);
+  object.syncStatus = reader.readString(offsets[15]);
+  object.targetDateTime = reader.readDateTime(offsets[16]);
+  object.title = reader.readString(offsets[17]);
+  object.updatedAt = reader.readDateTime(offsets[18]);
+  object.version = reader.readLong(offsets[19]);
   return object;
 }
 
@@ -249,42 +256,44 @@ P _reminderDeserializeProp<P>(
       return (_RemindercategoryValueEnumMap[reader.readByteOrNull(offset)] ??
           ReminderCategory.work) as P;
     case 1:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 2:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 3:
       return (reader.readStringOrNull(offset)) as P;
     case 4:
-      return (reader.readBool(offset)) as P;
-    case 5:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 6:
       return (reader.readStringOrNull(offset)) as P;
-    case 7:
-      return (reader.readString(offset)) as P;
-    case 8:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 9:
+    case 5:
       return (reader.readBool(offset)) as P;
+    case 6:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 7:
+      return (reader.readStringOrNull(offset)) as P;
+    case 8:
+      return (reader.readString(offset)) as P;
+    case 9:
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 10:
-      return (reader.readLong(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 11:
+      return (reader.readLong(offset)) as P;
+    case 12:
       return (_ReminderpriorityValueEnumMap[reader.readByteOrNull(offset)] ??
           PriorityLevel.low) as P;
-    case 12:
+    case 13:
       return (_ReminderstatusValueEnumMap[reader.readByteOrNull(offset)] ??
           ReminderStatus.pending) as P;
-    case 13:
-      return (reader.readString(offset)) as P;
     case 14:
       return (reader.readString(offset)) as P;
     case 15:
-      return (reader.readDateTime(offset)) as P;
-    case 16:
       return (reader.readString(offset)) as P;
-    case 17:
+    case 16:
       return (reader.readDateTime(offset)) as P;
+    case 17:
+      return (reader.readString(offset)) as P;
     case 18:
+      return (reader.readDateTime(offset)) as P;
+    case 19:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -559,6 +568,77 @@ extension ReminderQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
         property: r'category',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Reminder, Reminder, QAfterFilterCondition> completedAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'completedAt',
+      ));
+    });
+  }
+
+  QueryBuilder<Reminder, Reminder, QAfterFilterCondition>
+      completedAtIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'completedAt',
+      ));
+    });
+  }
+
+  QueryBuilder<Reminder, Reminder, QAfterFilterCondition> completedAtEqualTo(
+      DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'completedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Reminder, Reminder, QAfterFilterCondition>
+      completedAtGreaterThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'completedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Reminder, Reminder, QAfterFilterCondition> completedAtLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'completedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Reminder, Reminder, QAfterFilterCondition> completedAtBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'completedAt',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -2145,6 +2225,18 @@ extension ReminderQuerySortBy on QueryBuilder<Reminder, Reminder, QSortBy> {
     });
   }
 
+  QueryBuilder<Reminder, Reminder, QAfterSortBy> sortByCompletedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'completedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Reminder, Reminder, QAfterSortBy> sortByCompletedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'completedAt', Sort.desc);
+    });
+  }
+
   QueryBuilder<Reminder, Reminder, QAfterSortBy> sortByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'createdAt', Sort.asc);
@@ -2375,6 +2467,18 @@ extension ReminderQuerySortThenBy
   QueryBuilder<Reminder, Reminder, QAfterSortBy> thenByCategoryDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'category', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Reminder, Reminder, QAfterSortBy> thenByCompletedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'completedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Reminder, Reminder, QAfterSortBy> thenByCompletedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'completedAt', Sort.desc);
     });
   }
 
@@ -2617,6 +2721,12 @@ extension ReminderQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Reminder, Reminder, QDistinct> distinctByCompletedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'completedAt');
+    });
+  }
+
   QueryBuilder<Reminder, Reminder, QDistinct> distinctByCreatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'createdAt');
@@ -2747,6 +2857,12 @@ extension ReminderQueryProperty
       categoryProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'category');
+    });
+  }
+
+  QueryBuilder<Reminder, DateTime?, QQueryOperations> completedAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'completedAt');
     });
   }
 

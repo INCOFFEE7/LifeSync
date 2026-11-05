@@ -1,3 +1,5 @@
+import 'package:lifesync_app/core/utils/translations.dart';
+import 'package:lifesync_app/presentation/providers/localization_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -8,7 +10,6 @@ import 'package:lifesync_app/domain/usecases/target_calculation_usecase.dart';
 import 'package:lifesync_app/presentation/providers/repository_providers.dart';
 import 'package:lifesync_app/presentation/pages/create_target_page.dart';
 import 'package:lifesync_app/presentation/widgets/calculator_input_dialog.dart';
-import 'package:lifesync_app/core/utils/thousands_formatter.dart';
 import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 
 class TargetDetailPage extends ConsumerStatefulWidget {
@@ -39,23 +40,17 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
   }
 
   Future<void> _deleteTarget(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showLsConfirmDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Hapus Target?'),
-        content: const Text('Tindakan ini akan menghapus target beserta seluruh riwayat nabungnya secara permanen. Yakin?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Hapus', style: TextStyle(color: LsColors.expense)),
-          ),
-        ],
-      ),
+      title: 'Hapus Target?',
+      message: 'Tindakan ini akan menghapus target beserta seluruh riwayat nabungnya secara permanen. Yakin?',
+      confirmLabel: 'Hapus',
+      cancelLabel: 'Batal',
+      isDanger: true,
     );
 
     if (confirmed == true && context.mounted) {
-      await ref.read(targetRepositoryProvider).deleteTarget(widget.target.id!);
+      await ref.read(targetRepositoryProvider).deleteTarget(widget.target.id);
       if (context.mounted) Navigator.pop(context);
     }
   }
@@ -95,6 +90,7 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
   }
 
   void _showFixedModeDialog(BuildContext context, WidgetRef ref, DateTime day, DailyIncomeRecord? existingRecord) {
+    final lang = ref.read(localeProvider).languageCode;
     final currencyFmt = NumberFormat('#,###', 'id_ID');
     final dateStr = DateFormat('dd MMMM yyyy', 'id_ID').format(day);
     final isDone = existingRecord != null;
@@ -133,9 +129,9 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(isDone ? 'Status: Sudah Menabung ✓' : 'Status: Belum Menabung', style: TextStyle(fontWeight: FontWeight.bold, color: isDone ? LsColors.income : LsColors.brand)),
+                          Text(isDone ? AppTranslations.get(lang, 'status_sudah_menabung') : AppTranslations.get(lang, 'status_belum_menabung'), style: TextStyle(fontWeight: FontWeight.bold, color: isDone ? LsColors.income : LsColors.brand)),
                           const SizedBox(height: 4),
-                          Text('Nominal Harian: Rp ${currencyFmt.format(widget.target.fixedDailyAmount.toInt())}', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: LsColors.ink(ctx))),
+                          Text('${AppTranslations.get(lang, 'nominal_harian')}: Rp ${currencyFmt.format(widget.target.fixedDailyAmount.toInt())}', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: LsColors.ink(ctx))),
                         ],
                       ),
                     ),
@@ -155,10 +151,10 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
                     Navigator.pop(ctx);
                     final repo = ref.read(targetRepositoryProvider);
                     if (isDone) {
-                      await repo.deleteRecord(existingRecord.id!);
+                      await repo.deleteRecord(existingRecord.id);
                     } else {
                       final newRecord = DailyIncomeRecord()
-                        ..targetId = widget.target.id!
+                        ..targetId = widget.target.id
                         ..incomeAmount = widget.target.fixedDailyAmount
                         ..date = DateTime(day.year, day.month, day.day)
                         ..notes = 'Nabung Tetap Harian';
@@ -167,7 +163,7 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
                   },
                   icon: Icon(isDone ? Icons.cancel_outlined : Icons.check, color: Colors.white),
                   label: Text(
-                    isDone ? 'Batalkan / Hapus Nabung' : 'Checklist / Tandai Sudah Menabung',
+                    isDone ? AppTranslations.get(lang, 'batalkan_nabung') : AppTranslations.get(lang, 'checklist_sudah_menabung'),
                     style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 15),
                   ),
                 ),
@@ -257,7 +253,7 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
                         ),
                         onPressed: () async {
                           Navigator.pop(ctx);
-                          await ref.read(targetRepositoryProvider).deleteRecord(existingRecord.id!);
+                          await ref.read(targetRepositoryProvider).deleteRecord(existingRecord.id);
                         },
                         child: const Text('Hapus', style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
@@ -285,7 +281,7 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
                           await repo.saveRecord(existingRecord);
                         } else {
                           final newRecord = DailyIncomeRecord()
-                            ..targetId = widget.target.id!
+                            ..targetId = widget.target.id
                             ..incomeAmount = inputAmount
                             ..date = DateTime(day.year, day.month, day.day)
                             ..notes = notesController.text.trim().isEmpty ? null : notesController.text.trim();
@@ -309,19 +305,16 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
     return IconButton(
       icon: const Icon(Icons.delete_outline, color: LsColors.expense, size: 20),
       onPressed: () async {
-        final confirm = await showDialog<bool>(
+        final confirm = await showLsConfirmDialog(
           context: context,
-          builder: (c) => AlertDialog(
-            title: const Text('Hapus Catatan Nabung?'),
-            content: const Text('Apakah Anda yakin ingin menghapus catatan ini?'),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Batal')),
-              TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Hapus', style: TextStyle(color: LsColors.expense))),
-            ],
-          ),
+          title: 'Hapus Catatan Nabung?',
+          message: 'Apakah Anda yakin ingin menghapus catatan ini?',
+          confirmLabel: 'Hapus',
+          cancelLabel: 'Batal',
+          isDanger: true,
         );
         if (confirm == true) {
-          await ref.read(targetRepositoryProvider).deleteRecord(record.id!);
+          await ref.read(targetRepositoryProvider).deleteRecord(record.id);
         }
       },
     );
@@ -329,7 +322,8 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final recordsAsync = ref.watch(targetRecordsStreamProvider(widget.target.id!));
+    final recordsAsync = ref.watch(targetRecordsStreamProvider(widget.target.id));
+    final lang = ref.watch(localeProvider).languageCode;
     final currencyFmt = NumberFormat('#,###', 'id_ID');
     final ink = LsColors.ink(context);
     final mute = LsColors.mute(context);
@@ -374,31 +368,31 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
           switch (status) {
             case TargetStatus.aheadOfSchedule:
               statusColor = LsColors.income;
-              statusText = 'Melebihi Target';
+              statusText = AppTranslations.get(lang, 'lebih_cepat');
               break;
             case TargetStatus.onTrack:
               statusColor = LsColors.brand;
-              statusText = 'Sesuai Rencana';
+              statusText = AppTranslations.get(lang, 'sesuai_jalur');
               break;
             case TargetStatus.behindSchedule:
               statusColor = LsColors.amber;
-              statusText = 'Kurang dari Target';
+              statusText = AppTranslations.get(lang, 'tertinggal');
               break;
             case TargetStatus.completed:
               statusColor = LsColors.income;
-              statusText = 'Tercapai!';
+              statusText = AppTranslations.get(lang, 'tercapai');
               break;
             case TargetStatus.failed:
               statusColor = LsColors.expense;
-              statusText = 'Waktu Habis';
+              statusText = AppTranslations.get(lang, 'gagal');
               break;
             case TargetStatus.notStarted:
               statusColor = mute;
-              statusText = 'Belum Dimulai';
+              statusText = AppTranslations.get(lang, 'belum_mulai');
               break;
             case TargetStatus.active:
               statusColor = LsColors.brand;
-              statusText = 'Aktif';
+              statusText = AppTranslations.get(lang, 'aktif');
               break;
           }
 
@@ -464,7 +458,7 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              isFixed ? 'Nominal Tetap' : 'Nominal Bebas',
+                              isFixed ? AppTranslations.get(lang, 'nominal_tetap') : AppTranslations.get(lang, 'nominal_bebas'),
                               style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Colors.white),
                             ),
                           ),
@@ -493,7 +487,7 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                LsEyebrow('Terkumpul', color: Colors.white.withValues(alpha: 0.7)),
+                                LsEyebrow(AppTranslations.get(lang, 'terkumpul'), color: Colors.white.withValues(alpha: 0.7)),
                                 const SizedBox(height: 4),
                                 FittedBox(
                                   fit: BoxFit.scaleDown,
@@ -536,7 +530,7 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  'Sisihkan Rp ${currencyFmt.format(dailyRecommendation.round())} hari ini',
+                                  '${AppTranslations.get(lang, 'sisihkan_hari_ini')} Rp ${currencyFmt.format(dailyRecommendation.round())} ${AppTranslations.get(lang, 'hari_ini_unit')}',
                                   style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: Colors.white),
                                 ),
                               ),
@@ -571,13 +565,34 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
                 const SizedBox(height: 24),
 
                 // ── Interactive Calendar ─────────────────────────────────────
-                const LsSectionHeader(title: 'Kalender Nabung'),
+                LsSectionHeader(title: AppTranslations.get(ref.watch(localeProvider).languageCode, 'kalender_nabung')),
                 const SizedBox(height: 8),
-                Text(
-                  isFixed
-                      ? 'Ketuk tanggal untuk mencentang (checklist) setoran harian.'
-                      : 'Ketuk tanggal untuk mencatat atau mengedit nominal tabungan.',
-                  style: TextStyle(fontSize: 12, color: mute),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: LsColors.brand.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: LsColors.brand.withValues(alpha: 0.2)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, size: 18, color: LsColors.brand),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          isFixed
+                              ? AppTranslations.get(ref.watch(localeProvider).languageCode, 'hint_nabung_fixed')
+                              : AppTranslations.get(ref.watch(localeProvider).languageCode, 'hint_nabung_flexible'),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: LsColors.brand,
+                            height: 1.3,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 12),
                 LsCard(

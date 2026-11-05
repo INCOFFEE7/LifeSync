@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lifesync_app/data/providers/google_auth_provider.dart';
 import 'package:lifesync_app/data/services/google_drive_service.dart';
 import 'package:lifesync_app/core/sync/sync_engine.dart';
+import 'package:lifesync_app/core/services/csv_export_service.dart';
+import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 
 class CloudBackupSettingsScreen extends ConsumerStatefulWidget {
   const CloudBackupSettingsScreen({super.key});
@@ -36,115 +38,213 @@ class _CloudBackupSettingsScreenState extends ConsumerState<CloudBackupSettingsS
     final isConnected = user != null;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Cloud Backup & Sync')),
+      backgroundColor: LsColors.paper(context),
+      appBar: AppBar(
+        title: const Text('Cloud Backup & Sync'),
+        backgroundColor: LsColors.paper(context),
+        scrolledUnderElevation: 0,
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          // Status Card
-          Card(
-            color: isConnected ? Colors.green.shade50 : Colors.orange.shade50,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
+          // ── Status Banner ──
+          LsCard(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: (isConnected ? LsColors.income : LsColors.amber).withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isConnected ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
+                    color: isConnected ? LsColors.income : LsColors.amber,
+                    size: 26,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            isConnected ? 'Terhubung' : 'Belum Terhubung',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16,
+                              color: isConnected ? LsColors.income : LsColors.amber,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          LsChip(isConnected ? 'Aktif' : 'Offline', color: isConnected ? LsColors.income : LsColors.mute(context)),
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        isConnected ? user.email : 'Hubungkan akun Google Drive untuk sync data',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 12, color: LsColors.mute(context)),
+                      ),
+                      if (_spreadsheetId != null && isConnected) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          'Spreadsheet: ...${_spreadsheetId!.substring(_spreadsheetId!.length > 8 ? _spreadsheetId!.length - 8 : 0)}',
+                          style: TextStyle(fontSize: 11, color: LsColors.mute(context)),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // ── Error Alert ──
+          if (_lastError != null) ...[
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: LsColors.expense.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: LsColors.expense.withValues(alpha: 0.25)),
+              ),
               child: Row(
                 children: [
-                  Icon(
-                    isConnected ? Icons.cloud_done : Icons.cloud_off,
-                    color: isConnected ? Colors.green : Colors.orange,
-                    size: 32,
-                  ),
-                  const SizedBox(width: 12),
+                  const Icon(Icons.error_outline_rounded, color: LsColors.expense, size: 22),
+                  const SizedBox(width: 10),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          isConnected ? 'Terhubung' : 'Belum Terhubung',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: isConnected ? Colors.green.shade800 : Colors.orange.shade800,
-                          ),
-                        ),
-                        if (isConnected) Text(user.email, style: const TextStyle(fontSize: 12)),
-                        if (_spreadsheetId != null && isConnected)
-                          Text('Spreadsheet: ...${_spreadsheetId!.substring(_spreadsheetId!.length > 8 ? _spreadsheetId!.length - 8 : 0)}',
-                            style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                      ],
-                    ),
+                    child: Text(_lastError!, style: const TextStyle(color: LsColors.expense, fontSize: 12.5, fontWeight: FontWeight.w600)),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, size: 18, color: LsColors.expense),
+                    onPressed: () => setState(() => _lastError = null),
                   ),
                 ],
               ),
             ),
+            const SizedBox(height: 16),
+          ],
+
+          // ── Google Account Section ──
+          const Padding(
+            padding: EdgeInsets.only(left: 6, bottom: 8),
+            child: LsEyebrow('Akun Google'),
           ),
-          const SizedBox(height: 12),
-
-          // Error message if any
-          if (_lastError != null)
-            Card(
-              color: Colors.red.shade50,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    const Icon(Icons.error_outline, color: Colors.red),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(_lastError!, style: const TextStyle(color: Colors.red, fontSize: 12)),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close, size: 16),
-                      onPressed: () => setState(() => _lastError = null),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-          const SizedBox(height: 8),
-          const Text('Google Account', style: TextStyle(fontWeight: FontWeight.bold)),
-          ListTile(
-            leading: CircleAvatar(
-              backgroundColor: isConnected ? Colors.blue.shade100 : Colors.grey.shade200,
-              child: Icon(
-                isConnected ? Icons.person : Icons.person_outline,
-                color: isConnected ? Colors.blue : Colors.grey,
-              ),
-            ),
-            title: Text(isConnected ? user.displayName ?? user.email : 'Belum Login Google'),
-            subtitle: Text(isConnected ? user.email : 'Tap tombol untuk connect ke Google Drive'),
-            trailing: _isConnecting
-              ? const SizedBox(
-                  width: 24, height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : ElevatedButton.icon(
-                  onPressed: _handleConnectDisconnect,
-                  icon: Icon(isConnected ? Icons.logout : Icons.login, size: 16),
-                  label: Text(isConnected ? 'Disconnect' : 'Connect'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isConnected ? Colors.red.shade400 : Colors.blue,
-                    foregroundColor: Colors.white,
+          LsCard(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: isConnected ? LsColors.brand.withValues(alpha: 0.12) : LsColors.line(context),
+                  child: Icon(
+                    isConnected ? Icons.person_rounded : Icons.person_outline_rounded,
+                    color: isConnected ? LsColors.brand : LsColors.mute(context),
                   ),
                 ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isConnected ? (user.displayName ?? user.email) : 'Belum Login Google',
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: LsColors.ink(context)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        isConnected ? user.email : 'Ketuk tombol untuk menghubungkan akun',
+                        style: TextStyle(fontSize: 11.5, color: LsColors.mute(context)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _isConnecting
+                    ? const SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 2))
+                    : FilledButton.icon(
+                        onPressed: _handleConnectDisconnect,
+                        icon: Icon(isConnected ? Icons.logout_rounded : Icons.login_rounded, size: 16),
+                        label: Text(isConnected ? 'Disconnect' : 'Connect', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5)),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: isConnected ? LsColors.expense : LsColors.brand,
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+              ],
+            ),
           ),
-          const Divider(),
-          const Text('Sinkronisasi', style: TextStyle(fontWeight: FontWeight.bold)),
-          ListTile(
-            enabled: isConnected && !_isSyncing,
-            leading: const Icon(Icons.sync),
-            title: const Text('Sync Sekarang'),
-            subtitle: const Text('Upload data lokal ke Google Sheets'),
-            trailing: _isSyncing
-                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.chevron_right),
-            onTap: isConnected && !_isSyncing ? _performSync : null,
+          const SizedBox(height: 20),
+
+          // ── Cloud Sync Section ──
+          const Padding(
+            padding: EdgeInsets.only(left: 6, bottom: 8),
+            child: LsEyebrow('Sinkronisasi Cloud'),
           ),
-          ListTile(
-            enabled: isConnected && !_isSyncing,
-            leading: const Icon(Icons.download),
-            title: const Text('Restore Data'),
-            subtitle: const Text('Tarik semua data dari Google Sheets ke perangkat ini'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: isConnected && !_isSyncing ? _performRestore : null,
+          LsCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                ListTile(
+                  enabled: isConnected && !_isSyncing,
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: LsColors.brand.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                    child: const Icon(Icons.sync_rounded, color: LsColors.brand, size: 20),
+                  ),
+                  title: const Text('Sync Sekarang', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                  subtitle: const Text('Kirim data lokal terbaru dan perbarui Google Sheets', style: TextStyle(fontSize: 12)),
+                  trailing: _isSyncing
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.chevron_right_rounded),
+                  onTap: isConnected && !_isSyncing ? _performSync : null,
+                ),
+                Divider(height: 1, indent: 56, color: LsColors.line(context)),
+                ListTile(
+                  enabled: isConnected && !_isSyncing,
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: LsColors.violet.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                    child: const Icon(Icons.cloud_download_rounded, color: LsColors.violet, size: 20),
+                  ),
+                  title: const Text('Restore Data', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                  subtitle: const Text('Tarik dan perbarui semua data dari Google Sheets', style: TextStyle(fontSize: 12)),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: isConnected && !_isSyncing ? _performRestore : null,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // ── Local Backup / CSV Export Section ──
+          const Padding(
+            padding: EdgeInsets.only(left: 6, bottom: 8),
+            child: LsEyebrow('Cadangan Lokal (Offline)'),
+          ),
+          LsCard(
+            padding: EdgeInsets.zero,
+            child: ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: LsColors.income.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                child: const Icon(Icons.file_download_rounded, color: LsColors.income, size: 20),
+              ),
+              title: const Text('Ekspor Data CSV', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+              subtitle: const Text('Simpan file CSV ke folder Download atau salin ke clipboard', style: TextStyle(fontSize: 12)),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => CsvExportService.showExportDialog(context, ref),
+            ),
           ),
         ],
       ),
@@ -163,13 +263,13 @@ class _CloudBackupSettingsScreenState extends ConsumerState<CloudBackupSettingsS
       } else {
         final account = await authService.signIn();
         if (account == null) {
-          if (mounted) setState(() => _lastError = 'Login dibatalkan atau gagal. Pastikan akun Google terdaftar di aplikasi ini.');
+          if (mounted) setState(() => _lastError = 'Login dibatalkan atau gagal.');
           return;
         }
 
         final client = await authService.getAuthenticatedClient();
         if (client == null) {
-          if (mounted) setState(() => _lastError = 'Gagal mendapatkan akses OAuth. Coba login ulang.');
+          if (mounted) setState(() => _lastError = 'Gagal mendapatkan akses OAuth.');
           return;
         }
 
@@ -193,7 +293,7 @@ class _CloudBackupSettingsScreenState extends ConsumerState<CloudBackupSettingsS
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('✅ Berhasil terhubung ke Google Drive!'),
-              backgroundColor: Colors.green,
+              backgroundColor: LsColors.income,
             ),
           );
         }
@@ -213,8 +313,8 @@ class _CloudBackupSettingsScreenState extends ConsumerState<CloudBackupSettingsS
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('✅ Sync berhasil!'),
-            backgroundColor: Colors.green,
+            content: Text('✅ Sync berhasil! Data diperbarui di Google Sheets.'),
+            backgroundColor: LsColors.income,
           ),
         );
       }
@@ -226,28 +326,25 @@ class _CloudBackupSettingsScreenState extends ConsumerState<CloudBackupSettingsS
   }
 
   Future<void> _performRestore() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showLsConfirmDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Restore Data?'),
-        content: const Text('Data lokal yang berbeda dari cloud akan ditimpa. Lanjutkan?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Ya, Restore')),
-        ],
-      ),
+      title: 'Restore Data?',
+      message: 'Data lokal yang berbeda dari Google Sheets akan disinkronkan dan diperbarui. Lanjutkan?',
+      confirmLabel: 'Ya, Restore',
+      cancelLabel: 'Batal',
+      isDanger: false,
     );
     if (confirmed != true) return;
 
     setState(() { _isSyncing = true; _lastError = null; });
     try {
       final syncEngine = ref.read(syncEngineProvider);
-      await syncEngine.performSync(); // Full sync acts as restore
+      await syncEngine.performSync();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('✅ Restore berhasil!'),
-            backgroundColor: Colors.green,
+            content: Text('✅ Restore berhasil! Data telah disinkronkan.'),
+            backgroundColor: LsColors.income,
           ),
         );
       }
