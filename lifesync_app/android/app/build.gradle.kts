@@ -26,7 +26,7 @@ android {
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
-        versionName = "2026.10.15.02.01"
+        versionName = "2026.11.06.01.01"
     }
 
     buildTypes {
@@ -54,7 +54,7 @@ android {
             val output = this as? ApkVariantOutputImpl
             if (output != null) {
                 val appTitle = if (variant.flavorName == "beebee") "BeeHappy" else "WhatToDo"
-                val fixedVersion = "2026.10.15.02.01"
+                val fixedVersion = variant.versionName
                 output.outputFileName = "${appTitle}_v${fixedVersion}.apk"
             }
         }
