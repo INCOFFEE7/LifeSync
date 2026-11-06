@@ -353,7 +353,10 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
       body: recordsAsync.when(
         data: (records) {
           double totalCollected = records.fold(0.0, (sum, record) => sum + record.incomeAmount);
-          double progress = (totalCollected / widget.target.targetAmount).clamp(0.0, 1.0);
+          double progress = widget.target.targetAmount > 0
+              ? (totalCollected / widget.target.targetAmount).clamp(0.0, 1.0)
+              : 0.0;
+          if (progress.isNaN || progress.isInfinite) progress = 0.0;
           double remaining = (widget.target.targetAmount - totalCollected).clamp(0.0, double.infinity);
 
           final now = DateTime.now();
@@ -480,7 +483,7 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
                             size: 112,
                             stroke: 10,
                             color: LsColors.income,
-                            child: Text('${(progress * 100).toInt()}%', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white)),
+                            child: Text('${(progress * 100).round()}%', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white)),
                           ),
                           const SizedBox(width: 18),
                           Expanded(

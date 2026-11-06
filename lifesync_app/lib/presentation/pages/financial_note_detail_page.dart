@@ -7,6 +7,7 @@ import 'package:lifesync_app/presentation/providers/financial_note_providers.dar
 import 'package:lifesync_app/presentation/pages/add_edit_financial_note_page.dart';
 import 'package:lifesync_app/presentation/widgets/custom_numeric_keypad.dart';
 import 'package:lifesync_app/presentation/widgets/ls_design.dart';
+import 'package:lifesync_app/presentation/widgets/ls_date_time_picker_sheet.dart';
 
 class FinancialNoteDetailPage extends ConsumerStatefulWidget {
   final int noteId;
@@ -214,20 +215,16 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                       ),
                       trailing: const Icon(Icons.access_time_filled, color: Color(0xFF2563EB), size: 20),
                       onTap: () async {
-                        final pickedDate = await showDatePicker(
+                        final picked = await showLsDateTimePickerSheet(
                           context: context,
-                          initialDate: itemTimestamp,
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime(2035),
+                          initialDateTime: itemTimestamp,
+                          enableTime: true,
+                          title: 'Pilih Tanggal & Waktu Item',
+                          confirmLabel: 'Atur Waktu',
                         );
-                        if (pickedDate != null && mounted) {
-                          final pickedTime = await showTimePicker(
-                            context: context,
-                            initialTime: TimeOfDay.fromDateTime(itemTimestamp),
-                          );
-                          final time = pickedTime ?? TimeOfDay.fromDateTime(itemTimestamp);
+                        if (picked != null && mounted) {
                           setModalState(() {
-                            itemTimestamp = DateTime(pickedDate.year, pickedDate.month, pickedDate.day, time.hour, time.minute);
+                            itemTimestamp = picked;
                           });
                         }
                       },

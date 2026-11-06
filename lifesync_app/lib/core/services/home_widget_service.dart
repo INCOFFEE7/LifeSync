@@ -109,8 +109,9 @@ class HomeWidgetService {
           final recommendedDaily = info.recommendedDailySaving as double;
           final savedToday = info.savedToday as double;
           double progress = target.targetAmount > 0 ? (savings / target.targetAmount) : 0.0;
+          if (progress.isNaN || progress.isInfinite) progress = 0.0;
           if (progress > 1.0) progress = 1.0;
-          final pct = '${(progress * 100).toInt()}%';
+          final pct = '${(progress * 100).round()}%';
           final int daysLeft = target.endDate.difference(now).inDays.clamp(0, 9999);
           final double remaining = (recommendedDaily - savedToday).clamp(0.0, double.infinity);
           final todayStr = remaining > 0
@@ -121,7 +122,7 @@ class HomeWidgetService {
           await HomeWidget.saveWidgetData<String>('t${i}_pct', pct);
           await HomeWidget.saveWidgetData<String>('t${i}_progress_text',
               '${_fmt.format(savings)} / ${_fmt.format(target.targetAmount)}');
-          await HomeWidget.saveWidgetData<int>('t${i}_progress', (progress * 100).toInt());
+          await HomeWidget.saveWidgetData<int>('t${i}_progress', (progress * 100).round());
           await HomeWidget.saveWidgetData<String>('t${i}_days', '$daysLeft hari lagi');
           await HomeWidget.saveWidgetData<String>('t${i}_today', todayStr);
           await HomeWidget.saveWidgetData<bool>('t${i}_visible', true);

@@ -8,6 +8,7 @@ import 'package:lifesync_app/domain/entities/app_settings.dart';
 import 'package:lifesync_app/presentation/providers/dashboard_provider.dart';
 import 'package:lifesync_app/presentation/providers/settings_provider.dart';
 import 'package:lifesync_app/presentation/widgets/ls_design.dart';
+import 'package:lifesync_app/presentation/widgets/ls_date_time_picker_sheet.dart';
 
 class CreateReminderPage extends ConsumerStatefulWidget {
   final Reminder? existingReminder;
@@ -19,7 +20,7 @@ class CreateReminderPage extends ConsumerStatefulWidget {
 
 class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
   final _formKey = GlobalKey<FormState>();
-  
+
   String _title = '';
   String _description = '';
   ReminderCategory _category = ReminderCategory.personal;
@@ -27,10 +28,21 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
   DateTime _targetDateTime = DateTime.now().add(const Duration(minutes: 30));
   DateTime _endTime = DateTime.now().add(const Duration(hours: 2));
   int _notificationMinutes = 0; // Default: Tepat waktu
+  DateTime? _customReminderTime;
   bool _isAllDay = false;
   String? _selectedSound; // Selected notification sound
   String? _customCategory;
-  
+
+  static const _presetOptions = <int, String>{
+    0: 'Tepat waktu',
+    15: '15 menit sebelumnya',
+    60: '1 jam sebelumnya',
+    1440: '1 hari sebelumnya',
+    4320: '3 hari sebelumnya',
+    10080: '7 hari sebelumnya',
+    -1: 'Tidak ada',
+  };
+
   String _selectedCategoryValue = ReminderCategory.personal.name;
   List<String> _existingCustomCategories = [];
 
@@ -44,10 +56,16 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
       _priority = widget.existingReminder!.priority;
       _targetDateTime = widget.existingReminder!.targetDateTime;
       _endTime = widget.existingReminder!.effectiveEndTime;
-      _notificationMinutes = widget.existingReminder!.notificationPreferenceMinutes;
+      _notificationMinutes =
+          widget.existingReminder!.notificationPreferenceMinutes;
+      if (_notificationMinutes > 0 &&
+          !_presetOptions.containsKey(_notificationMinutes)) {
+        _customReminderTime =
+            _targetDateTime.subtract(Duration(minutes: _notificationMinutes));
+      }
       _isAllDay = widget.existingReminder!.isAllDay;
       _customCategory = widget.existingReminder!.customCategory;
-      
+
       if (_category == ReminderCategory.other && _customCategory != null) {
         _selectedCategoryValue = _customCategory!;
       } else {
@@ -67,59 +85,110 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
     }
   }
 
-  Future<void> _selectStartDateTime() async {
-    final date = await showDatePicker(
+  Future<void> _pickStartDate() async {
+    final picked = await showLsDateTimePickerSheet(
       context: context,
-      initialDate: _targetDateTime,
-      firstDate: DateTime.now().subtract(const Duration(days: 365)),
-      lastDate: DateTime.now().add(const Duration(days: 3650)),
+      initialDateTime: _targetDateTime,
+      enableTime: false,
+      title: 'Tanggal Mulai Agenda',
+      confirmLabel: 'Atur Tanggal',
     );
-    if (date != null && mounted) {
-      if (_isAllDay) {
-        setState(() {
-          _targetDateTime = DateTime(date.year, date.month, date.day);
-          _endTime = DateTime(date.year, date.month, date.day, 23, 59);
-        });
-      } else {
-        final time = await showTimePicker(
-          context: context,
-          initialTime: TimeOfDay.fromDateTime(_targetDateTime),
+    if (picked != null && mounted) {
+      setState(() {
+        _targetDateTime = DateTime(
+          picked.year,
+          picked.month,
+          picked.day,
+          _isAllDay ? 0 : _targetDateTime.hour,
+          _isAllDay ? 0 : _targetDateTime.minute,
         );
-        if (time != null) {
-          setState(() {
-            _targetDateTime = DateTime(date.year, date.month, date.day, time.hour, time.minute);
-            if (_endTime.isBefore(_targetDateTime) || _endTime.isAtSameMomentAs(_targetDateTime)) {
-              _endTime = _targetDateTime.add(const Duration(hours: 1));
-            }
-          });
+        if (_endTime.isBefore(_targetDateTime) ||
+            _endTime.isAtSameMomentAs(_targetDateTime)) {
+          _endTime = _isAllDay
+              ? DateTime(picked.year, picked.month, picked.day, 23, 59)
+              : _targetDateTime.add(const Duration(hours: 1));
         }
-      }
+      });
     }
   }
 
-  Future<void> _selectEndDateTime() async {
-    final date = await showDatePicker(
+  Future<void> _pickStartTime() async {
+    final picked = await showLsDateTimePickerSheet(
       context: context,
-      initialDate: _endTime.isBefore(_targetDateTime) ? _targetDateTime : _endTime,
-      firstDate: _targetDateTime,
-      lastDate: DateTime.now().add(const Duration(days: 3650)),
+      initialDateTime: _targetDateTime,
+      enableTime: true,
+      title: 'Waktu Mulai Agenda',
+      confirmLabel: 'Atur Waktu',
     );
-    if (date != null && mounted) {
-      if (_isAllDay) {
-        setState(() {
-          _endTime = DateTime(date.year, date.month, date.day, 23, 59);
-        });
-      } else {
-        final time = await showTimePicker(
-          context: context,
-          initialTime: TimeOfDay.fromDateTime(_endTime),
-        );
-        if (time != null) {
-          setState(() {
-            _endTime = DateTime(date.year, date.month, date.day, time.hour, time.minute);
-          });
+    if (picked != null && mounted) {
+      setState(() {
+        _targetDateTime = picked;
+        if (_endTime.isBefore(_targetDateTime) ||
+            _endTime.isAtSameMomentAs(_targetDateTime)) {
+          _endTime = _isAllDay
+              ? DateTime(picked.year, picked.month, picked.day, 23, 59)
+              : _targetDateTime.add(const Duration(hours: 1));
         }
-      }
+      });
+    }
+  }
+
+  Future<void> _pickEndDate() async {
+    final picked = await showLsDateTimePickerSheet(
+      context: context,
+      initialDateTime:
+          _endTime.isBefore(_targetDateTime) ? _targetDateTime : _endTime,
+      minimumDate: _targetDateTime,
+      enableTime: false,
+      title: 'Tanggal Selesai Agenda',
+      confirmLabel: 'Atur Tanggal',
+    );
+    if (picked != null && mounted) {
+      setState(() {
+        _endTime = DateTime(
+          picked.year,
+          picked.month,
+          picked.day,
+          _isAllDay ? 23 : _endTime.hour,
+          _isAllDay ? 59 : _endTime.minute,
+        );
+      });
+    }
+  }
+
+  Future<void> _pickEndTime() async {
+    final picked = await showLsDateTimePickerSheet(
+      context: context,
+      initialDateTime:
+          _endTime.isBefore(_targetDateTime) ? _targetDateTime : _endTime,
+      minimumDate: _targetDateTime,
+      enableTime: true,
+      title: 'Waktu Selesai Agenda',
+      confirmLabel: 'Atur Waktu',
+    );
+    if (picked != null && mounted) {
+      setState(() {
+        _endTime = picked;
+      });
+    }
+  }
+
+  Future<void> _pickCustomReminderDateTime() async {
+    final picked = await showLsDateTimePickerSheet(
+      context: context,
+      initialDateTime: _customReminderTime ??
+          (_targetDateTime.isAfter(DateTime.now())
+              ? _targetDateTime
+              : DateTime.now()),
+      title: 'Waktu Notifikasi Pengingat',
+      confirmLabel: 'Pasang Pengingat',
+    );
+    if (picked != null && mounted) {
+      setState(() {
+        _customReminderTime = picked;
+        final diff = _targetDateTime.difference(picked).inMinutes;
+        _notificationMinutes = diff > 0 ? diff : 0;
+      });
     }
   }
 
@@ -127,7 +196,8 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
-      if (_endTime.isBefore(_targetDateTime) || _endTime.isAtSameMomentAs(_targetDateTime)) {
+      if (_endTime.isBefore(_targetDateTime) ||
+          _endTime.isAtSameMomentAs(_targetDateTime)) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Waktu selesai harus lebih lambat dari waktu mulai!'),
@@ -139,87 +209,112 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
 
       final confirm = await showLsConfirmDialog(
         context: context,
-        title: widget.existingReminder == null ? 'Simpan Agenda?' : 'Perbarui Agenda?',
-        message: 'Apakah detail dan jadwal agenda yang dimasukkan sudah sesuai?',
+        title: widget.existingReminder == null
+            ? 'Simpan Agenda?'
+            : 'Perbarui Agenda?',
+        message:
+            'Apakah detail dan jadwal agenda yang dimasukkan sudah sesuai?',
         confirmLabel: 'Ya, Simpan',
         cancelLabel: 'Batal',
       );
       if (!confirm || !mounted) return;
-      
+
       final reminder = Reminder()
-        ..id = widget.existingReminder?.id ?? DateTime.now().millisecondsSinceEpoch
+        ..id =
+            widget.existingReminder?.id ?? DateTime.now().millisecondsSinceEpoch
         ..title = _title
         ..description = _description
         ..category = _category
-        ..customCategory = _category == ReminderCategory.other ? _customCategory : null
+        ..customCategory =
+            _category == ReminderCategory.other ? _customCategory : null
         ..priority = _priority
-        ..targetDateTime = _isAllDay ? DateTime(_targetDateTime.year, _targetDateTime.month, _targetDateTime.day) : _targetDateTime
-        ..endTime = _isAllDay ? DateTime(_endTime.year, _endTime.month, _endTime.day, 23, 59) : _endTime
+        ..targetDateTime = _isAllDay
+            ? DateTime(_targetDateTime.year, _targetDateTime.month,
+                _targetDateTime.day)
+            : _targetDateTime
+        ..endTime = _isAllDay
+            ? DateTime(_endTime.year, _endTime.month, _endTime.day, 23, 59)
+            : _endTime
         ..isAllDay = _isAllDay
         ..status = widget.existingReminder?.status ?? ReminderStatus.pending
         ..createdAt = widget.existingReminder?.createdAt ?? DateTime.now()
         ..notificationPreferenceMinutes = _notificationMinutes
         ..customSound = _selectedSound;
-        
-      if (_category == ReminderCategory.other && _customCategory != null && _customCategory!.isNotEmpty) {
+
+      if (_category == ReminderCategory.other &&
+          _customCategory != null &&
+          _customCategory!.isNotEmpty) {
         // Save to AppSettings custom categories (future task sync)
         final db = ref.read(databaseServiceProvider).db;
         db.writeTxnSync(() {
-          final settings = db.appSettings.getSync(1) ?? AppSettings()..id = 1;
+          final settings = db.appSettings.getSync(1) ?? AppSettings()
+            ..id = 1;
           if (!settings.customCategories.contains(_customCategory)) {
-            settings.customCategories = List.from(settings.customCategories)..add(_customCategory!);
+            settings.customCategories = List.from(settings.customCategories)
+              ..add(_customCategory!);
             db.appSettings.putSync(settings);
           }
         });
       }
-        
+
       final repo = ref.read(reminderRepositoryProvider);
       final id = await repo.saveReminder(reminder);
-      
+
       // Clamp ID ke int32 — Android notification ID harus int32 (max 2.1 miliar).
       // Isar ID berbasis millisecondsSinceEpoch (~1.7 triliun) akan overflow jika langsung dipakai.
       final notifId = id & 0x7FFFFFFF;
 
       // Schedule notification
       final notifService = ref.read(notificationServiceProvider);
-      DateTime scheduledTime;
-      if (_isAllDay) {
-        // All‑day reminder fires at 06:00 on the target date
-        scheduledTime = DateTime(_targetDateTime.year, _targetDateTime.month, _targetDateTime.day, 6, 0);
-      } else {
-        scheduledTime = _targetDateTime.subtract(Duration(minutes: _notificationMinutes));
-      }
-      
-      final now = DateTime.now();
-      if (!scheduledTime.isAfter(now)) {
-        if (_targetDateTime.isAfter(now)) {
-          // Jika waktu minus offset sudah lewat, fallback ke waktu mulai agenda
-          scheduledTime = _targetDateTime;
-        } else if (_endTime.isAfter(now)) {
-          // Jika waktu mulai juga lewat namun agenda masih berjalan, bunyikan 5 detik lagi
-          scheduledTime = now.add(const Duration(seconds: 5));
-        }
-      }
-
-      debugPrint('[CreateReminder] Scheduling notif id=$notifId at $scheduledTime (now=$now)');
-      
-      final sound = _selectedSound ?? ref.read(defaultSoundProvider);
-      
       try {
-        if (scheduledTime.isAfter(now)) {
-          await notifService.scheduleNotification(
-            id: notifId,
-            title: _title,
-            body: _description.trim().isNotEmpty
-                ? _description.trim()
-                : 'Pengingat agenda Anda telah tiba.',
-            scheduledTime: scheduledTime,
-            sound: sound,
-            featureName: 'Pengingat Agenda',
-          );
-          debugPrint('[CreateReminder] Notification scheduled successfully at $scheduledTime.');
+        if (_notificationMinutes == -1) {
+          debugPrint('[CreateReminder] Notif dimatikan (Tidak Ada).');
         } else {
-          debugPrint('[CreateReminder] Agenda sudah selesai sepenuhnya, notif tidak dijadwalkan.');
+          DateTime scheduledTime;
+          if (_customReminderTime != null) {
+            scheduledTime = _customReminderTime!;
+          } else if (_isAllDay) {
+            // All‑day reminder fires at 06:00 on the target date
+            scheduledTime = DateTime(_targetDateTime.year,
+                _targetDateTime.month, _targetDateTime.day, 6, 0);
+          } else {
+            scheduledTime = _targetDateTime
+                .subtract(Duration(minutes: _notificationMinutes));
+          }
+
+          final now = DateTime.now();
+          if (!scheduledTime.isAfter(now)) {
+            if (_targetDateTime.isAfter(now)) {
+              // Jika waktu minus offset sudah lewat, fallback ke waktu mulai agenda
+              scheduledTime = _targetDateTime;
+            } else if (_endTime.isAfter(now)) {
+              // Jika waktu mulai juga lewat namun agenda masih berjalan, bunyikan 5 detik lagi
+              scheduledTime = now.add(const Duration(seconds: 5));
+            }
+          }
+
+          debugPrint(
+              '[CreateReminder] Scheduling notif id=$notifId at $scheduledTime (now=$now)');
+
+          final sound = _selectedSound ?? ref.read(defaultSoundProvider);
+
+          if (scheduledTime.isAfter(now)) {
+            await notifService.scheduleNotification(
+              id: notifId,
+              title: _title,
+              body: _description.trim().isNotEmpty
+                  ? _description.trim()
+                  : 'Pengingat agenda Anda telah tiba.',
+              scheduledTime: scheduledTime,
+              sound: sound,
+              featureName: 'Pengingat Agenda',
+            );
+            debugPrint(
+                '[CreateReminder] Notification scheduled successfully at $scheduledTime.');
+          } else {
+            debugPrint(
+                '[CreateReminder] Agenda sudah selesai sepenuhnya, notif tidak dijadwalkan.');
+          }
         }
       } catch (e) {
         debugPrint('[CreateReminder] Failed to schedule notification: $e');
@@ -231,7 +326,8 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
             SnackBar(
               content: Row(
                 children: [
-                  const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                  const Icon(Icons.check_circle_rounded,
+                      color: Colors.white, size: 20),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -245,7 +341,8 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
               ),
               backgroundColor: const Color(0xFF2563EB),
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
               duration: const Duration(seconds: 3),
             ),
           );
@@ -257,11 +354,15 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
 
   InputDecoration _inputDecoration(String label) {
     final line = LsColors.line(context);
-    OutlineInputBorder b(Color c, double w) =>
-        OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: c, width: w));
+    OutlineInputBorder b(Color c, double w) => OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: c, width: w));
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(color: LsColors.mute(context), fontWeight: FontWeight.w500, fontSize: 13),
+      labelStyle: TextStyle(
+          color: LsColors.mute(context),
+          fontWeight: FontWeight.w500,
+          fontSize: 13),
       filled: true,
       fillColor: LsColors.surface(context),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
@@ -295,15 +396,21 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
               decoration: BoxDecoration(
                 color: LsColors.brand.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
-                border: Border.all(color: LsColors.brand.withValues(alpha: 0.25), width: 1.5),
+                border: Border.all(
+                    color: LsColors.brand.withValues(alpha: 0.25), width: 1.5),
               ),
-              child: const Icon(Icons.edit_note_rounded, size: 22, color: LsColors.brand),
+              child: const Icon(Icons.edit_note_rounded,
+                  size: 22, color: LsColors.brand),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 'Ubah Nama Kategori',
-                style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w800, letterSpacing: -0.3, color: LsColors.ink(ctx)),
+                style: TextStyle(
+                    fontSize: 16.5,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                    color: LsColors.ink(ctx)),
               ),
             ),
           ],
@@ -324,7 +431,8 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
                 labelText: 'Nama Kategori Baru *',
                 filled: true,
                 fillColor: LsColors.paper(ctx),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
               ),
             ),
           ],
@@ -338,10 +446,14 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(color: LsColors.line(ctx), width: 1.2),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
                     ),
                     onPressed: () => Navigator.pop(ctx),
-                    child: Text('Batal', style: TextStyle(color: LsColors.ink(ctx), fontWeight: FontWeight.w700)),
+                    child: Text('Batal',
+                        style: TextStyle(
+                            color: LsColors.ink(ctx),
+                            fontWeight: FontWeight.w700)),
                   ),
                 ),
               ),
@@ -352,13 +464,16 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
                   child: FilledButton(
                     style: FilledButton.styleFrom(
                       backgroundColor: LsColors.brand,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
                     ),
                     onPressed: () {
                       final val = textController.text.trim();
                       if (val.isNotEmpty) Navigator.pop(ctx, val);
                     },
-                    child: const Text('Simpan', style: TextStyle(fontWeight: FontWeight.w800, color: Colors.white)),
+                    child: const Text('Simpan',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w800, color: Colors.white)),
                   ),
                 ),
               ),
@@ -371,7 +486,8 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
     if (newName != null && newName.isNotEmpty && newName != currentCategory) {
       final db = ref.read(databaseServiceProvider).db;
       db.writeTxnSync(() {
-        final settings = db.appSettings.getSync(1) ?? AppSettings()..id = 1;
+        final settings = db.appSettings.getSync(1) ?? AppSettings()
+          ..id = 1;
         final list = List<String>.from(settings.customCategories);
         final index = list.indexOf(currentCategory);
         if (index != -1) {
@@ -444,7 +560,8 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
     );
   }
 
-  Widget _pill(String label, bool selected, Color color, VoidCallback onTap, {IconData? icon}) {
+  Widget _pill(String label, bool selected, Color color, VoidCallback onTap,
+      {IconData? icon}) {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -502,24 +619,44 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
     );
   }
 
-  Widget _timeTile(String label, String value, VoidCallback onTap) {
+  Widget _pickerTile({
+    required String label,
+    required String value,
+    required VoidCallback onTap,
+  }) {
     return Expanded(
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             color: LsColors.surface(context),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: LsColors.line(context)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: TextStyle(color: LsColors.mute(context), fontSize: 12, fontWeight: FontWeight.w500)),
-              const SizedBox(height: 4),
-              Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: LsColors.ink(context))),
+              Text(
+                label,
+                style: TextStyle(
+                  color: LsColors.mute(context),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: LsColors.ink(context),
+                ),
+              ),
             ],
           ),
         ),
@@ -527,16 +664,177 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
     );
   }
 
+  String _getReminderLabel() {
+    if (_customReminderTime != null) {
+      return DateFormat('d MMM yyyy, HH:mm', 'id_ID')
+          .format(_customReminderTime!);
+    }
+    if (_presetOptions.containsKey(_notificationMinutes)) {
+      return _presetOptions[_notificationMinutes]!;
+    }
+    if (_notificationMinutes < 0) {
+      return 'Tidak ada';
+    }
+    if (_notificationMinutes % 1440 == 0) {
+      return '${_notificationMinutes ~/ 1440} hari sebelumnya';
+    } else if (_notificationMinutes % 60 == 0) {
+      return '${_notificationMinutes ~/ 60} jam sebelumnya';
+    } else {
+      return '$_notificationMinutes menit sebelumnya';
+    }
+  }
+
+  Widget _buildReminderSelectorTile() {
+    return InkWell(
+      onTap: _showReminderModal,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: LsColors.paper(context),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: LsColors.line(context)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Waktu Pengingat',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: LsColors.ink(context),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: LsColors.brand.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border:
+                    Border.all(color: LsColors.brand.withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _getReminderLabel(),
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: LsColors.brand,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.arrow_drop_down_rounded,
+                      size: 18, color: LsColors.brand),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showReminderModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: LsColors.surface(context),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                  child: Text(
+                    'Waktu Pengingat',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: LsColors.ink(ctx),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: [
+                      ..._presetOptions.entries.map((e) {
+                        final isSelected = _customReminderTime == null &&
+                            _notificationMinutes == e.key;
+                        return ListTile(
+                          title: Text(
+                            e.value,
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: isSelected
+                                  ? FontWeight.w800
+                                  : FontWeight.w500,
+                              color: isSelected
+                                  ? LsColors.brand
+                                  : LsColors.ink(ctx),
+                            ),
+                          ),
+                          trailing: isSelected
+                              ? const Icon(Icons.check_rounded,
+                                  color: LsColors.brand, size: 20)
+                              : null,
+                          onTap: () {
+                            setState(() {
+                              _customReminderTime = null;
+                              _notificationMinutes = e.key;
+                            });
+                            Navigator.pop(ctx);
+                          },
+                        );
+                      }),
+                      ListTile(
+                        title: Text(
+                          'Pilih Kalender & Waktu Kustom...',
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: _customReminderTime != null
+                                ? FontWeight.w800
+                                : FontWeight.w500,
+                            color: _customReminderTime != null
+                                ? LsColors.brand
+                                : LsColors.ink(ctx),
+                          ),
+                        ),
+                        trailing: _customReminderTime != null
+                            ? const Icon(Icons.check_rounded,
+                                color: LsColors.brand, size: 20)
+                            : null,
+                        onTap: () async {
+                          Navigator.pop(ctx);
+                          await _pickCustomReminderDateTime();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final ink = LsColors.ink(context);
-    const notifyOptions = <int, String>{
-      0: 'Tepat waktu',
-      60: '1 jam sebelumnya',
-      1440: '1 hari sebelumnya',
-      4320: '3 hari sebelumnya',
-      10080: '7 hari sebelumnya',
-    };
 
     return Scaffold(
       backgroundColor: LsColors.paper(context),
@@ -549,7 +847,11 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
         iconTheme: IconThemeData(color: ink),
         title: Text(
           widget.existingReminder == null ? 'Buat Pengingat' : 'Edit Pengingat',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: ink, letterSpacing: -0.5),
+          style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: ink,
+              letterSpacing: -0.5),
         ),
       ),
       body: Form(
@@ -562,7 +864,9 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
                 initialValue: _title,
                 decoration: _inputDecoration('Judul Pengingat *'),
                 style: TextStyle(fontWeight: FontWeight.w600, color: ink),
-                validator: (val) => val == null || val.trim().isEmpty ? 'Judul pengingat wajib diisi' : null,
+                validator: (val) => val == null || val.trim().isEmpty
+                    ? 'Judul pengingat wajib diisi'
+                    : null,
                 onSaved: (val) => _title = val!,
               ),
               const SizedBox(height: 10),
@@ -581,12 +885,24 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
                 children: [
                   ...ReminderCategory.values
                       .where((c) => c != ReminderCategory.other)
-                      .map((c) => _pill(_categoryLabel(c), _selectedCategoryValue == c.name, LsColors.brand, () => _selectCategoryValue(c.name))),
-                  ..._existingCustomCategories.map((c) => _pill(c, _selectedCategoryValue == c, LsColors.brand, () => _selectCategoryValue(c))),
-                  _pill('Lainnya', _selectedCategoryValue == 'ADD_NEW', LsColors.brand, () => _selectCategoryValue('ADD_NEW'), icon: Icons.add),
-                  if (_existingCustomCategories.contains(_selectedCategoryValue))
+                      .map((c) => _pill(
+                          _categoryLabel(c),
+                          _selectedCategoryValue == c.name,
+                          LsColors.brand,
+                          () => _selectCategoryValue(c.name))),
+                  ..._existingCustomCategories.map((c) => _pill(
+                      c,
+                      _selectedCategoryValue == c,
+                      LsColors.brand,
+                      () => _selectCategoryValue(c))),
+                  _pill('Lainnya', _selectedCategoryValue == 'ADD_NEW',
+                      LsColors.brand, () => _selectCategoryValue('ADD_NEW'),
+                      icon: Icons.add),
+                  if (_existingCustomCategories
+                      .contains(_selectedCategoryValue))
                     InkWell(
-                      onTap: () => _showEditCategoryDialog(_selectedCategoryValue),
+                      onTap: () =>
+                          _showEditCategoryDialog(_selectedCategoryValue),
                       borderRadius: BorderRadius.circular(20),
                       child: Container(
                         padding: const EdgeInsets.all(9),
@@ -594,7 +910,8 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
                           color: LsColors.brand.withValues(alpha: 0.12),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.edit_outlined, size: 14, color: LsColors.brand),
+                        child: const Icon(Icons.edit_outlined,
+                            size: 14, color: LsColors.brand),
                       ),
                     ),
                 ],
@@ -605,7 +922,8 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
                   initialValue: _customCategory,
                   decoration: _inputDecoration('Nama Kategori Lainnya'),
                   style: TextStyle(fontWeight: FontWeight.w600, color: ink),
-                  validator: (val) => val == null || val.isEmpty ? 'Wajib diisi' : null,
+                  validator: (val) =>
+                      val == null || val.isEmpty ? 'Wajib diisi' : null,
                   onSaved: (val) => _customCategory = val,
                 ),
               ],
@@ -620,9 +938,12 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
                 ),
                 child: Row(
                   children: [
-                    _prioritySegment('Rendah', PriorityLevel.low, LsColors.income),
-                    _prioritySegment('Sedang', PriorityLevel.medium, LsColors.amber),
-                    _prioritySegment('Tinggi', PriorityLevel.high, LsColors.expense),
+                    _prioritySegment(
+                        'Rendah', PriorityLevel.low, LsColors.income),
+                    _prioritySegment(
+                        'Sedang', PriorityLevel.medium, LsColors.amber),
+                    _prioritySegment(
+                        'Tinggi', PriorityLevel.high, LsColors.expense),
                   ],
                 ),
               ),
@@ -631,7 +952,9 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
               Row(
                 children: [
                   Expanded(
-                    child: Text('Seharian Penuh (All Day)', style: TextStyle(fontWeight: FontWeight.w700, color: ink)),
+                    child: Text('Seharian Penuh (All Day)',
+                        style:
+                            TextStyle(fontWeight: FontWeight.w700, color: ink)),
                   ),
                   Switch(
                     value: _isAllDay,
@@ -640,7 +963,14 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
                       setState(() {
                         _isAllDay = val;
                         if (val) {
-                          _targetDateTime = DateTime(_targetDateTime.year, _targetDateTime.month, _targetDateTime.day);
+                          _targetDateTime = DateTime(_targetDateTime.year,
+                              _targetDateTime.month, _targetDateTime.day);
+                          _endTime = DateTime(
+                              _targetDateTime.year,
+                              _targetDateTime.month,
+                              _targetDateTime.day,
+                              23,
+                              59);
                         }
                       });
                     },
@@ -648,30 +978,62 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
                 ],
               ),
               const SizedBox(height: 8),
+              Text(
+                'Waktu Mulai',
+                style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: LsColors.mute(context)),
+              ),
+              const SizedBox(height: 5),
               Row(
                 children: [
-                  _timeTile(
-                    'Waktu Mulai',
-                    _isAllDay ? DateFormat('dd MMM yyyy').format(_targetDateTime) : DateFormat('dd MMM yyyy, HH:mm').format(_targetDateTime),
-                    _selectStartDateTime,
+                  _pickerTile(
+                    label: 'Tanggal Mulai',
+                    value: DateFormat('dd MMM yyyy', 'id_ID')
+                        .format(_targetDateTime),
+                    onTap: _pickStartDate,
                   ),
-                  const SizedBox(width: 10),
-                  _timeTile(
-                    'Waktu Selesai',
-                    _isAllDay ? DateFormat('dd MMM yyyy').format(_endTime) : DateFormat('dd MMM yyyy, HH:mm').format(_endTime),
-                    _selectEndDateTime,
+                  if (!_isAllDay) ...[
+                    const SizedBox(width: 8),
+                    _pickerTile(
+                      label: 'Jam Mulai',
+                      value:
+                          DateFormat('HH:mm', 'id_ID').format(_targetDateTime),
+                      onTap: _pickStartTime,
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Waktu Selesai',
+                style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: LsColors.mute(context)),
+              ),
+              const SizedBox(height: 5),
+              Row(
+                children: [
+                  _pickerTile(
+                    label: 'Tanggal Selesai',
+                    value: DateFormat('dd MMM yyyy', 'id_ID').format(_endTime),
+                    onTap: _pickEndDate,
                   ),
+                  if (!_isAllDay) ...[
+                    const SizedBox(width: 8),
+                    _pickerTile(
+                      label: 'Jam Selesai',
+                      value: DateFormat('HH:mm', 'id_ID').format(_endTime),
+                      onTap: _pickEndTime,
+                    ),
+                  ],
                 ],
               ),
             ]),
             _section('Ingatkan Saya', [
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: notifyOptions.entries
-                    .map((e) => _pill(e.value, _notificationMinutes == e.key, LsColors.violet, () => setState(() => _notificationMinutes = e.key), icon: Icons.notifications_none_rounded))
-                    .toList(),
-              ),
+              _buildReminderSelectorTile(),
             ]),
             const SizedBox(height: 2),
             SizedBox(
@@ -680,11 +1042,16 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
                 onPressed: _saveReminder,
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
                   backgroundColor: LsColors.brand,
                   elevation: 0,
                 ),
-                child: const Text('Simpan Pengingat', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 0.2)),
+                child: const Text('Simpan Pengingat',
+                    style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.2)),
               ),
             ),
             const SizedBox(height: 12),

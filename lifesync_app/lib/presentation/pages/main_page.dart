@@ -249,18 +249,19 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
 
   void _showAddSheet() {
     final selectedFinDate = ref.read(selectedFinancialDateProvider);
+    final lang = ref.watch(localeProvider).languageCode;
     final actions = <_AddAction>[
-      _AddAction('transaksi', 'Transaksi / Catatan Baru', 'Catat pemasukan atau pengeluaran', Icons.account_balance_wallet_rounded, LsColors.brand,
+      _AddAction('transaksi', AppTranslations.get(lang, 'catat_transaksi'), 'Catat pemasukan atau pengeluaran harian', Icons.account_balance_wallet_rounded, LsColors.brand,
           (_) => AddEditFinancialNotePage(initialDate: selectedFinDate)),
-      _AddAction('agenda', 'Pengingat Agenda', 'Jadwal dan kegiatan', Icons.event_rounded, LsColors.violet,
+      _AddAction('agenda', AppTranslations.get(lang, 'agenda'), 'Jadwal dan kegiatan penting', Icons.event_rounded, LsColors.violet,
           (_) => const CreateReminderPage()),
-      _AddAction('tagihan', 'Pengingat Tagihan Bulanan', 'Tagihan rutin bulanan', Icons.receipt_long_rounded, LsColors.expense,
+      _AddAction('tagihan', AppTranslations.get(lang, 'tagihan_bulanan'), 'Tagihan rutin bulanan', Icons.receipt_long_rounded, LsColors.expense,
           (_) => const AddEditBillPage(initialBillType: 'monthly')),
-      _AddAction('piutang', 'Pengingat Tagihan Piutang', 'Catatan penagihan piutang orang lain', Icons.handshake_rounded, LsColors.income,
+      _AddAction('piutang', AppTranslations.get(lang, 'tagihan_piutang'), 'Catatan penagihan piutang orang lain', Icons.handshake_rounded, LsColors.income,
           (_) => const AddEditBillPage(initialBillType: 'receivable')),
-      _AddAction('belanja', 'Pengingat Belanja', 'Daftar belanjaan', Icons.shopping_cart_rounded, LsColors.amber,
+      _AddAction('belanja', AppTranslations.get(lang, 'daftar_belanja'), 'Daftar kebutuhan belanjaan', Icons.shopping_cart_rounded, LsColors.amber,
           (_) => const CreateShoppingPage()),
-      _AddAction('target', 'Target Nabung', 'Mulai menabung untuk tujuan baru', Icons.savings_rounded, LsColors.income,
+      _AddAction('target', AppTranslations.get(lang, 'target'), 'Mulai menabung untuk tujuan baru', Icons.savings_rounded, LsColors.income,
           (_) => const CreateTargetPage()),
     ];
     final preferred = switch (_currentIndex) {
@@ -376,31 +377,31 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
                   _navItem(1, Icons.account_balance_wallet_outlined, Icons.account_balance_wallet,
                       AppTranslations.get(lang, 'keuangan')),
                   const Expanded(child: SizedBox(height: 56)),
-                  _navItem(2, Icons.savings_outlined, Icons.savings, 'Nabung'),
+                  _navItem(2, Icons.savings_outlined, Icons.savings, AppTranslations.get(lang, 'target')),
                   _navItem(3, Icons.notifications_none_outlined, Icons.notifications, AppTranslations.get(lang, 'pengingat')),
                 ],
               ),
               Positioned(
-                top: -14,
+                top: -16,
                 child: Semantics(
                   button: true,
                   label: 'Tambah Baru',
                   child: Material(
                     color: LsColors.brand,
                     shape: const CircleBorder(),
-                    elevation: 6,
-                    shadowColor: LsColors.brand.withValues(alpha: 0.45),
+                    elevation: 5,
+                    shadowColor: LsColors.brand.withValues(alpha: 0.4),
                     child: InkWell(
                       customBorder: const CircleBorder(),
                       onTap: _showAddSheet,
                       child: Container(
-                        width: 50,
-                        height: 50,
+                        width: 52,
+                        height: 52,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: LsColors.surface(context), width: 2.5),
+                          border: Border.all(color: LsColors.surface(context), width: 3),
                         ),
-                        child: const Icon(Icons.add_rounded, color: Colors.white, size: 26),
+                        child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
                       ),
                     ),
                   ),

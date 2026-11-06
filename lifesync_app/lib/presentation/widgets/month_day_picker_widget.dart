@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:lifesync_app/presentation/widgets/ls_design.dart';
+import 'package:lifesync_app/presentation/widgets/ls_date_time_picker_sheet.dart';
 
 class MonthDayPickerWidget extends StatefulWidget {
   final DateTime selectedDate;
@@ -39,14 +40,16 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
   void initState() {
     super.initState();
     _scrollController = ScrollController();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToSelectedDate(animate: false));
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _scrollToSelectedDate(animate: false));
   }
 
   @override
   void didUpdateWidget(covariant MonthDayPickerWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.selectedDate != widget.selectedDate && widget.showDayStrip) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToSelectedDate(animate: true));
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _scrollToSelectedDate(animate: true));
     }
   }
 
@@ -60,9 +63,13 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
     const listPadding = 16.0;
 
     final screenWidth = MediaQuery.of(context).size.width;
-    final itemCenterPos = listPadding + (dayIndex * itemTotalWidth) + itemMargin + (itemTileWidth / 2);
+    final itemCenterPos = listPadding +
+        (dayIndex * itemTotalWidth) +
+        itemMargin +
+        (itemTileWidth / 2);
     final targetOffset = itemCenterPos - (screenWidth / 2);
-    final safeOffset = targetOffset.clamp(0.0, _scrollController.position.maxScrollExtent);
+    final safeOffset =
+        targetOffset.clamp(0.0, _scrollController.position.maxScrollExtent);
 
     if (animate) {
       _scrollController.animateTo(
@@ -91,10 +98,26 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
         final currentScope = widget.dateScope ?? 'this_month';
 
         final options = [
-          {'key': 'this_month', 'label': 'Bulan Ini', 'icon': Icons.calendar_today_outlined},
-          {'key': 'all', 'label': 'Semua Data', 'icon': Icons.all_inclusive_outlined},
-          {'key': 'pick_month', 'label': 'Pilih Bulan & Tahun', 'icon': Icons.edit_calendar_outlined},
-          {'key': 'range', 'label': 'Rentang Tanggal', 'icon': Icons.date_range_outlined},
+          {
+            'key': 'this_month',
+            'label': 'Bulan Ini',
+            'icon': Icons.calendar_today_outlined
+          },
+          {
+            'key': 'all',
+            'label': 'Semua Data',
+            'icon': Icons.all_inclusive_outlined
+          },
+          {
+            'key': 'pick_month',
+            'label': 'Pilih Bulan & Tahun',
+            'icon': Icons.edit_calendar_outlined
+          },
+          {
+            'key': 'range',
+            'label': 'Rentang Tanggal',
+            'icon': Icons.date_range_outlined
+          },
         ];
 
         return Container(
@@ -110,8 +133,12 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Filter Rentang Tanggal', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                  const Text('Filter Rentang Tanggal',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(ctx)),
                 ],
               ),
               const SizedBox(height: 16),
@@ -124,16 +151,32 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
 
                   return Card(
                     margin: const EdgeInsets.only(bottom: 8),
-                    color: isSel ? const Color(0xFF2563EB).withValues(alpha: 0.1) : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+                    color: isSel
+                        ? const Color(0xFF2563EB).withValues(alpha: 0.1)
+                        : (isDark
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFF8FAFC)),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
-                      side: BorderSide(color: isSel ? const Color(0xFF2563EB) : LsColors.line(ctx)),
+                      side: BorderSide(
+                          color: isSel
+                              ? const Color(0xFF2563EB)
+                              : LsColors.line(ctx)),
                     ),
                     child: ListTile(
                       dense: true,
-                      leading: Icon(icon, color: isSel ? const Color(0xFF2563EB) : Colors.grey),
-                      title: Text(label, style: TextStyle(fontWeight: FontWeight.bold, color: isSel ? const Color(0xFF2563EB) : (isDark ? Colors.white : Colors.black87))),
-                      trailing: isSel ? const Icon(Icons.check_circle, color: Color(0xFF2563EB), size: 20) : null,
+                      leading: Icon(icon,
+                          color: isSel ? const Color(0xFF2563EB) : Colors.grey),
+                      title: Text(label,
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: isSel
+                                  ? const Color(0xFF2563EB)
+                                  : (isDark ? Colors.white : Colors.black87))),
+                      trailing: isSel
+                          ? const Icon(Icons.check_circle,
+                              color: Color(0xFF2563EB), size: 20)
+                          : null,
                       onTap: () async {
                         Navigator.pop(ctx);
                         if (key == 'pick_month') {
@@ -158,7 +201,7 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
 
   // ── Custom Modern Date Range Picker ───────────────────────────────────────
   Future<void> _showCustomDateRangePicker(BuildContext context) async {
-    final pickedRange = await showDateRangePicker(
+    final pickedRange = await showLsDateRangePickerSheet(
       context: context,
       firstDate: DateTime(2020),
       lastDate: DateTime(2035),
@@ -166,23 +209,7 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
         start: widget.selectedDate.subtract(const Duration(days: 7)),
         end: widget.selectedDate,
       ),
-      builder: (context, child) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: const Color(0xFF2563EB),
-              onPrimary: Colors.white,
-              surface: isDark ? const Color(0xFF1E293B) : Colors.white,
-              onSurface: isDark ? Colors.white : const Color(0xFF0F172A),
-            ),
-            dialogTheme: DialogThemeData(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-            ),
-          ),
-          child: child!,
-        );
-      },
+      title: 'Pilih Rentang Tanggal',
     );
     if (pickedRange != null && widget.onDateRangeChanged != null) {
       widget.onDateRangeChanged!(pickedRange);
@@ -199,9 +226,24 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
         final currentStatus = widget.statusFilter ?? 'upcoming';
 
         final options = [
-          {'key': 'upcoming', 'label': 'Mendatang', 'icon': Icons.hourglass_top_outlined, 'color': const Color(0xFF2563EB)},
-          {'key': 'completed', 'label': 'Selesai', 'icon': Icons.check_circle_outline, 'color': Colors.green},
-          {'key': 'all', 'label': 'Semua Status', 'icon': Icons.list_alt_outlined, 'color': Colors.grey.shade700},
+          {
+            'key': 'upcoming',
+            'label': 'Mendatang',
+            'icon': Icons.hourglass_top_outlined,
+            'color': const Color(0xFF2563EB)
+          },
+          {
+            'key': 'completed',
+            'label': 'Selesai',
+            'icon': Icons.check_circle_outline,
+            'color': Colors.green
+          },
+          {
+            'key': 'all',
+            'label': 'Semua Status',
+            'icon': Icons.list_alt_outlined,
+            'color': Colors.grey.shade700
+          },
         ];
 
         return Container(
@@ -217,8 +259,12 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Filter Status Agenda', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                  const Text('Filter Status Agenda',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(ctx)),
                 ],
               ),
               const SizedBox(height: 16),
@@ -232,16 +278,28 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
 
                   return Card(
                     margin: const EdgeInsets.only(bottom: 8),
-                    color: isSel ? color.withValues(alpha: 0.1) : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+                    color: isSel
+                        ? color.withValues(alpha: 0.1)
+                        : (isDark
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFF8FAFC)),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
-                      side: BorderSide(color: isSel ? color : LsColors.line(ctx)),
+                      side:
+                          BorderSide(color: isSel ? color : LsColors.line(ctx)),
                     ),
                     child: ListTile(
                       dense: true,
                       leading: Icon(icon, color: isSel ? color : Colors.grey),
-                      title: Text(label, style: TextStyle(fontWeight: FontWeight.bold, color: isSel ? color : (isDark ? Colors.white : Colors.black87))),
-                      trailing: isSel ? Icon(Icons.check_circle, color: color, size: 20) : null,
+                      title: Text(label,
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: isSel
+                                  ? color
+                                  : (isDark ? Colors.white : Colors.black87))),
+                      trailing: isSel
+                          ? Icon(Icons.check_circle, color: color, size: 20)
+                          : null,
                       onTap: () {
                         Navigator.pop(ctx);
                         if (widget.onStatusFilterChanged != null) {
@@ -265,8 +323,18 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
     int selectedMonth = widget.selectedDate.month;
 
     final monthsList = [
-      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember'
     ];
 
     await showModalBottomSheet(
@@ -281,11 +349,14 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
             return Container(
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-                top: 24, left: 24, right: 24,
+                top: 24,
+                left: 24,
+                right: 24,
               ),
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(24)),
               ),
               child: SingleChildScrollView(
                 child: Column(
@@ -300,10 +371,12 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF2563EB).withValues(alpha: 0.1),
+                                color: const Color(0xFF2563EB)
+                                    .withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(Icons.calendar_month, color: Color(0xFF2563EB), size: 24),
+                              child: const Icon(Icons.calendar_month,
+                                  color: Color(0xFF2563EB), size: 24),
                             ),
                             const SizedBox(width: 12),
                             Text(
@@ -311,7 +384,9 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF0F172A),
                               ),
                             ),
                           ],
@@ -329,29 +404,38 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.chevron_left, color: Color(0xFF2563EB)),
+                          icon: const Icon(Icons.chevron_left,
+                              color: Color(0xFF2563EB)),
                           onPressed: selectedYear > 2020
                               ? () => setModalState(() => selectedYear--)
                               : null,
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                            color: isDark
+                                ? const Color(0xFF0F172A)
+                                : const Color(0xFFF1F5F9),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFF2563EB).withValues(alpha: 0.3)),
+                            border: Border.all(
+                                color: const Color(0xFF2563EB)
+                                    .withValues(alpha: 0.3)),
                           ),
                           child: Text(
                             '$selectedYear',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.white : const Color(0xFF1E293B),
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF1E293B),
                             ),
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.chevron_right, color: Color(0xFF2563EB)),
+                          icon: const Icon(Icons.chevron_right,
+                              color: Color(0xFF2563EB)),
                           onPressed: selectedYear < 2035
                               ? () => setModalState(() => selectedYear++)
                               : null,
@@ -364,7 +448,8 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
                     GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 3,
                         childAspectRatio: 2.2,
                         crossAxisSpacing: 10,
@@ -386,10 +471,16 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
                             duration: const Duration(milliseconds: 200),
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
-                              color: isSel ? const Color(0xFF2563EB) : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+                              color: isSel
+                                  ? const Color(0xFF2563EB)
+                                  : (isDark
+                                      ? const Color(0xFF0F172A)
+                                      : const Color(0xFFF8FAFC)),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: isSel ? const Color(0xFF2563EB) : LsColors.line(ctx),
+                                color: isSel
+                                    ? const Color(0xFF2563EB)
+                                    : LsColors.line(ctx),
                                 width: isSel ? 2 : 1,
                               ),
                             ),
@@ -397,8 +488,13 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
                               monthsList[idx],
                               style: TextStyle(
                                 fontSize: 13,
-                                fontWeight: isSel ? FontWeight.bold : FontWeight.w600,
-                                color: isSel ? Colors.white : (isDark ? Colors.white70 : const Color(0xFF334155)),
+                                fontWeight:
+                                    isSel ? FontWeight.bold : FontWeight.w600,
+                                color: isSel
+                                    ? Colors.white
+                                    : (isDark
+                                        ? Colors.white70
+                                        : const Color(0xFF334155)),
                               ),
                             ),
                           ),
@@ -413,14 +509,18 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
                         backgroundColor: const Color(0xFF2563EB),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
                       ),
                       onPressed: () {
-                        final newDate = DateTime(selectedYear, selectedMonth, 1);
+                        final newDate =
+                            DateTime(selectedYear, selectedMonth, 1);
                         widget.onDateChanged(newDate);
                         Navigator.pop(ctx);
                       },
-                      child: const Text('Terapkan Bulan', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                      child: const Text('Terapkan Bulan',
+                          style: TextStyle(
+                              fontSize: 15, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
@@ -434,29 +534,40 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
 
   String _getScopeLabel(String? scope) {
     switch (scope) {
-      case 'all': return 'Semua';
-      case 'pick_month': return 'Pilih Bulan';
-      case 'range': return 'Rentang';
-      default: return 'Bulan Ini';
+      case 'all':
+        return 'Semua';
+      case 'pick_month':
+        return 'Pilih Bulan';
+      case 'range':
+        return 'Rentang';
+      default:
+        return 'Bulan Ini';
     }
   }
 
   String _getStatusLabel(String? status) {
     switch (status) {
-      case 'completed': return 'Selesai';
-      case 'all': return 'Semua Status';
-      default: return 'Mendatang';
+      case 'completed':
+        return 'Selesai';
+      case 'all':
+        return 'Semua Status';
+      default:
+        return 'Mendatang';
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currentMonthStr = DateFormat('MMM yyyy', 'id_ID').format(widget.selectedDate);
+    final currentMonthStr =
+        DateFormat('MMM yyyy', 'id_ID').format(widget.selectedDate);
 
-    final daysInMonth = DateTime(widget.selectedDate.year, widget.selectedDate.month + 1, 0).day;
+    final daysInMonth =
+        DateTime(widget.selectedDate.year, widget.selectedDate.month + 1, 0)
+            .day;
     final days = List.generate(daysInMonth, (index) {
-      return DateTime(widget.selectedDate.year, widget.selectedDate.month, index + 1);
+      return DateTime(
+          widget.selectedDate.year, widget.selectedDate.month, index + 1);
     });
 
     return Container(
@@ -479,11 +590,16 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
                   onTap: () => _showCustomDateScopeSheet(context),
                   borderRadius: BorderRadius.circular(10),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                      color: isDark
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFF2563EB).withValues(alpha: 0.2)),
+                      border: Border.all(
+                          color:
+                              const Color(0xFF2563EB).withValues(alpha: 0.2)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -493,11 +609,13 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : const Color(0xFF1E293B),
+                            color:
+                                isDark ? Colors.white : const Color(0xFF1E293B),
                           ),
                         ),
                         const SizedBox(width: 2),
-                        const Icon(Icons.arrow_drop_down, color: Color(0xFF2563EB), size: 16),
+                        const Icon(Icons.arrow_drop_down,
+                            color: Color(0xFF2563EB), size: 16),
                       ],
                     ),
                   ),
@@ -509,22 +627,28 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 3),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                  color: isDark
+                      ? const Color(0xFF0F172A)
+                      : const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFF2563EB).withValues(alpha: 0.2)),
+                  border: Border.all(
+                      color: const Color(0xFF2563EB).withValues(alpha: 0.2)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     InkWell(
                       onTap: () {
-                        final prev = DateTime(widget.selectedDate.year, widget.selectedDate.month - 1, 1);
+                        final prev = DateTime(widget.selectedDate.year,
+                            widget.selectedDate.month - 1, 1);
                         widget.onDateChanged(prev);
                       },
                       borderRadius: BorderRadius.circular(6),
                       child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 3, vertical: 2),
-                        child: Icon(Icons.chevron_left, size: 16, color: Color(0xFF2563EB)),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+                        child: Icon(Icons.chevron_left,
+                            size: 16, color: Color(0xFF2563EB)),
                       ),
                     ),
                     InkWell(
@@ -533,14 +657,17 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.calendar_month_outlined, size: 13, color: Color(0xFF2563EB)),
+                          const Icon(Icons.calendar_month_outlined,
+                              size: 13, color: Color(0xFF2563EB)),
                           const SizedBox(width: 3),
                           Text(
                             currentMonthStr,
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.white : const Color(0xFF1E293B),
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF1E293B),
                             ),
                           ),
                         ],
@@ -548,13 +675,16 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
                     ),
                     InkWell(
                       onTap: () {
-                        final next = DateTime(widget.selectedDate.year, widget.selectedDate.month + 1, 1);
+                        final next = DateTime(widget.selectedDate.year,
+                            widget.selectedDate.month + 1, 1);
                         widget.onDateChanged(next);
                       },
                       borderRadius: BorderRadius.circular(6),
                       child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 3, vertical: 2),
-                        child: Icon(Icons.chevron_right, size: 16, color: Color(0xFF2563EB)),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+                        child: Icon(Icons.chevron_right,
+                            size: 16, color: Color(0xFF2563EB)),
                       ),
                     ),
                   ],
@@ -567,11 +697,16 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
                   onTap: () => _showCustomStatusFilterSheet(context),
                   borderRadius: BorderRadius.circular(10),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                      color: isDark
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFF2563EB).withValues(alpha: 0.2)),
+                      border: Border.all(
+                          color:
+                              const Color(0xFF2563EB).withValues(alpha: 0.2)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -581,11 +716,13 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : const Color(0xFF1E293B),
+                            color:
+                                isDark ? Colors.white : const Color(0xFF1E293B),
                           ),
                         ),
                         const SizedBox(width: 2),
-                        const Icon(Icons.arrow_drop_down, color: Color(0xFF2563EB), size: 16),
+                        const Icon(Icons.arrow_drop_down,
+                            color: Color(0xFF2563EB), size: 16),
                       ],
                     ),
                   ),
@@ -621,10 +758,14 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
                       decoration: BoxDecoration(
                         color: isSelected
                             ? const Color(0xFF2563EB)
-                            : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+                            : (isDark
+                                ? const Color(0xFF0F172A)
+                                : const Color(0xFFF8FAFC)),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isSelected ? const Color(0xFF2563EB) : LsColors.line(context),
+                          color: isSelected
+                              ? const Color(0xFF2563EB)
+                              : LsColors.line(context),
                           width: isSelected ? 2 : 1,
                         ),
                       ),
@@ -636,7 +777,9 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w500,
-                              color: isSelected ? Colors.white70 : Colors.grey.shade500,
+                              color: isSelected
+                                  ? Colors.white70
+                                  : Colors.grey.shade500,
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -645,7 +788,11 @@ class _MonthDayPickerWidgetState extends State<MonthDayPickerWidget> {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: isSelected ? Colors.white : (isDark ? Colors.white : const Color(0xFF1F2937)),
+                              color: isSelected
+                                  ? Colors.white
+                                  : (isDark
+                                      ? Colors.white
+                                      : const Color(0xFF1F2937)),
                             ),
                           ),
                         ],

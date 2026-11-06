@@ -7,15 +7,18 @@ import 'package:lifesync_app/presentation/providers/financial_note_providers.dar
 import 'package:lifesync_app/presentation/pages/financial_note_detail_page.dart';
 import 'package:lifesync_app/config/app_variant.dart';
 import 'package:lifesync_app/presentation/widgets/ls_design.dart';
+import 'package:lifesync_app/presentation/widgets/ls_date_time_picker_sheet.dart';
 
 class FinancialRecordsHomePage extends ConsumerStatefulWidget {
   const FinancialRecordsHomePage({super.key});
 
   @override
-  ConsumerState<FinancialRecordsHomePage> createState() => _FinancialRecordsHomePageState();
+  ConsumerState<FinancialRecordsHomePage> createState() =>
+      _FinancialRecordsHomePageState();
 }
 
-class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomePage> {
+class _FinancialRecordsHomePageState
+    extends ConsumerState<FinancialRecordsHomePage> {
   final NumberFormat _fmt = NumberFormat('#,###', 'id_ID');
   DateTime _selectedDate = DateTime.now();
   DateTime? _selectedDay;
@@ -35,12 +38,21 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
   bool _matchesPeriod(DateTime date) {
     if (_periodScope == 'all') return true;
     if (_periodScope == 'range' && _selectedDateRange != null) {
-      final start = DateTime(_selectedDateRange!.start.year, _selectedDateRange!.start.month, _selectedDateRange!.start.day);
-      final end = DateTime(_selectedDateRange!.end.year, _selectedDateRange!.end.month, _selectedDateRange!.end.day, 23, 59, 59);
-      return date.isAfter(start.subtract(const Duration(seconds: 1))) && date.isBefore(end.add(const Duration(seconds: 1)));
+      final start = DateTime(_selectedDateRange!.start.year,
+          _selectedDateRange!.start.month, _selectedDateRange!.start.day);
+      final end = DateTime(
+          _selectedDateRange!.end.year,
+          _selectedDateRange!.end.month,
+          _selectedDateRange!.end.day,
+          23,
+          59,
+          59);
+      return date.isAfter(start.subtract(const Duration(seconds: 1))) &&
+          date.isBefore(end.add(const Duration(seconds: 1)));
     }
     // Scope: month
-    final isSameMonth = date.year == _selectedDate.year && date.month == _selectedDate.month;
+    final isSameMonth =
+        date.year == _selectedDate.year && date.month == _selectedDate.month;
     if (!isSameMonth) return false;
     if (_selectedDay != null) {
       return date.day == _selectedDay!.day;
@@ -50,17 +62,19 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
 
   void _shiftMonth(int delta) {
     setState(() {
-      _selectedDate = DateTime(_selectedDate.year, _selectedDate.month + delta, 1);
+      _selectedDate =
+          DateTime(_selectedDate.year, _selectedDate.month + delta, 1);
       _selectedDay = null;
     });
   }
 
   Future<void> _pickMonth() async {
-    final picked = await showDatePicker(
+    final picked = await showLsDateTimePickerSheet(
       context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2035),
+      initialDateTime: _selectedDate,
+      enableTime: false,
+      title: 'Pilih Periode Kalender',
+      confirmLabel: 'Terapkan Periode',
     );
     if (picked != null && mounted) {
       setState(() {
@@ -72,25 +86,16 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
   }
 
   Future<void> _pickDateRange() async {
-    final picked = await showDateRangePicker(
+    final picked = await showLsDateRangePickerSheet(
       context: context,
       firstDate: DateTime(2020),
       lastDate: DateTime(2035),
-      initialDateRange: _selectedDateRange ?? DateTimeRange(
-        start: DateTime(_selectedDate.year, _selectedDate.month, 1),
-        end: DateTime(_selectedDate.year, _selectedDate.month + 1, 0),
-      ),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: LsColors.brand,
-              brightness: Theme.of(context).brightness,
-            ),
+      initialDateRange: _selectedDateRange ??
+          DateTimeRange(
+            start: DateTime(_selectedDate.year, _selectedDate.month, 1),
+            end: DateTime(_selectedDate.year, _selectedDate.month + 1, 0),
           ),
-          child: child!,
-        );
-      },
+      title: 'Pilih Rentang Tanggal Transaksi',
     );
     if (picked != null && mounted) {
       setState(() {
@@ -101,14 +106,87 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
     }
   }
 
-  Widget _monthNav() {
+  Widget _buildIconFilterButton<T>({
+    required T value,
+    required IconData icon,
+    required Color color,
+    required bool isHighlighted,
+    required String tooltip,
+    required List<LsDropdownOption<T>> options,
+    required ValueChanged<T> onSelected,
+  }) {
+    return Theme(
+      data: Theme.of(context).copyWith(
+        popupMenuTheme: PopupMenuThemeData(
+          color: LsColors.surface(context),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: LsColors.line(context)),
+          ),
+          elevation: 6,
+        ),
+      ),
+      child: PopupMenuButton<T>(
+        tooltip: tooltip,
+        initialValue: value,
+        onSelected: onSelected,
+        offset: const Offset(0, 40),
+        itemBuilder: (ctx) => options.map((opt) {
+          final isSelected = opt.value == value;
+          final itemColor =
+              opt.color ?? (isSelected ? LsColors.brand : LsColors.ink(ctx));
+          return PopupMenuItem<T>(
+            value: opt.value,
+            child: Row(
+              children: [
+                Icon(opt.icon, size: 18, color: itemColor),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    opt.label,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight:
+                          isSelected ? FontWeight.w800 : FontWeight.w600,
+                      color: itemColor,
+                    ),
+                  ),
+                ),
+                if (isSelected)
+                  Icon(Icons.check_rounded, size: 16, color: itemColor),
+              ],
+            ),
+          );
+        }).toList(),
+        child: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: isHighlighted
+                ? color.withValues(alpha: 0.12)
+                : LsColors.paper(context),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isHighlighted ? color : LsColors.line(context),
+              width: isHighlighted ? 1.5 : 1.0,
+            ),
+          ),
+          child: Icon(icon,
+              size: 18, color: isHighlighted ? color : LsColors.ink(context)),
+        ),
+      ),
+    );
+  }
+
+  Widget _filterHeader(List<NoteWithItems> allNotes) {
     String label;
     if (_periodScope == 'all') {
       label = 'Semua Data';
     } else if (_periodScope == 'range' && _selectedDateRange != null) {
       final s = _selectedDateRange!.start;
       final e = _selectedDateRange!.end;
-      label = '${DateFormat('d MMM', 'id_ID').format(s)} - ${DateFormat('d MMM yyyy', 'id_ID').format(e)}';
+      label =
+          '${DateFormat('d MMM', 'id_ID').format(s)} – ${DateFormat('d MMM yyyy', 'id_ID').format(e)}';
     } else {
       label = DateFormat('MMMM yyyy', 'id_ID').format(_selectedDate);
     }
@@ -116,7 +194,7 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
     final isMonth = _periodScope == 'month';
 
     Widget arrow(IconData icon, int delta) => InkWell(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(8),
           onTap: isMonth ? () => _shiftMonth(delta) : null,
           child: Opacity(
             opacity: isMonth ? 1.0 : 0.25,
@@ -125,7 +203,7 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
               height: 32,
               decoration: BoxDecoration(
                 color: LsColors.paper(context),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: LsColors.line(context)),
               ),
               child: Icon(icon, size: 18, color: LsColors.ink(context)),
@@ -133,53 +211,146 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
           ),
         );
 
-    return Row(
-      children: [
-        arrow(Icons.chevron_left_rounded, -1),
-        Expanded(
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () {
-              if (_periodScope == 'range') {
-                _pickDateRange();
-              } else {
-                _pickMonth();
-              }
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Column(
-                children: [
-                  const LsEyebrow('Periode'),
-                  const SizedBox(height: 2),
-                  Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w800,
-                      color: LsColors.ink(context),
-                      letterSpacing: -0.3,
+    return Container(
+      decoration: BoxDecoration(
+        color: LsColors.surface(context),
+        border: Border(bottom: BorderSide(color: LsColors.line(context))),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                arrow(Icons.chevron_left_rounded, -1),
+                const SizedBox(width: 6),
+                InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () {
+                    if (_periodScope == 'range') {
+                      _pickDateRange();
+                    } else {
+                      _pickMonth();
+                    }
+                  },
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: LsColors.paper(context),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: LsColors.line(context)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w800,
+                            color: LsColors.ink(context),
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(Icons.arrow_drop_down_rounded,
+                            size: 18, color: LsColors.mute(context)),
+                      ],
                     ),
                   ),
+                ),
+                const SizedBox(width: 6),
+                arrow(Icons.chevron_right_rounded, 1),
+                const Spacer(),
+                if (_periodScope == 'month' && _selectedDay != null) ...[
+                  InkWell(
+                    onTap: () => setState(() => _selectedDay = null),
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: LsColors.brand.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: LsColors.brand.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Tgl ${_selectedDay!.day}',
+                            style: const TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.bold,
+                                color: LsColors.brand),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.close_rounded,
+                              size: 14, color: LsColors.brand),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                 ],
-              ),
+                _buildIconFilterButton<String>(
+                  value: _periodScope,
+                  icon: _periodScope == 'range'
+                      ? Icons.date_range_rounded
+                      : (_periodScope == 'all'
+                          ? Icons.all_inclusive_rounded
+                          : Icons.calendar_today_rounded),
+                  color: LsColors.brand,
+                  isHighlighted: _periodScope != 'month',
+                  tooltip: 'Filter Periode',
+                  options: const [
+                    LsDropdownOption(
+                        value: 'month',
+                        label: 'Bulan Ini',
+                        icon: Icons.calendar_today_outlined),
+                    LsDropdownOption(
+                        value: 'all',
+                        label: 'Semua Data',
+                        icon: Icons.all_inclusive_outlined),
+                    LsDropdownOption(
+                        value: 'range',
+                        label: 'Pilih Rentang',
+                        icon: Icons.date_range_outlined),
+                  ],
+                  onSelected: (val) {
+                    if (val == 'range') {
+                      _pickDateRange();
+                    } else {
+                      setState(() {
+                        _periodScope = val;
+                        _selectedDay = null;
+                        if (val == 'month') _selectedDate = DateTime.now();
+                      });
+                    }
+                  },
+                ),
+              ],
             ),
           ),
-        ),
-        arrow(Icons.chevron_right_rounded, 1),
-      ],
+          if (_periodScope == 'month') _buildDayStrip(allNotes),
+        ],
+      ),
     );
   }
 
   Widget _buildDayStrip(List<NoteWithItems> allNotes) {
-    final daysInMonth = DateTime(_selectedDate.year, _selectedDate.month + 1, 0).day;
+    final daysInMonth =
+        DateTime(_selectedDate.year, _selectedDate.month + 1, 0).day;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final activeDays = <int>{};
     for (final note in allNotes) {
-      if (note.note.date.year == _selectedDate.year && note.note.date.month == _selectedDate.month) {
+      if (note.note.date.year == _selectedDate.year &&
+          note.note.date.month == _selectedDate.month) {
         activeDays.add(note.note.date.day);
       }
     }
@@ -209,7 +380,8 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
               setState(() {
                 if (isSelected) {
                   _selectedDay = null;
-                  ref.read(selectedFinancialDateProvider.notifier).state = _selectedDate;
+                  ref.read(selectedFinancialDateProvider.notifier).state =
+                      _selectedDate;
                 } else {
                   _selectedDay = date;
                   ref.read(selectedFinancialDateProvider.notifier).state = date;
@@ -223,7 +395,9 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
               decoration: BoxDecoration(
                 color: isSelected
                     ? LsColors.brand
-                    : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+                    : (isDark
+                        ? const Color(0xFF1E293B)
+                        : const Color(0xFFF1F5F9)),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: isSelected
@@ -253,9 +427,7 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
                     style: TextStyle(
                       fontSize: 14.5,
                       fontWeight: FontWeight.w800,
-                      color: isSelected
-                          ? Colors.white
-                          : LsColors.ink(context),
+                      color: isSelected ? Colors.white : LsColors.ink(context),
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -274,84 +446,6 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
             ),
           );
         },
-      ),
-    );
-  }
-
-  Widget _filterHeader(List<NoteWithItems> allNotes) {
-    return Container(
-      decoration: BoxDecoration(
-        color: LsColors.surface(context),
-        border: Border(bottom: BorderSide(color: LsColors.line(context))),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Baris 1: Navigasi Bulan (identik dengan Pengingat)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
-            child: _monthNav(),
-          ),
-          // Baris 2: Capsule scope dropdown
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Row(
-              children: [
-                LsCapsuleDropdown<String>(
-                  width: 135,
-                  value: _periodScope,
-                  isHighlighted: _periodScope != 'all',
-                  options: const [
-                    LsDropdownOption(value: 'month', label: 'Bulan Ini', icon: Icons.calendar_today_outlined),
-                    LsDropdownOption(value: 'all', label: 'Semua Data', icon: Icons.all_inclusive_outlined),
-                    LsDropdownOption(value: 'range', label: 'Pilih Rentang', icon: Icons.date_range_outlined),
-                  ],
-                  onSelected: (val) {
-                    if (val == 'range') {
-                      _pickDateRange();
-                    } else {
-                      setState(() {
-                        _periodScope = val;
-                        _selectedDay = null;
-                        if (val == 'month') _selectedDate = DateTime.now();
-                      });
-                    }
-                  },
-                ),
-                if (_periodScope == 'month' && _selectedDay != null) ...[
-                  const SizedBox(width: 8),
-                  InkWell(
-                    onTap: () => setState(() => _selectedDay = null),
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: LsColors.brand.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: LsColors.brand.withValues(alpha: 0.3)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Tgl ${_selectedDay!.day} (Reset)',
-                            style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: LsColors.brand),
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(Icons.close_rounded, size: 14, color: LsColors.brand),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          // Baris 3: Strip pilihan tanggal (hanya saat scope 'month')
-          if (_periodScope == 'month')
-            _buildDayStrip(allNotes),
-        ],
       ),
     );
   }
@@ -386,7 +480,11 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
             filterQuality: FilterQuality.high,
             errorBuilder: (_, __, ___) => Text(
               AppEnvironment.config.appName,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Color(0xFF2563EB), letterSpacing: -0.5),
+              style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF2563EB),
+                  letterSpacing: -0.5),
             ),
           ),
         ),
@@ -400,7 +498,8 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
             if (_searchQuery.isNotEmpty) {
               final q = _searchQuery.toLowerCase();
               final matchTitle = n.note.title.toLowerCase().contains(q);
-              final matchItem = n.items.any((it) => it.description.toLowerCase().contains(q));
+              final matchItem =
+                  n.items.any((it) => it.description.toLowerCase().contains(q));
               if (!matchTitle && !matchItem) return false;
             }
             return true;
@@ -427,9 +526,13 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
                 child: TextField(
                   onChanged: (val) => setState(() => _searchQuery = val.trim()),
                   decoration: InputDecoration(
-                    hintText: AppTranslations.get(ref.watch(localeProvider).languageCode, 'cari_catatan_transaksi'),
-                    hintStyle: TextStyle(fontSize: 13, color: LsColors.mute(context)),
-                    prefixIcon: const Icon(Icons.search, size: 20, color: LsColors.brand),
+                    hintText: AppTranslations.get(
+                        ref.watch(localeProvider).languageCode,
+                        'cari_catatan_transaksi'),
+                    hintStyle:
+                        TextStyle(fontSize: 13, color: LsColors.mute(context)),
+                    prefixIcon: const Icon(Icons.search,
+                        size: 20, color: LsColors.brand),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
                             icon: const Icon(Icons.clear, size: 18),
@@ -439,7 +542,8 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
                     isDense: true,
                     filled: true,
                     fillColor: LsColors.surface(context),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: BorderSide(color: LsColors.line(context)),
@@ -472,7 +576,8 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
     );
   }
 
-  Widget _buildSummaryHeader(double income, double expense, double balance, bool isDark) {
+  Widget _buildSummaryHeader(
+      double income, double expense, double balance, bool isDark) {
     Widget sub(String label, double v, Color c, IconData icon) => Expanded(
           child: Container(
             padding: const EdgeInsets.all(12),
@@ -486,13 +591,22 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
                 Row(children: [
                   Icon(icon, size: 14, color: c),
                   const SizedBox(width: 4),
-                  Text(label.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: Colors.white70)),
+                  Text(label.toUpperCase(),
+                      style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.2,
+                          color: Colors.white70)),
                 ]),
                 const SizedBox(height: 6),
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
-                  child: Text(_formatAmount(v), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white)),
+                  child: Text(_formatAmount(v),
+                      style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white)),
                 ),
               ],
             ),
@@ -513,7 +627,12 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
               alignment: Alignment.centerLeft,
               child: Text(
                 '${balance < 0 ? '-' : ''}${_formatAmount(balance.abs())}',
-                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, height: 1.1, color: Colors.white, letterSpacing: -0.5),
+                style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    height: 1.1,
+                    color: Colors.white,
+                    letterSpacing: -0.5),
               ),
             ),
             const SizedBox(height: 14),
@@ -522,16 +641,24 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
               child: SizedBox(
                 height: 6,
                 child: Row(children: [
-                  Expanded(flex: (ratio * 1000).round(), child: Container(color: LsColors.income)),
-                  Expanded(flex: ((1 - ratio) * 1000).round(), child: Container(color: total <= 0 ? Colors.white24 : LsColors.expense)),
+                  Expanded(
+                      flex: (ratio * 1000).round(),
+                      child: Container(color: LsColors.income)),
+                  Expanded(
+                      flex: ((1 - ratio) * 1000).round(),
+                      child: Container(
+                          color:
+                              total <= 0 ? Colors.white24 : LsColors.expense)),
                 ]),
               ),
             ),
             const SizedBox(height: 14),
             Row(children: [
-              sub('Pemasukan', income, LsColors.income, Icons.arrow_downward_rounded),
+              sub('Pemasukan', income, LsColors.income,
+                  Icons.arrow_downward_rounded),
               const SizedBox(width: 10),
-              sub('Pengeluaran', expense, const Color(0xFFFCA5A5), Icons.arrow_upward_rounded),
+              sub('Pengeluaran', expense, const Color(0xFFFCA5A5),
+                  Icons.arrow_upward_rounded),
             ]),
           ],
         ),
@@ -549,13 +676,19 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
             Container(
               width: 72,
               height: 72,
-              decoration: BoxDecoration(color: LsColors.brand.withValues(alpha: 0.12), shape: BoxShape.circle),
-              child: const Icon(Icons.receipt_long_outlined, size: 34, color: LsColors.brand),
+              decoration: BoxDecoration(
+                  color: LsColors.brand.withValues(alpha: 0.12),
+                  shape: BoxShape.circle),
+              child: const Icon(Icons.receipt_long_outlined,
+                  size: 34, color: LsColors.brand),
             ),
             const SizedBox(height: 16),
             Text(
               'Belum ada catatan keuangan.',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: LsColors.ink(context)),
+              style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: LsColors.ink(context)),
             ),
             const SizedBox(height: 8),
             Text(
@@ -570,19 +703,27 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
   }
 
   Widget _buildNoteCard(NoteWithItems noteItem, bool isDark) {
-    final dateStr = DateFormat('dd MMMM yyyy, HH:mm', 'id_ID').format(noteItem.note.date);
+    final dateStr =
+        DateFormat('dd MMMM yyyy, HH:mm', 'id_ID').format(noteItem.note.date);
     final net = noteItem.totalIncome - noteItem.totalExpense;
 
-    Widget col(String label, double v, Color c, {String prefix = ''}) => Expanded(
+    Widget col(String label, double v, Color c, {String prefix = ''}) =>
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: LsColors.mute(context))),
+              Text(label,
+                  style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: LsColors.mute(context))),
               const SizedBox(height: 2),
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
-                child: Text('$prefix${_formatAmount(v.abs())}', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: c)),
+                child: Text('$prefix${_formatAmount(v.abs())}',
+                    style: TextStyle(
+                        fontSize: 12.5, fontWeight: FontWeight.w800, color: c)),
               ),
             ],
           ),
@@ -608,8 +749,11 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
                 Container(
                   width: 40,
                   height: 40,
-                  decoration: BoxDecoration(color: LsColors.brand.withValues(alpha: 0.12), shape: BoxShape.circle),
-                  child: const Icon(Icons.account_balance_wallet_rounded, color: LsColors.brand, size: 20),
+                  decoration: BoxDecoration(
+                      color: LsColors.brand.withValues(alpha: 0.12),
+                      shape: BoxShape.circle),
+                  child: const Icon(Icons.account_balance_wallet_rounded,
+                      color: LsColors.brand, size: 20),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -620,14 +764,20 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
                         noteItem.note.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: LsColors.ink(context)),
+                        style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                            color: LsColors.ink(context)),
                       ),
                       const SizedBox(height: 2),
-                      Text(dateStr, style: TextStyle(fontSize: 11, color: LsColors.mute(context))),
+                      Text(dateStr,
+                          style: TextStyle(
+                              fontSize: 11, color: LsColors.mute(context))),
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right, color: LsColors.mute(context), size: 20),
+                Icon(Icons.chevron_right,
+                    color: LsColors.mute(context), size: 20),
               ],
             ),
             const SizedBox(height: 12),
@@ -639,9 +789,13 @@ class _FinancialRecordsHomePageState extends ConsumerState<FinancialRecordsHomeP
               ),
               child: Row(
                 children: [
-                  col('Pemasukan', noteItem.totalIncome, LsColors.income, prefix: '+'),
-                  col('Pengeluaran', noteItem.totalExpense, LsColors.expense, prefix: '-'),
-                  col('Selisih', net, net >= 0 ? LsColors.brand : LsColors.expense, prefix: net < 0 ? '-' : ''),
+                  col('Pemasukan', noteItem.totalIncome, LsColors.income,
+                      prefix: '+'),
+                  col('Pengeluaran', noteItem.totalExpense, LsColors.expense,
+                      prefix: '-'),
+                  col('Selisih', net,
+                      net >= 0 ? LsColors.brand : LsColors.expense,
+                      prefix: net < 0 ? '-' : ''),
                 ],
               ),
             ),

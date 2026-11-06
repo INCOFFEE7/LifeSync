@@ -16,6 +16,7 @@ import 'package:lifesync_app/core/sync/background_sync.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:lifesync_app/presentation/providers/localization_provider.dart';
+import 'package:lifesync_app/presentation/providers/settings_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -108,12 +109,13 @@ class LifeSyncApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final locale = ref.watch(localeProvider);
+    final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp(
       title: AppEnvironment.config.appName,
       theme: AppEnvironment.config.lightTheme,
       darkTheme: AppEnvironment.config.darkTheme,
-      themeMode: ThemeMode.light,
+      themeMode: themeMode,
       locale: locale,
       supportedLocales: const [
         Locale('en'),

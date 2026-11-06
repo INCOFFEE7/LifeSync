@@ -8,6 +8,7 @@ import 'package:lifesync_app/core/utils/thousands_formatter.dart';
 import 'package:lifesync_app/domain/entities/income_target.dart';
 import 'package:lifesync_app/presentation/widgets/calculator_input_dialog.dart';
 import 'package:lifesync_app/presentation/widgets/ls_design.dart';
+import 'package:lifesync_app/presentation/widgets/ls_date_time_picker_sheet.dart';
 
 class AddIncomeDialog extends ConsumerStatefulWidget {
   final int targetId;
@@ -28,9 +29,12 @@ class _AddIncomeDialogState extends ConsumerState<AddIncomeDialog> {
   @override
   void initState() {
     super.initState();
-    if (widget.target != null && widget.target!.mode == 'fixed' && widget.target!.fixedDailyAmount > 0) {
+    if (widget.target != null &&
+        widget.target!.mode == 'fixed' &&
+        widget.target!.fixedDailyAmount > 0) {
       _amount = widget.target!.fixedDailyAmount;
-      _amountController.text = NumberFormat('#,###', 'id_ID').format(_amount.toInt());
+      _amountController.text =
+          NumberFormat('#,###', 'id_ID').format(_amount.toInt());
     }
   }
 
@@ -41,11 +45,13 @@ class _AddIncomeDialogState extends ConsumerState<AddIncomeDialog> {
   }
 
   Future<void> _selectDate() async {
-    final picked = await showDatePicker(
+    final picked = await showLsDateTimePickerSheet(
       context: context,
-      initialDate: _date,
+      initialDateTime: _date,
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now(),
+      enableTime: false,
+      title: 'Pilih Tanggal Menabung',
     );
     if (picked != null) {
       setState(() => _date = picked);
@@ -61,7 +67,8 @@ class _AddIncomeDialogState extends ConsumerState<AddIncomeDialog> {
     if (val != null && mounted) {
       setState(() {
         _amount = val;
-        _amountController.text = NumberFormat('#,###', 'id_ID').format(val.toInt());
+        _amountController.text =
+            NumberFormat('#,###', 'id_ID').format(val.toInt());
       });
     }
   }
@@ -69,7 +76,7 @@ class _AddIncomeDialogState extends ConsumerState<AddIncomeDialog> {
   Future<void> _saveIncome() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      
+
       final record = DailyIncomeRecord()
         ..id = DateTime.now().millisecondsSinceEpoch
         ..targetId = widget.targetId
@@ -91,10 +98,14 @@ class _AddIncomeDialogState extends ConsumerState<AddIncomeDialog> {
   @override
   Widget build(BuildContext context) {
     final line = LsColors.line(context);
-    final fieldBorder = OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: line));
+    final fieldBorder = OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: line));
     return AlertDialog(
       backgroundColor: LsColors.surface(context),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28), side: BorderSide(color: line)),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+          side: BorderSide(color: line)),
       title: Row(
         children: [
           Container(
@@ -103,12 +114,17 @@ class _AddIncomeDialogState extends ConsumerState<AddIncomeDialog> {
               color: LsColors.brand.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.savings, color: Color(0xFF2563EB), size: 24),
+            child:
+                const Icon(Icons.savings, color: Color(0xFF2563EB), size: 24),
           ),
           const SizedBox(width: 12),
           Text(
             'Catat Nabung',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: -0.3, color: LsColors.ink(context)),
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.3,
+                color: LsColors.ink(context)),
           ),
         ],
       ),
@@ -127,24 +143,33 @@ class _AddIncomeDialogState extends ConsumerState<AddIncomeDialog> {
                   fillColor: LsColors.paper(context),
                   border: fieldBorder,
                   enabledBorder: fieldBorder,
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: LsColors.brand, width: 2)),
+                  focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide:
+                          const BorderSide(color: LsColors.brand, width: 2)),
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.calculate, color: Color(0xFF2563EB)),
                     tooltip: 'Buka Kalkulator',
                     onPressed: _openCalculator,
                   ),
                 ),
-                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: LsColors.brand),
+                style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 18,
+                    color: LsColors.brand),
                 keyboardType: TextInputType.number,
                 inputFormatters: [ThousandsFormatter()],
                 validator: (val) {
                   if (val == null || val.isEmpty) return 'Wajib diisi';
                   String cleanVal = val.replaceAll('.', '');
-                  if (double.tryParse(cleanVal) == null) return 'Harus berupa angka';
-                  if (double.parse(cleanVal) <= 0) return 'Harus lebih dari nol';
+                  if (double.tryParse(cleanVal) == null)
+                    return 'Harus berupa angka';
+                  if (double.parse(cleanVal) <= 0)
+                    return 'Harus lebih dari nol';
                   return null;
                 },
-                onSaved: (val) => _amount = double.parse(val!.replaceAll('.', '')),
+                onSaved: (val) =>
+                    _amount = double.parse(val!.replaceAll('.', '')),
               ),
               const SizedBox(height: 14),
               ListTile(
@@ -153,9 +178,17 @@ class _AddIncomeDialogState extends ConsumerState<AddIncomeDialog> {
                   borderRadius: BorderRadius.circular(14),
                   side: BorderSide(color: line),
                 ),
-                title: Text('Tanggal', style: TextStyle(fontSize: 12, color: LsColors.mute(context))),
-                subtitle: Text(DateFormat('dd MMMM yyyy', 'id_ID').format(_date), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: LsColors.ink(context))),
-                trailing: const Icon(Icons.calendar_today, color: Color(0xFF2563EB), size: 20),
+                title: Text('Tanggal',
+                    style:
+                        TextStyle(fontSize: 12, color: LsColors.mute(context))),
+                subtitle: Text(
+                    DateFormat('dd MMMM yyyy', 'id_ID').format(_date),
+                    style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                        color: LsColors.ink(context))),
+                trailing: const Icon(Icons.calendar_today,
+                    color: Color(0xFF2563EB), size: 20),
                 onTap: _selectDate,
               ),
               const SizedBox(height: 14),
@@ -166,7 +199,10 @@ class _AddIncomeDialogState extends ConsumerState<AddIncomeDialog> {
                   fillColor: LsColors.paper(context),
                   border: fieldBorder,
                   enabledBorder: fieldBorder,
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: LsColors.brand, width: 2)),
+                  focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide:
+                          const BorderSide(color: LsColors.brand, width: 2)),
                 ),
                 maxLines: 2,
                 onSaved: (val) => _notes = val ?? '',
@@ -183,11 +219,16 @@ class _AddIncomeDialogState extends ConsumerState<AddIncomeDialog> {
               child: OutlinedButton(
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
                   side: BorderSide(color: line),
                 ),
                 onPressed: () => Navigator.pop(context),
-                child: Text('Batal', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: LsColors.mute(context))),
+                child: Text('Batal',
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: LsColors.mute(context))),
               ),
             ),
             const SizedBox(width: 12),
@@ -196,10 +237,13 @@ class _AddIncomeDialogState extends ConsumerState<AddIncomeDialog> {
                 style: FilledButton.styleFrom(
                   backgroundColor: LsColors.brand,
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
                 ),
                 onPressed: _saveIncome,
-                child: const Text('Simpan', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                child: const Text('Simpan',
+                    style:
+                        TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
               ),
             ),
           ],

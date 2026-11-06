@@ -8,6 +8,7 @@ import 'package:lifesync_app/domain/entities/financial_record.dart';
 import 'package:lifesync_app/presentation/providers/repository_providers.dart';
 import 'package:lifesync_app/presentation/widgets/custom_numeric_keypad.dart';
 import 'package:lifesync_app/presentation/widgets/ls_design.dart';
+import 'package:lifesync_app/presentation/widgets/ls_date_time_picker_sheet.dart';
 import 'package:lifesync_app/core/utils/translations.dart';
 import 'package:lifesync_app/presentation/providers/localization_provider.dart';
 
@@ -179,11 +180,13 @@ class _AddFinancialRecordPageState extends ConsumerState<AddFinancialRecordPage>
   Future<void> _pickDate() async {
     FocusScope.of(context).unfocus();
     setState(() => _showKeypad = false);
-    final picked = await showDatePicker(
+    final picked = await showLsDateTimePickerSheet(
       context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
+      initialDateTime: _selectedDate,
+      maximumDate: DateTime.now(),
+      enableTime: false,
+      title: 'Pilih Tanggal Transaksi',
+      confirmLabel: 'Atur Tanggal',
     );
     if (picked != null) {
       setState(() => _selectedDate = picked);

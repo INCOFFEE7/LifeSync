@@ -6,7 +6,6 @@ import 'package:lifesync_app/domain/entities/income_target.dart';
 import 'package:lifesync_app/domain/usecases/target_calculation_usecase.dart';
 import 'package:lifesync_app/presentation/providers/repository_providers.dart';
 import 'package:lifesync_app/presentation/providers/dashboard_provider.dart';
-import 'package:lifesync_app/presentation/pages/create_target_page.dart';
 import 'package:lifesync_app/presentation/pages/target_detail_page.dart';
 import 'package:lifesync_app/core/services/home_widget_service.dart';
 import 'package:lifesync_app/config/app_variant.dart';
@@ -40,7 +39,8 @@ class TargetsPage extends ConsumerWidget {
                         color: LsColors.brand.withValues(alpha: 0.12),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.savings_outlined, size: 34, color: LsColors.brand),
+                      child: const Icon(Icons.savings_outlined,
+                          size: 34, color: LsColors.brand),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -55,7 +55,8 @@ class TargetsPage extends ConsumerWidget {
                     const SizedBox(height: 8),
                     Text(
                       AppTranslations.get(lang, 'buat_target_pertama'),
-                      style: TextStyle(color: LsColors.mute(context), fontSize: 12),
+                      style: TextStyle(
+                          color: LsColors.mute(context), fontSize: 12),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -65,7 +66,7 @@ class TargetsPage extends ConsumerWidget {
           }
           final dash = ref.watch(dashboardDataProvider).valueOrNull;
           return ListView.builder(
-            padding: const EdgeInsets.only(bottom: 100, top: 16),
+            padding: const EdgeInsets.only(bottom: 84, top: 16),
             itemCount: targets.length + 1,
             itemBuilder: (context, index) {
               if (index == 0) {
@@ -86,16 +87,7 @@ class TargetsPage extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, st) => Center(child: Text('Error: $e')),
       ),
-      floatingActionButton: LsCompactFab(
-        heroTag: 'targets_fab',
-        onPressed: () {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateTargetPage()));
-        },
-        icon: Icons.add_rounded,
-        label: AppTranslations.get(lang, 'target_baru'),
-      ),
     );
-
   }
 
   PreferredSizeWidget _buildHeader(BuildContext context) {
@@ -181,18 +173,23 @@ class _TargetCardState extends ConsumerState<_TargetCard> {
 
   @override
   Widget build(BuildContext context) {
-    final recordsAsync = ref.watch(targetRecordsStreamProvider(widget.target.id));
+    final recordsAsync =
+        ref.watch(targetRecordsStreamProvider(widget.target.id));
     final lang = ref.watch(localeProvider).languageCode;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: LsCard(
         onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => TargetDetailPage(target: widget.target)));
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => TargetDetailPage(target: widget.target)));
         },
         child: recordsAsync.when(
           data: (records) {
-            final totalCollected = records.fold(0.0, (sum, record) => sum + record.incomeAmount);
+            final totalCollected =
+                records.fold(0.0, (sum, record) => sum + record.incomeAmount);
             final progress = widget.target.targetAmount > 0
                 ? (totalCollected / widget.target.targetAmount).clamp(0.0, 1.0)
                 : 0.0;
@@ -206,13 +203,34 @@ class _TargetCardState extends ConsumerState<_TargetCard> {
             Color statusColor;
             String statusLabel;
             switch (status) {
-              case TargetStatus.aheadOfSchedule: statusColor = LsColors.income; statusLabel = AppTranslations.get(lang, 'lebih_cepat'); break;
-              case TargetStatus.onTrack: statusColor = LsColors.brand; statusLabel = AppTranslations.get(lang, 'sesuai_jalur'); break;
-              case TargetStatus.behindSchedule: statusColor = LsColors.amber; statusLabel = AppTranslations.get(lang, 'tertinggal'); break;
-              case TargetStatus.completed: statusColor = LsColors.income; statusLabel = AppTranslations.get(lang, 'tercapai'); break;
-              case TargetStatus.failed: statusColor = LsColors.expense; statusLabel = AppTranslations.get(lang, 'gagal'); break;
-              case TargetStatus.active: statusColor = LsColors.brand; statusLabel = AppTranslations.get(lang, 'aktif'); break;
-              case TargetStatus.notStarted: statusColor = LsColors.violet; statusLabel = AppTranslations.get(lang, 'belum_mulai'); break;
+              case TargetStatus.aheadOfSchedule:
+                statusColor = LsColors.income;
+                statusLabel = AppTranslations.get(lang, 'lebih_cepat');
+                break;
+              case TargetStatus.onTrack:
+                statusColor = LsColors.brand;
+                statusLabel = AppTranslations.get(lang, 'sesuai_jalur');
+                break;
+              case TargetStatus.behindSchedule:
+                statusColor = LsColors.amber;
+                statusLabel = AppTranslations.get(lang, 'tertinggal');
+                break;
+              case TargetStatus.completed:
+                statusColor = LsColors.income;
+                statusLabel = AppTranslations.get(lang, 'tercapai');
+                break;
+              case TargetStatus.failed:
+                statusColor = LsColors.expense;
+                statusLabel = AppTranslations.get(lang, 'gagal');
+                break;
+              case TargetStatus.active:
+                statusColor = LsColors.brand;
+                statusLabel = AppTranslations.get(lang, 'aktif');
+                break;
+              case TargetStatus.notStarted:
+                statusColor = LsColors.violet;
+                statusLabel = AppTranslations.get(lang, 'belum_mulai');
+                break;
             }
             final money = NumberFormat('#,###', 'id_ID');
 
@@ -228,7 +246,10 @@ class _TargetCardState extends ConsumerState<_TargetCard> {
                       color: statusColor,
                       child: Text(
                         '${(progress * 100).round()}%',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: LsColors.ink(context)),
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: LsColors.ink(context)),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -242,11 +263,16 @@ class _TargetCardState extends ConsumerState<_TargetCard> {
                             widget.target.name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800, letterSpacing: -0.3, color: LsColors.ink(context)),
+                            style: TextStyle(
+                                fontSize: 15.5,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.3,
+                                color: LsColors.ink(context)),
                           ),
                           Text(
                             '${DateFormat('d MMM').format(widget.target.startDate)} – ${DateFormat('d MMM yyyy').format(widget.target.endDate)}',
-                            style: TextStyle(fontSize: 11, color: LsColors.mute(context)),
+                            style: TextStyle(
+                                fontSize: 11, color: LsColors.mute(context)),
                           ),
                         ],
                       ),
@@ -257,13 +283,16 @@ class _TargetCardState extends ConsumerState<_TargetCard> {
                         duration: const Duration(milliseconds: 250),
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: _isPinned ? LsColors.brand : LsColors.brand.withValues(alpha: 0.08),
+                          color: _isPinned
+                              ? LsColors.brand
+                              : LsColors.brand.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Icon(
                           _isPinned ? Icons.push_pin : Icons.push_pin_outlined,
                           size: 16,
-                          color: _isPinned ? Colors.white : LsColors.mute(context),
+                          color:
+                              _isPinned ? Colors.white : LsColors.mute(context),
                         ),
                       ),
                     ),
@@ -279,15 +308,22 @@ class _TargetCardState extends ConsumerState<_TargetCard> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(AppTranslations.get(lang, 'terkumpul'), style: TextStyle(fontSize: 11, color: LsColors.mute(context))),
+                        Text(AppTranslations.get(lang, 'terkumpul'),
+                            style: TextStyle(
+                                fontSize: 11, color: LsColors.mute(context))),
                         Text.rich(TextSpan(children: [
                           TextSpan(
                             text: 'Rp ${money.format(totalCollected.toInt())}',
-                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: LsColors.income),
+                            style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: LsColors.income),
                           ),
                           TextSpan(
-                            text: '  / Rp ${money.format(widget.target.targetAmount.toInt())}',
-                            style: TextStyle(fontSize: 11.5, color: LsColors.mute(context)),
+                            text:
+                                '  / Rp ${money.format(widget.target.targetAmount.toInt())}',
+                            style: TextStyle(
+                                fontSize: 11.5, color: LsColors.mute(context)),
                           ),
                         ])),
                       ],
@@ -303,7 +339,8 @@ class _TargetCardState extends ConsumerState<_TargetCard> {
               ],
             );
           },
-          loading: () => const SizedBox(height: 100, child: Center(child: CircularProgressIndicator())),
+          loading: () => const SizedBox(
+              height: 100, child: Center(child: CircularProgressIndicator())),
           error: (e, st) => const Text('Error loading progress'),
         ),
       ),
@@ -315,7 +352,8 @@ class _SavingsHero extends ConsumerWidget {
   final double total;
   final double target;
   final int count;
-  const _SavingsHero({required this.total, required this.target, required this.count});
+  const _SavingsHero(
+      {required this.total, required this.target, required this.count});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -326,14 +364,21 @@ class _SavingsHero extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          LsEyebrow('${AppTranslations.get(lang, 'total_tabungan')} · $count target', color: const Color(0xA6FFFFFF)),
+          LsEyebrow(
+              '${AppTranslations.get(lang, 'total_tabungan')} · $count target',
+              color: const Color(0xA6FFFFFF)),
           const SizedBox(height: 4),
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
             child: Text(
               'Rp ${money.format(total.toInt())}',
-              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, height: 1.1, letterSpacing: -0.5, color: Colors.white),
+              style: const TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
+                  height: 1.1,
+                  letterSpacing: -0.5,
+                  color: Colors.white),
             ),
           ),
           const SizedBox(height: 16),

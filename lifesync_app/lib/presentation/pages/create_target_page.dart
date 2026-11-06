@@ -7,6 +7,7 @@ import 'package:lifesync_app/core/providers/core_providers.dart';
 import 'package:lifesync_app/domain/entities/app_settings.dart';
 import 'package:lifesync_app/presentation/widgets/calculator_input_dialog.dart';
 import 'package:lifesync_app/presentation/widgets/ls_design.dart';
+import 'package:lifesync_app/presentation/widgets/ls_date_time_picker_sheet.dart';
 
 class CreateTargetPage extends ConsumerStatefulWidget {
   final IncomeTarget? existingTarget;
@@ -19,7 +20,7 @@ class CreateTargetPage extends ConsumerStatefulWidget {
 class _CreateTargetPageState extends ConsumerState<CreateTargetPage> {
   final _formKey = GlobalKey<FormState>();
   final _targetAmountController = TextEditingController();
-  
+
   String _name = '';
   String _description = '';
   double _targetAmount = 0.0;
@@ -49,8 +50,10 @@ class _CreateTargetPageState extends ConsumerState<CreateTargetPage> {
       _mode = widget.existingTarget!.mode;
       _fixedDailyAmount = widget.existingTarget!.fixedDailyAmount;
 
-      if (_targetAmount > 0) _targetAmountController.text = currencyFmt.format(_targetAmount.toInt());
-      
+      if (_targetAmount > 0)
+        _targetAmountController.text =
+            currencyFmt.format(_targetAmount.toInt());
+
       if (_category == TargetCategory.other && _customCategoryName != null) {
         _selectedDropdownValue = _customCategoryName!;
       } else {
@@ -89,11 +92,13 @@ class _CreateTargetPageState extends ConsumerState<CreateTargetPage> {
   }
 
   Future<void> _selectStartDate() async {
-    final date = await showDatePicker(
+    final date = await showLsDateTimePickerSheet(
       context: context,
-      initialDate: _startDate,
+      initialDateTime: _startDate,
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 3650)),
+      enableTime: false,
+      title: 'Pilih Tanggal Mulai',
     );
     if (date != null) {
       setState(() => _startDate = date);
@@ -102,11 +107,13 @@ class _CreateTargetPageState extends ConsumerState<CreateTargetPage> {
   }
 
   Future<void> _selectEndDate() async {
-    final date = await showDatePicker(
+    final date = await showLsDateTimePickerSheet(
       context: context,
-      initialDate: _endDate.isBefore(_startDate) ? _startDate : _endDate,
+      initialDateTime: _endDate.isBefore(_startDate) ? _startDate : _endDate,
       firstDate: _startDate,
       lastDate: DateTime.now().add(const Duration(days: 3650)),
+      enableTime: false,
+      title: 'Pilih Batas Waktu Target',
     );
     if (date != null) {
       setState(() => _endDate = date);
@@ -120,18 +127,21 @@ class _CreateTargetPageState extends ConsumerState<CreateTargetPage> {
 
       final confirm = await showLsConfirmDialog(
         context: context,
-        title: widget.existingTarget == null ? 'Simpan Target Nabung?' : 'Perbarui Target Nabung?',
-        message: 'Apakah detail dan nominal target yang dimasukkan sudah benar?',
+        title: widget.existingTarget == null
+            ? 'Simpan Target Nabung?'
+            : 'Perbarui Target Nabung?',
+        message:
+            'Apakah detail dan nominal target yang dimasukkan sudah benar?',
         confirmLabel: 'Ya, Simpan',
         cancelLabel: 'Batal',
       );
       if (!confirm || !mounted) return;
-      
+
       final target = widget.existingTarget ?? IncomeTarget();
       if (widget.existingTarget == null) {
         target.id = DateTime.now().millisecondsSinceEpoch;
       }
-      
+
       target
         ..name = _name
         ..description = _description
@@ -144,37 +154,43 @@ class _CreateTargetPageState extends ConsumerState<CreateTargetPage> {
         ..fixedDailyAmount = _mode == 'fixed' ? _fixedDailyAmount : 0.0
         ..status = widget.existingTarget?.status ?? TargetStatus.notStarted;
 
-      if (_category == TargetCategory.other && _customCategoryName != null && _customCategoryName!.trim().isNotEmpty) {
+      if (_category == TargetCategory.other &&
+          _customCategoryName != null &&
+          _customCategoryName!.trim().isNotEmpty) {
         final db = ref.read(databaseServiceProvider);
         final settings = await db.db.appSettings.get(1);
         if (settings != null) {
           final trimmed = _customCategoryName!.trim();
           if (!settings.customCategories.contains(trimmed)) {
-            settings.customCategories = List.from(settings.customCategories)..add(trimmed);
+            settings.customCategories = List.from(settings.customCategories)
+              ..add(trimmed);
             await db.db.writeTxn(() async {
               await db.db.appSettings.put(settings);
             });
           }
         }
       }
-        
+
       final repo = ref.read(targetRepositoryProvider);
       await repo.saveTarget(target);
-      
+
       if (mounted) {
         Navigator.pop(context);
       }
     }
   }
 
-
   InputDecoration _inputDecoration(String label) {
     final line = LsColors.line(context);
-    OutlineInputBorder b(Color c, double w) =>
-        OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: c, width: w));
+    OutlineInputBorder b(Color c, double w) => OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: c, width: w));
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(color: LsColors.mute(context), fontWeight: FontWeight.w500, fontSize: 13),
+      labelStyle: TextStyle(
+          color: LsColors.mute(context),
+          fontWeight: FontWeight.w500,
+          fontSize: 13),
       filled: true,
       fillColor: LsColors.surface(context),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
@@ -274,13 +290,15 @@ class _CreateTargetPageState extends ConsumerState<CreateTargetPage> {
         decoration: BoxDecoration(
           color: selected ? LsColors.brand : LsColors.paper(context),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: selected ? LsColors.brand : LsColors.line(context)),
+          border: Border.all(
+              color: selected ? LsColors.brand : LsColors.line(context)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (isAdd) ...[
-              Icon(Icons.add, size: 14, color: selected ? Colors.white : LsColors.brand),
+              Icon(Icons.add,
+                  size: 14, color: selected ? Colors.white : LsColors.brand),
               const SizedBox(width: 4),
             ],
             Text(
@@ -288,7 +306,9 @@ class _CreateTargetPageState extends ConsumerState<CreateTargetPage> {
               style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w700,
-                color: selected ? Colors.white : (isAdd ? LsColors.brand : LsColors.ink(context)),
+                color: selected
+                    ? Colors.white
+                    : (isAdd ? LsColors.brand : LsColors.ink(context)),
               ),
             ),
           ],
@@ -312,13 +332,22 @@ class _CreateTargetPageState extends ConsumerState<CreateTargetPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: TextStyle(color: LsColors.mute(context), fontSize: 12, fontWeight: FontWeight.w500)),
+              Text(label,
+                  style: TextStyle(
+                      color: LsColors.mute(context),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500)),
               const SizedBox(height: 4),
               Row(
                 children: [
-                  const Icon(Icons.event_outlined, size: 15, color: LsColors.brand),
+                  const Icon(Icons.event_outlined,
+                      size: 15, color: LsColors.brand),
                   const SizedBox(width: 6),
-                  Text(DateFormat('dd MMM yyyy').format(date), style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: LsColors.ink(context))),
+                  Text(DateFormat('dd MMM yyyy').format(date),
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: LsColors.ink(context))),
                 ],
               ),
             ],
@@ -344,7 +373,11 @@ class _CreateTargetPageState extends ConsumerState<CreateTargetPage> {
         iconTheme: IconThemeData(color: ink),
         title: Text(
           widget.existingTarget == null ? 'Target Baru' : 'Edit Target',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: ink, letterSpacing: -0.5),
+          style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: ink,
+              letterSpacing: -0.5),
         ),
       ),
       body: Form(
@@ -357,7 +390,9 @@ class _CreateTargetPageState extends ConsumerState<CreateTargetPage> {
                 initialValue: _name,
                 decoration: _inputDecoration('Nama Target *'),
                 style: TextStyle(fontWeight: FontWeight.w600, color: ink),
-                validator: (val) => val == null || val.trim().isEmpty ? 'Nama target wajib diisi' : null,
+                validator: (val) => val == null || val.trim().isEmpty
+                    ? 'Nama target wajib diisi'
+                    : null,
                 onSaved: (val) => _name = val!,
               ),
               const SizedBox(height: 10),
@@ -373,16 +408,21 @@ class _CreateTargetPageState extends ConsumerState<CreateTargetPage> {
                   if (val != null && mounted) {
                     setState(() {
                       _targetAmount = val;
-                      _targetAmountController.text = currencyFmt.format(val.toInt());
+                      _targetAmountController.text =
+                          currencyFmt.format(val.toInt());
                       _calculateFixedDaily();
                     });
                   }
                 },
                 decoration: _inputDecoration('Jumlah Target * (Rp)').copyWith(
                   prefixText: 'Rp ',
-                  suffixIcon: const Icon(Icons.calculate, color: LsColors.brand),
+                  suffixIcon:
+                      const Icon(Icons.calculate, color: LsColors.brand),
                 ),
-                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: LsColors.brand),
+                style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                    color: LsColors.brand),
                 validator: (val) {
                   if (_targetAmount <= 0) return 'Nominal harus > 0';
                   return null;
@@ -399,7 +439,8 @@ class _CreateTargetPageState extends ConsumerState<CreateTargetPage> {
                 ),
                 child: Row(
                   children: [
-                    _modeSegment('Nominal Bebas', 'flexible', () => setState(() => _mode = 'flexible')),
+                    _modeSegment('Nominal Bebas', 'flexible',
+                        () => setState(() => _mode = 'flexible')),
                     _modeSegment('Nominal Tetap', 'fixed', () {
                       setState(() => _mode = 'fixed');
                       _calculateFixedDaily();
@@ -414,19 +455,30 @@ class _CreateTargetPageState extends ConsumerState<CreateTargetPage> {
                   decoration: BoxDecoration(
                     color: LsColors.income.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: LsColors.income.withValues(alpha: 0.35)),
+                    border: Border.all(
+                        color: LsColors.income.withValues(alpha: 0.35)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.auto_awesome, color: LsColors.income, size: 22),
+                      const Icon(Icons.auto_awesome,
+                          color: LsColors.income, size: 22),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Nominal Nabung Harian (Otomatis)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: LsColors.income)),
+                            const Text('Nominal Nabung Harian (Otomatis)',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                    color: LsColors.income)),
                             const SizedBox(height: 2),
-                            Text('Rp ${currencyFmt.format(_fixedDailyAmount.toInt())} / hari', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: ink)),
+                            Text(
+                                'Rp ${currencyFmt.format(_fixedDailyAmount.toInt())} / hari',
+                                style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                    color: ink)),
                           ],
                         ),
                       ),
@@ -456,7 +508,8 @@ class _CreateTargetPageState extends ConsumerState<CreateTargetPage> {
                     _customCategoryName = val;
                   },
                   validator: (value) {
-                    if (_selectedDropdownValue == 'ADD_NEW' && (value == null || value.trim().isEmpty)) {
+                    if (_selectedDropdownValue == 'ADD_NEW' &&
+                        (value == null || value.trim().isEmpty)) {
                       return 'Kategori khusus tidak boleh kosong';
                     }
                     return null;
@@ -488,13 +541,19 @@ class _CreateTargetPageState extends ConsumerState<CreateTargetPage> {
                 onPressed: _saveTarget,
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
                   backgroundColor: LsColors.brand,
                   elevation: 0,
                 ),
                 child: Text(
-                  widget.existingTarget == null ? 'Buat Target' : 'Perbarui Target',
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 0.2),
+                  widget.existingTarget == null
+                      ? 'Buat Target'
+                      : 'Perbarui Target',
+                  style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.2),
                 ),
               ),
             ),

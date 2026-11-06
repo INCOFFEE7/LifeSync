@@ -149,7 +149,67 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 onTap: () => CsvExportService.showExportDialog(context, ref),
               ),
             ]),
-          _group('Tampilan', [
+          _group(AppTranslations.get(lang, 'tampilan'), [
+            _SettingsRow(
+              icon: Icons.brightness_6_rounded,
+              color: LsColors.brand,
+              title: AppTranslations.get(lang, 'tema_aplikasi'),
+              subtitle: switch (ref.watch(themeModeProvider)) {
+                ThemeMode.dark => AppTranslations.get(lang, 'mode_gelap'),
+                ThemeMode.system => AppTranslations.get(lang, 'mode_sistem'),
+                ThemeMode.light => AppTranslations.get(lang, 'mode_terang'),
+              },
+              trailing: const _Chevron(),
+              onTap: () async {
+                final currentMode = ref.read(themeModeProvider);
+                final selected = await showDialog<ThemeMode>(
+                  context: context,
+                  builder: (c) => AlertDialog(
+                    title: Text(AppTranslations.get(lang, 'pilih_tema')),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ListTile(
+                          leading: const Icon(Icons.light_mode_rounded,
+                              color: Colors.amber),
+                          title: Text(AppTranslations.get(lang, 'mode_terang')),
+                          trailing: currentMode == ThemeMode.light
+                              ? const Icon(Icons.check_rounded,
+                                  color: LsColors.brand)
+                              : null,
+                          onTap: () => Navigator.pop(c, ThemeMode.light),
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.dark_mode_rounded,
+                              color: Colors.indigo),
+                          title: Text(AppTranslations.get(lang, 'mode_gelap')),
+                          trailing: currentMode == ThemeMode.dark
+                              ? const Icon(Icons.check_rounded,
+                                  color: LsColors.brand)
+                              : null,
+                          onTap: () => Navigator.pop(c, ThemeMode.dark),
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.settings_suggest_rounded,
+                              color: Colors.blueGrey),
+                          title: Text(AppTranslations.get(lang, 'mode_sistem')),
+                          trailing: currentMode == ThemeMode.system
+                              ? const Icon(Icons.check_rounded,
+                                  color: LsColors.brand)
+                              : null,
+                          onTap: () => Navigator.pop(c, ThemeMode.system),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+                if (selected != null) {
+                  await ref
+                      .read(themeModeProvider.notifier)
+                      .setThemeMode(selected);
+                }
+              },
+            ),
             _SettingsRow(
               icon: Icons.language,
               color: LsColors.violet,
@@ -279,183 +339,224 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               },
             ),
           ]),
-          _group(AppTranslations.get(lang, 'zona_berbahaya'), eyebrowColor: LsColors.expense, [
-            _SettingsRow(
-              icon: Icons.delete_forever,
-              color: LsColors.expense,
-              danger: true,
-              title: AppTranslations.get(lang, 'hapus_semua_data'),
-              subtitle: AppTranslations.get(lang, 'hapus_semua_data_sub'),
-              trailing: const _Chevron(color: LsColors.expense),
-              onTap: () async {
-                final firstConfirm = await showLsConfirmDialog(
-                  context: context,
-                  title: 'Hapus Seluruh Data?',
-                  message: 'Semua Catatan Keuangan, Belanja, Tagihan, Target Nabung, dan Agenda akan dihapus.',
-                  confirmLabel: 'Lanjutkan',
-                  cancelLabel: 'Batal',
-                  isDanger: true,
-                );
-                if (firstConfirm != true) return;
+          _group(
+              AppTranslations.get(lang, 'zona_berbahaya'),
+              eyebrowColor: LsColors.expense,
+              [
+                _SettingsRow(
+                  icon: Icons.delete_forever,
+                  color: LsColors.expense,
+                  danger: true,
+                  title: AppTranslations.get(lang, 'hapus_semua_data'),
+                  subtitle: AppTranslations.get(lang, 'hapus_semua_data_sub'),
+                  trailing: const _Chevron(color: LsColors.expense),
+                  onTap: () async {
+                    final firstConfirm = await showLsConfirmDialog(
+                      context: context,
+                      title: 'Hapus Seluruh Data?',
+                      message:
+                          'Semua Catatan Keuangan, Belanja, Tagihan, Target Nabung, dan Agenda akan dihapus.',
+                      confirmLabel: 'Lanjutkan',
+                      cancelLabel: 'Batal',
+                      isDanger: true,
+                    );
+                    if (firstConfirm != true) return;
 
-                if (!context.mounted) return;
-                bool understood = false;
-                final secondConfirm = await showDialog<bool>(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (modalCtx) {
-                    return StatefulBuilder(
-                      builder: (ctx, setModalState) {
-                        return AlertDialog(
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                          title: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: LsColors.expense.withValues(alpha: 0.12),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(Icons.warning_amber_rounded, color: LsColors.expense, size: 28),
-                              ),
-                              const SizedBox(width: 12),
-                              const Expanded(
-                                child: Text(
-                                  'Konfirmasi Terakhir',
-                                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
-                                ),
-                              ),
-                            ],
-                          ),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Tindakan ini permanen. Semua data lokal di aplikasi akan dihapus bersih tanpa bisa dikembalikan.',
-                                style: TextStyle(fontSize: 13, height: 1.4),
-                              ),
-                              const SizedBox(height: 16),
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: LsColors.expense.withValues(alpha: 0.06),
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(color: LsColors.expense.withValues(alpha: 0.2)),
-                                ),
-                                child: CheckboxListTile(
-                                  value: understood,
-                                  activeColor: LsColors.expense,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                  title: const Text(
-                                    'Saya memahami bahwa seluruh data akan dihapus permanen dan tidak dapat dipulihkan.',
-                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: LsColors.expense),
-                                  ),
-                                  controlAffinity: ListTileControlAffinity.leading,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  onChanged: (val) {
-                                    setModalState(() => understood = val ?? false);
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                          actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                          actions: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: OutlinedButton(
-                                    onPressed: () => Navigator.pop(modalCtx, false),
-                                    style: OutlinedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    if (!context.mounted) return;
+                    bool understood = false;
+                    final secondConfirm = await showDialog<bool>(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (modalCtx) {
+                        return StatefulBuilder(
+                          builder: (ctx, setModalState) {
+                            return AlertDialog(
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(24)),
+                              title: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: LsColors.expense
+                                          .withValues(alpha: 0.12),
+                                      shape: BoxShape.circle,
                                     ),
-                                    child: const Text('Batal'),
+                                    child: const Icon(
+                                        Icons.warning_amber_rounded,
+                                        color: LsColors.expense,
+                                        size: 28),
                                   ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: FilledButton(
-                                    onPressed: understood
-                                        ? () => Navigator.pop(modalCtx, true)
-                                        : null,
-                                    style: FilledButton.styleFrom(
-                                      backgroundColor: LsColors.expense,
-                                      disabledBackgroundColor: LsColors.expense.withValues(alpha: 0.3),
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                  const SizedBox(width: 12),
+                                  const Expanded(
+                                    child: Text(
+                                      'Konfirmasi Terakhir',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 18),
                                     ),
-                                    child: const Text('Hapus Sekarang', style: TextStyle(fontWeight: FontWeight.w800)),
                                   ),
+                                ],
+                              ),
+                              content: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Tindakan ini permanen. Semua data lokal di aplikasi akan dihapus bersih tanpa bisa dikembalikan.',
+                                    style: TextStyle(fontSize: 13, height: 1.4),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: LsColors.expense
+                                          .withValues(alpha: 0.06),
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                          color: LsColors.expense
+                                              .withValues(alpha: 0.2)),
+                                    ),
+                                    child: CheckboxListTile(
+                                      value: understood,
+                                      activeColor: LsColors.expense,
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(14)),
+                                      title: const Text(
+                                        'Saya memahami bahwa seluruh data akan dihapus permanen dan tidak dapat dipulihkan.',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                            color: LsColors.expense),
+                                      ),
+                                      controlAffinity:
+                                          ListTileControlAffinity.leading,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 2),
+                                      onChanged: (val) {
+                                        setModalState(
+                                            () => understood = val ?? false);
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              actionsPadding:
+                                  const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                              actions: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: OutlinedButton(
+                                        onPressed: () =>
+                                            Navigator.pop(modalCtx, false),
+                                        style: OutlinedButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 12),
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(14)),
+                                        ),
+                                        child: const Text('Batal'),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: FilledButton(
+                                        onPressed: understood
+                                            ? () =>
+                                                Navigator.pop(modalCtx, true)
+                                            : null,
+                                        style: FilledButton.styleFrom(
+                                          backgroundColor: LsColors.expense,
+                                          disabledBackgroundColor: LsColors
+                                              .expense
+                                              .withValues(alpha: 0.3),
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 12),
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(14)),
+                                        ),
+                                        child: const Text('Hapus Sekarang',
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.w800)),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
-                            ),
-                          ],
+                            );
+                          },
                         );
                       },
                     );
+
+                    if (secondConfirm == true && context.mounted) {
+                      try {
+                        final dbService = ref.read(databaseServiceProvider);
+                        await dbService.db.writeTxn(() async {
+                          await dbService.db.reminders.clear();
+                          await dbService.db.incomeTargets.clear();
+                          await dbService.db.dailyIncomeRecords.clear();
+                          await dbService.db.financialRecords.clear();
+                          await dbService.db.financialNotes.clear();
+                          await dbService.db.financialItems.clear();
+                          await dbService.db.bills.clear();
+                          await dbService.db.shoppingItems.clear();
+                          await dbService.db.fastingDebts.clear();
+                          await dbService.db.qadhaRecords.clear();
+                          await dbService.db.menstruationRecords.clear();
+                          await dbService.db.appSettings.clear();
+                        });
+
+                        await NotificationService().cancelAll();
+                        try {
+                          await HomeWidget.saveWidgetData(
+                              'pinned_target_ids', '');
+                          await HomeWidget.saveWidgetData(
+                              'pinned_reminder_ids', '');
+                          await HomeWidget.updateWidget(
+                              androidName: 'TargetWidgetProvider');
+                          await HomeWidget.updateWidget(
+                              androidName: 'ReminderWidgetProvider');
+                        } catch (_) {}
+
+                        final prefs = await SharedPreferences.getInstance();
+                        await prefs.setBool('has_deleted_all', true);
+                        await prefs.setBool(
+                            'is_first_installation_complete', true);
+
+                        // Invalidate Riverpod states
+                        ref.invalidate(dashboardDataProvider);
+                        ref.invalidate(financialNotesNotifierProvider);
+                        ref.invalidate(shoppingItemsProvider);
+                        ref.invalidate(targetsStreamProvider);
+                        ref.invalidate(remindersStreamProvider);
+
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Seluruh data berhasil dihapus.'),
+                              backgroundColor: LsColors.expense,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Gagal menghapus data: $e'),
+                              backgroundColor: LsColors.expense,
+                            ),
+                          );
+                        }
+                      }
+                    }
                   },
-                );
-
-                if (secondConfirm == true && context.mounted) {
-                  try {
-                    final dbService = ref.read(databaseServiceProvider);
-                    await dbService.db.writeTxn(() async {
-                      await dbService.db.reminders.clear();
-                      await dbService.db.incomeTargets.clear();
-                      await dbService.db.dailyIncomeRecords.clear();
-                      await dbService.db.financialRecords.clear();
-                      await dbService.db.financialNotes.clear();
-                      await dbService.db.financialItems.clear();
-                      await dbService.db.bills.clear();
-                      await dbService.db.shoppingItems.clear();
-                      await dbService.db.fastingDebts.clear();
-                      await dbService.db.qadhaRecords.clear();
-                      await dbService.db.menstruationRecords.clear();
-                      await dbService.db.appSettings.clear();
-                    });
-
-                    await NotificationService().cancelAll();
-                    try {
-                      await HomeWidget.saveWidgetData('pinned_target_ids', '');
-                      await HomeWidget.saveWidgetData('pinned_reminder_ids', '');
-                      await HomeWidget.updateWidget(androidName: 'TargetWidgetProvider');
-                      await HomeWidget.updateWidget(androidName: 'ReminderWidgetProvider');
-                    } catch (_) {}
-
-                    final prefs = await SharedPreferences.getInstance();
-                    await prefs.setBool('has_deleted_all', true);
-                    await prefs.setBool('is_first_installation_complete', true);
-
-                    // Invalidate Riverpod states
-                    ref.invalidate(dashboardDataProvider);
-                    ref.invalidate(financialNotesNotifierProvider);
-                    ref.invalidate(shoppingItemsProvider);
-                    ref.invalidate(targetsStreamProvider);
-                    ref.invalidate(remindersStreamProvider);
-
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Seluruh data berhasil dihapus.'),
-                          backgroundColor: LsColors.expense,
-                        ),
-                      );
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Gagal menghapus data: $e'),
-                          backgroundColor: LsColors.expense,
-                        ),
-                      );
-                    }
-                  }
-                }
-              },
-            ),
-          ]),
+                ),
+              ]),
           _group(AppTranslations.get(lang, 'tentang_aplikasi'), [
             _SettingsRow(
               icon: Icons.info_outline,

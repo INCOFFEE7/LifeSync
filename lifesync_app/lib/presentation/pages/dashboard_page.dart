@@ -20,6 +20,7 @@ import 'package:lifesync_app/core/utils/translations.dart';
 import 'package:lifesync_app/presentation/providers/localization_provider.dart';
 import 'package:lifesync_app/config/app_variant.dart';
 import 'package:lifesync_app/presentation/widgets/ls_design.dart';
+import 'package:lifesync_app/presentation/widgets/ls_date_time_picker_sheet.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
@@ -125,9 +126,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                     }).toList()
                       ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
 
-                    return _buildUpcomingBillsSection(upcomingBills, currencyFmt);
+                    return _buildUpcomingBillsSection(
+                        upcomingBills, currencyFmt);
                   },
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
                   error: (_, __) => const SizedBox.shrink(),
                 ),
                 const SizedBox(height: 18),
@@ -150,21 +153,34 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   Widget _buildGreeting() {
     final h = DateTime.now().hour;
-    final greet = h < 11 ? 'Selamat pagi' : h < 15 ? 'Selamat siang' : h < 18 ? 'Selamat sore' : 'Selamat malam';
+    final greet = h < 11
+        ? 'Selamat pagi'
+        : h < 15
+            ? 'Selamat siang'
+            : h < 18
+                ? 'Selamat sore'
+                : 'Selamat malam';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        LsEyebrow(DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(DateTime.now())),
+        LsEyebrow(
+            DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(DateTime.now())),
         const SizedBox(height: 2),
         Text(
           '$greet.',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, height: 1.1, letterSpacing: -0.5, color: LsColors.ink(context)),
+          style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              height: 1.1,
+              letterSpacing: -0.5,
+              color: LsColors.ink(context)),
         ),
       ],
     );
   }
 
-  Widget _buildHeroBalance(FinancialSummary s, NumberFormat fmt, List<int> availableYears, String lang) {
+  Widget _buildHeroBalance(FinancialSummary s, NumberFormat fmt,
+      List<int> availableYears, String lang) {
     final positive = s.netBalance >= 0;
     return LsHeroCard(
       child: Column(
@@ -184,9 +200,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   setState(() => _selectedYear = year);
                 },
                 color: LsColors.surface(context),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
@@ -194,26 +212,35 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.calendar_today, size: 12, color: Colors.white),
+                      const Icon(Icons.calendar_today,
+                          size: 12, color: Colors.white),
                       const SizedBox(width: 4),
                       Text(
-                        _selectedYear == null ? AppTranslations.get(lang, 'semua') : '$_selectedYear',
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
+                        _selectedYear == null
+                            ? AppTranslations.get(lang, 'semua')
+                            : '$_selectedYear',
+                        style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white),
                       ),
                       const SizedBox(width: 2),
-                      const Icon(Icons.arrow_drop_down, size: 16, color: Colors.white),
+                      const Icon(Icons.arrow_drop_down,
+                          size: 16, color: Colors.white),
                     ],
                   ),
                 ),
                 itemBuilder: (ctx) => [
                   PopupMenuItem<int?>(
                     value: null,
-                    child: Text(AppTranslations.get(lang, 'semua_tahun'), style: const TextStyle(fontWeight: FontWeight.w600)),
+                    child: Text(AppTranslations.get(lang, 'semua_tahun'),
+                        style: const TextStyle(fontWeight: FontWeight.w600)),
                   ),
                   ...availableYears.map(
                     (y) => PopupMenuItem<int?>(
                       value: y,
-                      child: Text('$y', style: const TextStyle(fontWeight: FontWeight.w600)),
+                      child: Text('$y',
+                          style: const TextStyle(fontWeight: FontWeight.w600)),
                     ),
                   ),
                 ],
@@ -226,15 +253,32 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             alignment: Alignment.centerLeft,
             child: Text(
               '${positive ? '' : '-'}Rp ${fmt.format(s.netBalance.abs().toInt())}',
-              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, height: 1.1, letterSpacing: -0.5, color: Colors.white),
+              style: const TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
+                  height: 1.1,
+                  letterSpacing: -0.5,
+                  color: Colors.white),
             ),
           ),
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: _heroFlow(AppTranslations.get(lang, 'pemasukan'), s.totalIncome, const Color(0xFF6EE7B7), Icons.south_west, fmt)),
+              Expanded(
+                  child: _heroFlow(
+                      AppTranslations.get(lang, 'pemasukan'),
+                      s.totalIncome,
+                      const Color(0xFF6EE7B7),
+                      Icons.south_west,
+                      fmt)),
               const SizedBox(width: 8),
-              Expanded(child: _heroFlow(AppTranslations.get(lang, 'pengeluaran'), s.totalExpense, const Color(0xFFFCA5A5), Icons.north_east, fmt)),
+              Expanded(
+                  child: _heroFlow(
+                      AppTranslations.get(lang, 'pengeluaran'),
+                      s.totalExpense,
+                      const Color(0xFFFCA5A5),
+                      Icons.north_east,
+                      fmt)),
             ],
           ),
         ],
@@ -242,14 +286,21 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _heroFlow(String label, double v, Color c, IconData icon, NumberFormat fmt) {
+  Widget _heroFlow(
+      String label, double v, Color c, IconData icon, NumberFormat fmt) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(14)),
+      decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(14)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xB3FFFFFF))),
+          Text(label,
+              style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xB3FFFFFF))),
           const SizedBox(height: 2),
           FittedBox(
             fit: BoxFit.scaleDown,
@@ -258,7 +309,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               children: [
                 Icon(icon, size: 12, color: c),
                 const SizedBox(width: 4),
-                Text('Rp ${fmt.format(v.toInt())}', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: c)),
+                Text('Rp ${fmt.format(v.toInt())}',
+                    style: TextStyle(
+                        fontSize: 12.5, fontWeight: FontWeight.w800, color: c)),
               ],
             ),
           ),
@@ -274,7 +327,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     DateTime now,
     String lang,
   ) {
-    final unbought = shoppingAsync.valueOrNull?.where((e) => !e.deleted && !e.isChecked).length ?? 0;
+    final unbought = shoppingAsync.valueOrNull
+            ?.where((e) => !e.deleted && !e.isChecked)
+            .length ??
+        0;
     final urgent = billsAsync.valueOrNull?.where((b) {
           if (b.deleted || b.isPaid) return false;
           final d = b.dueDate.difference(now).inDays;
@@ -316,8 +372,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-
-  Widget _buildUpcomingBillsSection(List<Bill> upcomingBills, NumberFormat fmt) {
+  Widget _buildUpcomingBillsSection(
+      List<Bill> upcomingBills, NumberFormat fmt) {
     if (upcomingBills.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -327,7 +383,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         final daysLeft = b.dueDate.difference(DateTime.now()).inDays;
         final timeText = daysLeft == 0
             ? 'Hari ini'
-            : (daysLeft < 0 ? 'Terlambat ${daysLeft.abs()} hari' : '$daysLeft hari lagi');
+            : (daysLeft < 0
+                ? 'Terlambat ${daysLeft.abs()} hari'
+                : '$daysLeft hari lagi');
         final isOverdue = daysLeft < 0;
 
         return Padding(
@@ -346,7 +404,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color: (isOverdue ? LsColors.expense : LsColors.amber).withValues(alpha: 0.12),
+                    color: (isOverdue ? LsColors.expense : LsColors.amber)
+                        .withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -373,7 +432,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       const SizedBox(height: 2),
                       Text(
                         'Jatuh tempo: ${DateFormat('d MMM yyyy, HH:mm', 'id_ID').format(b.dueDate)}',
-                        style: TextStyle(fontSize: 11, color: LsColors.mute(context)),
+                        style: TextStyle(
+                            fontSize: 11, color: LsColors.mute(context)),
                       ),
                     ],
                   ),
@@ -384,10 +444,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   children: [
                     Text(
                       'Rp ${fmt.format(b.amount.toInt())}',
-                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: LsColors.brand),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                          color: LsColors.brand),
                     ),
                     const SizedBox(height: 2),
-                    LsChip(timeText, color: isOverdue ? LsColors.expense : LsColors.amber),
+                    LsChip(timeText,
+                        color: isOverdue ? LsColors.expense : LsColors.amber),
                   ],
                 ),
               ],
@@ -398,8 +462,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildSavingsOverviewCard(DashboardData data, String lang, NumberFormat fmt) {
-    double progress = data.totalTargetAmount > 0 ? (data.totalSavings / data.totalTargetAmount).clamp(0.0, 1.0) : 0.0;
+  Widget _buildSavingsOverviewCard(
+      DashboardData data, String lang, NumberFormat fmt) {
+    double progress = data.totalTargetAmount > 0
+        ? (data.totalSavings / data.totalTargetAmount).clamp(0.0, 1.0)
+        : 0.0;
     int percentage = (progress * 100).toInt();
 
     return _buildFlatCard(
@@ -410,9 +477,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(AppTranslations.get(lang, 'total_tabungan'),
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+                  style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w600)),
               Text('${data.topTargets.length} Target',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.w500)),
             ],
           ),
           const SizedBox(height: 8),
@@ -421,18 +494,27 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             children: [
               Text(
                 'Rp ${fmt.format(data.totalSavings.toInt())}',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF2563EB)),
+                style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF2563EB)),
               ),
               Text(
                 '$percentage% Tercapai',
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF10B981)),
+                style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF10B981)),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
             'dari Rp ${fmt.format(data.totalTargetAmount.toInt())}',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.w500),
+            style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey.shade500,
+                fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 12),
           ClipRRect(
@@ -463,7 +545,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildShoppingItemSecondaryDetails(ShoppingItem item, NumberFormat currencyFmt, bool isDark) {
+  Widget _buildShoppingItemSecondaryDetails(
+      ShoppingItem item, NumberFormat currencyFmt, bool isDark) {
     final List<Widget> details = [];
     final mutedStyle = TextStyle(
       fontSize: 11,
@@ -471,12 +554,16 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
 
     if (item.purchasedBy != null && item.purchasedBy!.trim().isNotEmpty) {
-      details.add(Text('Dibeli Oleh: ${item.purchasedBy!.trim()}', style: mutedStyle));
+      details.add(
+          Text('Dibeli Oleh: ${item.purchasedBy!.trim()}', style: mutedStyle));
     }
     if (item.price > 0) {
       details.add(Text(
         'Harga: Rp ${currencyFmt.format(item.price.toInt())}',
-        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+        style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF10B981)),
       ));
     }
     if (item.location != null && item.location!.trim().isNotEmpty) {
@@ -485,7 +572,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     if (item.notes != null && item.notes!.trim().isNotEmpty) {
       details.add(Text(
         'Catatan: ${item.notes!.trim()}',
-        style: const TextStyle(fontSize: 11, color: Color(0xFF2563EB), fontStyle: FontStyle.italic),
+        style: const TextStyle(
+            fontSize: 11,
+            color: Color(0xFF2563EB),
+            fontStyle: FontStyle.italic),
       ));
     }
 
@@ -493,12 +583,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: details.map((d) => Padding(padding: const EdgeInsets.only(top: 2), child: d)).toList(),
+      children: details
+          .map((d) => Padding(padding: const EdgeInsets.only(top: 2), child: d))
+          .toList(),
     );
   }
 
   Future<void> _showShoppingCheckoffDialog(ShoppingItem item) async {
-    final purchasedByController = TextEditingController(text: item.purchasedBy ?? '');
+    final purchasedByController =
+        TextEditingController(text: item.purchasedBy ?? '');
     final locationController = TextEditingController(text: item.location ?? '');
     double enteredPrice = item.price;
     DateTime selectedDate = item.purchaseDate ?? DateTime.now();
@@ -516,11 +609,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             return Container(
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-                top: 24, left: 24, right: 24,
+                top: 24,
+                left: 24,
+                right: 24,
               ),
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(24)),
               ),
               child: SingleChildScrollView(
                 child: Column(
@@ -535,10 +631,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                                color: const Color(0xFF10B981)
+                                    .withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(Icons.shopping_bag_outlined, color: Color(0xFF10B981), size: 24),
+                              child: const Icon(Icons.shopping_bag_outlined,
+                                  color: Color(0xFF10B981), size: 24),
                             ),
                             const SizedBox(width: 12),
                             Text(
@@ -546,7 +644,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF0F172A),
                               ),
                             ),
                           ],
@@ -560,11 +660,18 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                     const SizedBox(height: 10),
                     Text(
                       item.name,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2563EB)),
+                      style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2563EB)),
                     ),
                     if (item.notes != null && item.notes!.isNotEmpty) ...[
                       const SizedBox(height: 2),
-                      Text('Catatan: ${item.notes}', style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.grey)),
+                      Text('Catatan: ${item.notes}',
+                          style: const TextStyle(
+                              fontSize: 12,
+                              fontStyle: FontStyle.italic,
+                              color: Colors.grey)),
                     ],
                     const SizedBox(height: 16),
 
@@ -575,9 +682,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                         labelText: 'Dibeli Oleh Siapa (Opsional)',
                         hintText: 'e.g. Ibu, Ayah, Siska',
                         filled: true,
-                        fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        fillColor: isDark
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 14),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -589,9 +700,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                         labelText: 'Tempat Membeli (Opsional)',
                         hintText: 'e.g. Pasar Tradisional, Minimarket',
                         filled: true,
-                        fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        fillColor: isDark
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 14),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -600,7 +715,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                     TextFormField(
                       readOnly: true,
                       controller: TextEditingController(
-                        text: enteredPrice > 0 ? currencyFmt.format(enteredPrice.toInt()) : '',
+                        text: enteredPrice > 0
+                            ? currencyFmt.format(enteredPrice.toInt())
+                            : '',
                       ),
                       onTap: () async {
                         final val = await showCalculatorInputDialog(
@@ -617,44 +734,56 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       decoration: InputDecoration(
                         labelText: 'Harga Pembelian (Opsional)',
                         prefixText: 'Rp ',
-                        suffixIcon: const Icon(Icons.calculate, color: Color(0xFF10B981)),
+                        suffixIcon: const Icon(Icons.calculate,
+                            color: Color(0xFF10B981)),
                         filled: true,
-                        fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        fillColor: isDark
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 14),
                       ),
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF10B981)),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: Color(0xFF10B981)),
                     ),
                     const SizedBox(height: 12),
 
                     // Tanggal Pembayaran
                     ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 2),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                         side: BorderSide(color: Colors.grey.shade300),
                       ),
-                      title: const Text('Waktu Pembelian', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                      title: const Text('Waktu Pembelian',
+                          style: TextStyle(fontSize: 11, color: Colors.grey)),
                       subtitle: Text(
-                        DateFormat('dd MMMM yyyy, HH:mm', 'id_ID').format(selectedDate),
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : Colors.black87),
+                        DateFormat('dd MMMM yyyy, HH:mm', 'id_ID')
+                            .format(selectedDate),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: isDark ? Colors.white : Colors.black87),
                       ),
-                      trailing: const Icon(Icons.calendar_today, color: Color(0xFF2563EB), size: 18),
+                      trailing: const Icon(Icons.calendar_today,
+                          color: Color(0xFF2563EB), size: 18),
                       onTap: () async {
-                        final pDate = await showDatePicker(
+                        final pDate = await showLsDateTimePickerSheet(
                           context: ctx,
-                          initialDate: selectedDate,
+                          initialDateTime: selectedDate,
                           firstDate: DateTime(2020),
                           lastDate: DateTime(2035),
+                          enableTime: true,
+                          title: 'Pilih Waktu Pembelian',
                         );
-                        if (pDate != null && ctx.mounted) {
-                          final pTime = await showTimePicker(
-                            context: ctx,
-                            initialTime: TimeOfDay.fromDateTime(selectedDate),
-                          );
-                          final time = pTime ?? TimeOfDay.fromDateTime(selectedDate);
+                        if (pDate != null) {
                           setModalState(() {
-                            selectedDate = DateTime(pDate.year, pDate.month, pDate.day, time.hour, time.minute);
+                            selectedDate = pDate;
                           });
                         }
                       },
@@ -667,11 +796,16 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                           child: OutlinedButton(
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
                               side: BorderSide(color: Colors.grey.shade300),
                             ),
                             onPressed: () => Navigator.pop(ctx),
-                            child: const Text('Batal', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.grey)),
+                            child: const Text('Batal',
+                                style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey)),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -681,17 +815,25 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                               backgroundColor: const Color(0xFF10B981),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
                             ),
                             onPressed: () async {
                               item.isChecked = true;
                               item.purchaseDate = selectedDate;
                               item.price = enteredPrice;
-                              item.purchasedBy = purchasedByController.text.trim().isEmpty ? null : purchasedByController.text.trim();
-                              item.location = locationController.text.trim().isEmpty ? null : locationController.text.trim();
+                              item.purchasedBy =
+                                  purchasedByController.text.trim().isEmpty
+                                      ? null
+                                      : purchasedByController.text.trim();
+                              item.location =
+                                  locationController.text.trim().isEmpty
+                                      ? null
+                                      : locationController.text.trim();
                               item.updatedAt = DateTime.now();
 
-                              final dbService = ref.read(databaseServiceProvider);
+                              final dbService =
+                                  ref.read(databaseServiceProvider);
                               if (!kIsWeb) {
                                 await dbService.db.writeTxn(() async {
                                   await dbService.db.shoppingItems.put(item);
@@ -701,7 +843,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
                               if (ctx.mounted) Navigator.pop(ctx);
                             },
-                            child: const Text('Konfirmasi Selesai', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                            child: const Text('Konfirmasi Selesai',
+                                style: TextStyle(
+                                    fontSize: 15, fontWeight: FontWeight.bold)),
                           ),
                         ),
                       ],
@@ -716,23 +860,28 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildShoppingListSection(AsyncValue<List<ShoppingItem>> shoppingAsync, NumberFormat fmt, bool isDark) {
+  Widget _buildShoppingListSection(AsyncValue<List<ShoppingItem>> shoppingAsync,
+      NumberFormat fmt, bool isDark) {
     return shoppingAsync.when(
       data: (items) {
-        final unpurchased = items.where((i) => !i.deleted && !i.isChecked).take(15).toList();
+        final unpurchased =
+            items.where((i) => !i.deleted && !i.isChecked).take(15).toList();
         if (unpurchased.isEmpty) {
-          return _buildEmptyCard('Belum ada daftar belanjaan yang belum dibeli.');
+          return _buildEmptyCard(
+              'Belum ada daftar belanjaan yang belum dibeli.');
         }
         return Column(
           children: unpurchased.map((item) {
             return Card(
               margin: const EdgeInsets.only(bottom: 8),
               color: isDark ? const Color(0xFF1E293B) : Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
               elevation: 0,
               child: ListTile(
                 dense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                 onTap: () {
                   _showShoppingCheckoffDialog(item);
                 },
@@ -748,8 +897,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
-                    decoration: item.isChecked ? TextDecoration.lineThrough : null,
-                    color: item.isChecked ? Colors.grey.shade400 : (isDark ? Colors.white : const Color(0xFF1F2937)),
+                    decoration:
+                        item.isChecked ? TextDecoration.lineThrough : null,
+                    color: item.isChecked
+                        ? Colors.grey.shade400
+                        : (isDark ? Colors.white : const Color(0xFF1F2937)),
                   ),
                 ),
                 subtitle: _buildShoppingItemSecondaryDetails(item, fmt, isDark),
@@ -813,7 +965,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const CloudBackupSettingsScreen()),
+                MaterialPageRoute(
+                    builder: (_) => const CloudBackupSettingsScreen()),
               );
             },
             borderRadius: BorderRadius.circular(10),
@@ -824,7 +977,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: LsColors.line(context)),
               ),
-              child: const Icon(Icons.cloud_upload_outlined, color: LsColors.brand, size: 20),
+              child: const Icon(Icons.cloud_upload_outlined,
+                  color: LsColors.brand, size: 20),
             ),
           ),
         ),
@@ -832,7 +986,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           padding: const EdgeInsets.only(right: 16.0),
           child: InkWell(
             onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsPage()));
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const SettingsPage()));
             },
             borderRadius: BorderRadius.circular(10),
             child: Container(
@@ -842,7 +997,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: LsColors.line(context)),
               ),
-              child: const Icon(Icons.settings_outlined, color: LsColors.brand, size: 20),
+              child: const Icon(Icons.settings_outlined,
+                  color: LsColors.brand, size: 20),
             ),
           ),
         ),
@@ -854,7 +1010,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   Widget _buildTargetCard(TargetDashboardInfo info) {
     final target = info.target;
-    double progress = target.targetAmount > 0 ? (info.savings / target.targetAmount) : 0;
+    double progress =
+        target.targetAmount > 0 ? (info.savings / target.targetAmount) : 0;
     if (progress > 1.0) progress = 1.0;
     int daysLeft = target.endDate.difference(DateTime.now()).inDays;
     if (daysLeft < 0) daysLeft = 0;
@@ -871,13 +1028,17 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   color: const Color(0xFFEFF6FF),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.flag_rounded, color: Color(0xFF2563EB), size: 20),
+                child: const Icon(Icons.flag_rounded,
+                    color: Color(0xFF2563EB), size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   target.name,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF1F2937)),
+                  style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1F2937)),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -885,7 +1046,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               const SizedBox(width: 8),
               Text(
                 '${(progress * 100).toInt()}%',
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF2563EB)),
+                style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF2563EB)),
               ),
             ],
           ),
@@ -895,7 +1059,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             child: LinearProgressIndicator(
               value: progress,
               backgroundColor: const Color(0xFFEFF6FF),
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF2563EB)),
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(Color(0xFF2563EB)),
               minHeight: 8,
             ),
           ),
@@ -906,7 +1071,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               Expanded(
                 child: Text(
                   'Rp ${NumberFormat('#,###', 'id_ID').format(info.savings.toInt())} / Rp ${NumberFormat('#,###', 'id_ID').format(target.targetAmount.toInt())}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -921,7 +1089,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-
   Widget _buildReminderCard(Reminder r) {
     final isPinned = _pinnedReminderIds.contains(r.id);
     final status = r.realtimeStatus;
@@ -931,7 +1098,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         ? LsColors.amber
         : (isDone ? LsColors.income : LsColors.brand);
 
-    final timeStr = '${DateFormat('HH:mm', 'id_ID').format(r.targetDateTime)} - ${DateFormat('HH:mm', 'id_ID').format(r.effectiveEndTime)}';
+    final timeStr =
+        '${DateFormat('HH:mm', 'id_ID').format(r.targetDateTime)} - ${DateFormat('HH:mm', 'id_ID').format(r.effectiveEndTime)}';
 
     return _buildFlatCard(
       child: Row(
@@ -974,14 +1142,16 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 const SizedBox(height: 3),
                 Text(
                   '${DateFormat('d MMM yyyy', 'id_ID').format(r.targetDateTime)} ($timeStr)',
-                  style: TextStyle(fontSize: 11.5, color: LsColors.mute(context)),
+                  style:
+                      TextStyle(fontSize: 11.5, color: LsColors.mute(context)),
                 ),
                 const SizedBox(height: 3),
                 StreamBuilder(
                   stream: Stream.periodic(const Duration(seconds: 1)),
                   builder: (context, snapshot) {
                     return Text(
-                      CountdownUseCase.calculateCountdown(DateTime.now(), r.targetDateTime),
+                      CountdownUseCase.calculateCountdown(
+                          DateTime.now(), r.targetDateTime),
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -1000,7 +1170,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                        content: Text('Maksimal 3 pengingat yang bisa di-pin ke Widget!'),
+                        content: Text(
+                            'Maksimal 3 pengingat yang bisa di-pin ke Widget!'),
                         backgroundColor: Colors.orange),
                   );
                 }
@@ -1014,7 +1185,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               padding: const EdgeInsets.all(7),
               margin: const EdgeInsets.only(left: 8),
               decoration: BoxDecoration(
-                color: isPinned ? LsColors.brand : LsColors.brand.withValues(alpha: 0.08),
+                color: isPinned
+                    ? LsColors.brand
+                    : LsColors.brand.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -1034,11 +1207,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       child: Center(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Text(message, style: TextStyle(color: LsColors.mute(context), fontSize: 12.5)),
+          child: Text(message,
+              style: TextStyle(color: LsColors.mute(context), fontSize: 12.5)),
         ),
       ),
     );
   }
 
-  Widget _buildFlatCard({required Widget child}) => LsCard(padding: const EdgeInsets.all(13), child: child);
+  Widget _buildFlatCard({required Widget child}) =>
+      LsCard(padding: const EdgeInsets.all(13), child: child);
 }

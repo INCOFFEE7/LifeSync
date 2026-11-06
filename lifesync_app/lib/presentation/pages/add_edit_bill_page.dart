@@ -7,6 +7,7 @@ import 'package:lifesync_app/domain/entities/bill.dart';
 import 'package:lifesync_app/presentation/providers/repository_providers.dart';
 import 'package:lifesync_app/presentation/widgets/calculator_input_dialog.dart';
 import 'package:lifesync_app/presentation/widgets/ls_design.dart';
+import 'package:lifesync_app/presentation/widgets/ls_date_time_picker_sheet.dart';
 
 class AddEditBillPage extends ConsumerStatefulWidget {
   final Bill? existingBill;
@@ -36,15 +37,25 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
   late String _month;
   late DateTime _dueDate;
   late int _reminderDaysBefore;
+  DateTime? _customReminderDateTime;
   String? _notes;
   bool _isPaid = false;
   bool _isSaving = false;
+
+  static const _billReminderPresets = <int, String>{
+    0: 'Hari H (Jatuh Tempo)',
+    1: '1 hari sebelumnya',
+    3: '3 hari sebelumnya',
+    7: '7 hari sebelumnya',
+    -1: 'Tidak ada pengingat',
+  };
 
   @override
   void initState() {
     super.initState();
     final now = DateTime.now();
-    final defaultMonth = widget.initialMonth ?? DateFormat('yyyy-MM').format(now);
+    final defaultMonth =
+        widget.initialMonth ?? DateFormat('yyyy-MM').format(now);
     final currencyFmt = NumberFormat('#,###', 'id_ID');
 
     if (widget.existingBill != null) {
@@ -55,12 +66,18 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
       _month = b.month;
       _dueDate = b.dueDate;
       _reminderDaysBefore = b.reminderDaysBefore;
+      if (_reminderDaysBefore > 0 &&
+          !_billReminderPresets.containsKey(_reminderDaysBefore)) {
+        _customReminderDateTime =
+            _dueDate.subtract(Duration(days: _reminderDaysBefore));
+      }
       _notes = b.notes;
       _isPaid = b.isPaid;
       _paidByController.text = b.paidBy ?? '';
       _receivedByController.text = b.receivedBy ?? '';
 
-      if (_amount > 0) _amountController.text = currencyFmt.format(_amount.toInt());
+      if (_amount > 0)
+        _amountController.text = currencyFmt.format(_amount.toInt());
     } else {
       _billType = widget.initialBillType ?? 'monthly';
       _name = '';
@@ -82,38 +99,57 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
   }
 
   Future<void> _pickDueDate() async {
-    final pickedDate = await showDatePicker(
+    final picked = await showLsDateTimePickerSheet(
       context: context,
-      initialDate: _dueDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2035),
+      initialDateTime: _dueDate,
+      enableTime: false,
+      title: _billType == 'receivable'
+          ? 'Tanggal Tagih Piutang'
+          : 'Tanggal Jatuh Tempo',
+      confirmLabel: 'Atur Tanggal',
     );
-    if (pickedDate != null && mounted) {
-      final pickedTime = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.fromDateTime(_dueDate),
-      );
-      if (pickedTime != null) {
-        setState(() {
-          _dueDate = DateTime(
-            pickedDate.year,
-            pickedDate.month,
-            pickedDate.day,
-            pickedTime.hour,
-            pickedTime.minute,
-          );
-        });
-      } else {
-        setState(() {
-          _dueDate = DateTime(
-            pickedDate.year,
-            pickedDate.month,
-            pickedDate.day,
-            _dueDate.hour,
-            _dueDate.minute,
-          );
-        });
-      }
+    if (picked != null && mounted) {
+      setState(() {
+        _dueDate = DateTime(
+          picked.year,
+          picked.month,
+          picked.day,
+          _dueDate.hour,
+          _dueDate.minute,
+        );
+      });
+    }
+  }
+
+  Future<void> _pickDueTime() async {
+    final picked = await showLsDateTimePickerSheet(
+      context: context,
+      initialDateTime: _dueDate,
+      enableTime: true,
+      title: _billType == 'receivable'
+          ? 'Jadwal Tagih Piutang'
+          : 'Jatuh Tempo & Jam Tagihan',
+      confirmLabel: 'Atur Jadwal',
+    );
+    if (picked != null && mounted) {
+      setState(() => _dueDate = picked);
+    }
+  }
+
+  Future<void> _pickCustomReminderDateTime() async {
+    final picked = await showLsDateTimePickerSheet(
+      context: context,
+      initialDateTime: _customReminderDateTime ??
+          (_dueDate.isAfter(DateTime.now()) ? _dueDate : DateTime.now()),
+      title: 'Waktu Pengingat Tagihan',
+      confirmLabel: 'Pasang Pengingat',
+    );
+    if (picked != null && mounted) {
+      setState(() {
+        _customReminderDateTime = picked;
+        final diffDays = _dueDate.difference(picked).inDays;
+        _reminderDaysBefore = diffDays >= 0 ? diffDays : 0;
+      });
     }
   }
 
@@ -125,7 +161,9 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
       context: context,
       title: widget.existingBill == null
           ? (_billType == 'receivable' ? 'Simpan Piutang?' : 'Simpan Tagihan?')
-          : (_billType == 'receivable' ? 'Perbarui Piutang?' : 'Perbarui Tagihan?'),
+          : (_billType == 'receivable'
+              ? 'Perbarui Piutang?'
+              : 'Perbarui Tagihan?'),
       message: 'Pastikan data dan nominal yang diinput sudah sesuai.',
       confirmLabel: 'Ya, Simpan',
       cancelLabel: 'Batal',
@@ -138,12 +176,14 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
       final repo = ref.read(billRepositoryProvider);
 
       if (_billType == 'monthly') {
-        final isDup = await repo.checkDuplicateBill(_name.trim(), _month, excludeId: widget.existingBill?.id);
+        final isDup = await repo.checkDuplicateBill(_name.trim(), _month,
+            excludeId: widget.existingBill?.id);
         if (isDup && mounted) {
           final allowDup = await showLsConfirmDialog(
             context: context,
             title: 'Tagihan Sudah Ada',
-            message: 'Tagihan "$_name" untuk bulan $_month sudah tersedia. Apakah Anda ingin tetap membuatnya?',
+            message:
+                'Tagihan "$_name" untuk bulan $_month sudah tersedia. Apakah Anda ingin tetap membuatnya?',
             confirmLabel: 'Tetap Buat',
             cancelLabel: 'Batal',
           );
@@ -162,8 +202,12 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
         ..month = _month
         ..dueDate = _dueDate
         ..reminderDaysBefore = _reminderDaysBefore
-        ..paidBy = _paidByController.text.trim().isEmpty ? null : _paidByController.text.trim()
-        ..receivedBy = _receivedByController.text.trim().isEmpty ? null : _receivedByController.text.trim()
+        ..paidBy = _paidByController.text.trim().isEmpty
+            ? null
+            : _paidByController.text.trim()
+        ..receivedBy = _receivedByController.text.trim().isEmpty
+            ? null
+            : _receivedByController.text.trim()
         ..notes = _notes?.trim().isEmpty == true ? null : _notes?.trim()
         ..createdAt = bill.createdAt
         ..updatedAt = DateTime.now();
@@ -174,7 +218,8 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
         bill.paidAt = _isPaid ? DateTime.now() : null;
       } else {
         bill.isPaid = _isPaid;
-        if (_isPaid && (bill.realizationAmount == null || bill.realizationAmount == 0)) {
+        if (_isPaid &&
+            (bill.realizationAmount == null || bill.realizationAmount == 0)) {
           bill.realizationAmount = _amount;
           bill.paidAt = DateTime.now();
         } else if (!_isPaid) {
@@ -190,7 +235,8 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal menyimpan: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Gagal menyimpan: $e')));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -199,11 +245,13 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
 
   InputDecoration _inputDecoration(String label) {
     final c = context;
-    OutlineInputBorder border(Color col, [double w = 1]) =>
-        OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: col, width: w));
+    OutlineInputBorder border(Color col, [double w = 1]) => OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: col, width: w));
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(color: LsColors.mute(c), fontWeight: FontWeight.w500, fontSize: 13),
+      labelStyle: TextStyle(
+          color: LsColors.mute(c), fontWeight: FontWeight.w500, fontSize: 13),
       filled: true,
       fillColor: LsColors.paper(c),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
@@ -215,7 +263,8 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
     );
   }
 
-  Widget _section(String title, IconData icon, Color color, List<Widget> children) {
+  Widget _section(
+      String title, IconData icon, Color color, List<Widget> children) {
     return LsCard(
       padding: const EdgeInsets.all(14),
       child: Column(
@@ -226,7 +275,9 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
               Container(
                 width: 28,
                 height: 28,
-                decoration: BoxDecoration(color: color.withValues(alpha: 0.14), shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.14),
+                    shape: BoxShape.circle),
                 child: Icon(icon, size: 14, color: color),
               ),
               const SizedBox(width: 8),
@@ -240,17 +291,172 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
     );
   }
 
+  String _getBillReminderLabel() {
+    if (_customReminderDateTime != null) {
+      return DateFormat('d MMM yyyy, HH:mm', 'id_ID')
+          .format(_customReminderDateTime!);
+    }
+    if (_billReminderPresets.containsKey(_reminderDaysBefore)) {
+      return _billReminderPresets[_reminderDaysBefore]!;
+    }
+    if (_reminderDaysBefore < 0) {
+      return 'Tidak Ada';
+    }
+    return '$_reminderDaysBefore hari sebelumnya';
+  }
+
+  Widget _buildBillReminderSelectorTile() {
+    return InkWell(
+      onTap: _showBillReminderModal,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: LsColors.paper(context),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: LsColors.line(context)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Waktu Pengingat',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: LsColors.ink(context),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: LsColors.brand.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border:
+                    Border.all(color: LsColors.brand.withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _getBillReminderLabel(),
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: LsColors.brand,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.arrow_drop_down_rounded,
+                      size: 18, color: LsColors.brand),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showBillReminderModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: LsColors.surface(context),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                  child: Text(
+                    'Waktu Pengingat',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: LsColors.ink(ctx),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: [
+                      ..._billReminderPresets.entries.map((e) {
+                        final isSelected = _customReminderDateTime == null &&
+                            _reminderDaysBefore == e.key;
+                        return ListTile(
+                          title: Text(
+                            e.value,
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: isSelected
+                                  ? FontWeight.w800
+                                  : FontWeight.w500,
+                              color: isSelected
+                                  ? LsColors.brand
+                                  : LsColors.ink(ctx),
+                            ),
+                          ),
+                          trailing: isSelected
+                              ? const Icon(Icons.check_rounded,
+                                  color: LsColors.brand, size: 20)
+                              : null,
+                          onTap: () {
+                            setState(() {
+                              _customReminderDateTime = null;
+                              _reminderDaysBefore = e.key;
+                            });
+                            Navigator.pop(ctx);
+                          },
+                        );
+                      }),
+                      ListTile(
+                        title: Text(
+                          'Pilih Kalender & Waktu Kustom...',
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: _customReminderDateTime != null
+                                ? FontWeight.w800
+                                : FontWeight.w500,
+                            color: _customReminderDateTime != null
+                                ? LsColors.brand
+                                : LsColors.ink(ctx),
+                          ),
+                        ),
+                        trailing: _customReminderDateTime != null
+                            ? const Icon(Icons.check_rounded,
+                                color: LsColors.brand, size: 20)
+                            : null,
+                        onTap: () async {
+                          Navigator.pop(ctx);
+                          await _pickCustomReminderDateTime();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final lang = ref.watch(localeProvider).languageCode;
     final currencyFmt = NumberFormat('#,###', lang == 'en' ? 'en_US' : 'id_ID');
-    const reminderOptions = <int, String>{
-      -1: 'Tidak Ada',
-      0: 'Pada Hari H (Sesuai Jam Jatuh Tempo)',
-      1: '1 Hari Sebelumnya',
-      3: '3 Hari Sebelumnya',
-      7: '7 Hari Sebelumnya',
-    };
 
     final isReceivable = _billType == 'receivable';
 
@@ -264,9 +470,17 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
         shape: Border(bottom: BorderSide(color: LsColors.line(context))),
         title: Text(
           widget.existingBill == null
-              ? (isReceivable ? AppTranslations.get(lang, 'piutang_baru') : AppTranslations.get(lang, 'tagihan_baru'))
-              : (isReceivable ? 'Edit ${AppTranslations.get(lang, 'tagihan_piutang')}' : AppTranslations.get(lang, 'edit_tagihan')),
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: -0.3, color: LsColors.ink(context)),
+              ? (isReceivable
+                  ? AppTranslations.get(lang, 'piutang_baru')
+                  : AppTranslations.get(lang, 'tagihan_baru'))
+              : (isReceivable
+                  ? 'Edit ${AppTranslations.get(lang, 'tagihan_piutang')}'
+                  : AppTranslations.get(lang, 'edit_tagihan')),
+          style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.3,
+              color: LsColors.ink(context)),
         ),
       ),
       body: Form(
@@ -293,7 +507,9 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             decoration: BoxDecoration(
-                              color: _billType == 'monthly' ? LsColors.brand : Colors.transparent,
+                              color: _billType == 'monthly'
+                                  ? LsColors.brand
+                                  : Colors.transparent,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             alignment: Alignment.center,
@@ -302,7 +518,9 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w800,
-                                color: _billType == 'monthly' ? Colors.white : LsColors.mute(context),
+                                color: _billType == 'monthly'
+                                    ? Colors.white
+                                    : LsColors.mute(context),
                               ),
                             ),
                           ),
@@ -314,7 +532,9 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             decoration: BoxDecoration(
-                              color: _billType == 'receivable' ? LsColors.income : Colors.transparent,
+                              color: _billType == 'receivable'
+                                  ? LsColors.income
+                                  : Colors.transparent,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             alignment: Alignment.center,
@@ -323,7 +543,9 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w800,
-                                color: _billType == 'receivable' ? Colors.white : LsColors.mute(context),
+                                color: _billType == 'receivable'
+                                    ? Colors.white
+                                    : LsColors.mute(context),
                               ),
                             ),
                           ),
@@ -336,16 +558,22 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
 
             _section(
               isReceivable ? 'Detail Piutang' : 'Detail Tagihan',
-              isReceivable ? Icons.handshake_rounded : Icons.receipt_long_rounded,
+              isReceivable
+                  ? Icons.handshake_rounded
+                  : Icons.receipt_long_rounded,
               isReceivable ? LsColors.income : LsColors.brand,
               [
                 TextFormField(
                   initialValue: _name,
                   decoration: _inputDecoration(
-                    isReceivable ? 'Nama Piutang * (e.g. Pinjaman Budi, Piutang Usaha)' : 'Nama Tagihan * (e.g. Listrik, Internet, Air)',
+                    isReceivable
+                        ? 'Nama Piutang * (e.g. Pinjaman Budi, Piutang Usaha)'
+                        : 'Nama Tagihan * (e.g. Listrik, Internet, Air)',
                   ),
                   style: const TextStyle(fontWeight: FontWeight.bold),
-                  validator: (val) => val == null || val.trim().isEmpty ? 'Nama wajib diisi' : null,
+                  validator: (val) => val == null || val.trim().isEmpty
+                      ? 'Nama wajib diisi'
+                      : null,
                   onSaved: (val) => _name = val!,
                 ),
                 const SizedBox(height: 10),
@@ -355,21 +583,29 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
                   onTap: () async {
                     final val = await showCalculatorInputDialog(
                       context: context,
-                      title: isReceivable ? 'Input Nominal Piutang' : 'Input Nominal Tagihan',
+                      title: isReceivable
+                          ? 'Input Nominal Piutang'
+                          : 'Input Nominal Tagihan',
                       initialValue: _amount,
                     );
                     if (val != null && mounted) {
                       setState(() {
                         _amount = val;
-                        _amountController.text = currencyFmt.format(val.toInt());
+                        _amountController.text =
+                            currencyFmt.format(val.toInt());
                       });
                     }
                   },
-                  decoration: _inputDecoration(isReceivable ? 'Nominal Piutang * (Rp)' : 'Nominal Rencana Tagihan * (Rp)').copyWith(
+                  decoration: _inputDecoration(isReceivable
+                          ? 'Nominal Piutang * (Rp)'
+                          : 'Nominal Rencana Tagihan * (Rp)')
+                      .copyWith(
                     prefixText: 'Rp ',
-                    suffixIcon: const Icon(Icons.calculate, color: LsColors.brand),
+                    suffixIcon:
+                        const Icon(Icons.calculate, color: LsColors.brand),
                   ),
-                  style: const TextStyle(fontWeight: FontWeight.w800, color: LsColors.brand),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w800, color: LsColors.brand),
                   validator: (val) {
                     if (_amount <= 0) return 'Nominal harus > 0';
                     return null;
@@ -379,85 +615,114 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
                   const SizedBox(height: 10),
                   TextFormField(
                     controller: _paidByController,
-                    decoration: _inputDecoration('Dibayar Oleh / Peminjam (e.g. Budi Hartono)'),
+                    decoration: _inputDecoration(
+                        'Dibayar Oleh / Peminjam (e.g. Budi Hartono)'),
                   ),
                   const SizedBox(height: 10),
                   TextFormField(
                     controller: _receivedByController,
-                    decoration: _inputDecoration('Diterima Oleh (e.g. Saya / Rekening BCA)'),
+                    decoration: _inputDecoration(
+                        'Diterima Oleh (e.g. Saya / Rekening BCA)'),
                   ),
                   const SizedBox(height: 10),
                   CheckboxListTile(
                     value: _isPaid,
                     activeColor: LsColors.income,
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Tandai Langsung Terbayar / Lunas', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                    subtitle: const Text('Simpan timestamp pembayaran sekarang jika piutang sudah diterima.', style: TextStyle(fontSize: 11)),
+                    title: const Text('Tandai Langsung Terbayar / Lunas',
+                        style: TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.bold)),
+                    subtitle: const Text(
+                        'Simpan timestamp pembayaran sekarang jika piutang sudah diterima.',
+                        style: TextStyle(fontSize: 11)),
                     onChanged: (v) => setState(() => _isPaid = v ?? false),
                   ),
                 ],
               ],
             ),
             const SizedBox(height: 10),
-            _section('Jadwal & Pengingat', Icons.event_rounded, LsColors.violet, [
-              InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: _pickDueDate,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: LsColors.paper(context),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: LsColors.line(context)),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
+            _section(
+                'Jadwal & Pengingat', Icons.event_rounded, LsColors.violet, [
+              Row(
+                children: [
+                  Expanded(
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: _pickDueDate,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: LsColors.paper(context),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: LsColors.line(context)),
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              isReceivable ? 'Batas Waktu / Tanggal Tagih' : 'Tanggal & Jam Jatuh Tempo',
-                              style: TextStyle(color: LsColors.mute(context), fontSize: 12, fontWeight: FontWeight.w500),
+                              isReceivable
+                                  ? 'Tanggal Tagih'
+                                  : 'Tanggal Jatuh Tempo',
+                              style: TextStyle(
+                                  color: LsColors.mute(context),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500),
                             ),
                             const SizedBox(height: 3),
                             Text(
-                              DateFormat('dd MMMM yyyy, HH:mm', 'id_ID').format(_dueDate),
-                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: LsColors.ink(context)),
+                              DateFormat('dd MMM yyyy', 'id_ID')
+                                  .format(_dueDate),
+                              style: TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: LsColors.ink(context)),
                             ),
                           ],
                         ),
                       ),
-                      const Icon(Icons.access_time_filled, color: LsColors.brand),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text('Pengingat', style: TextStyle(color: LsColors.mute(context), fontSize: 12, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: reminderOptions.entries.map((e) {
-                  final selected = _reminderDaysBefore == e.key;
-                  return ChoiceChip(
-                    label: Text(e.value),
-                    selected: selected,
-                    showCheckmark: false,
-                    onSelected: (_) => setState(() => _reminderDaysBefore = e.key),
-                    selectedColor: isReceivable ? LsColors.income : LsColors.brand,
-                    backgroundColor: LsColors.paper(context),
-                    side: BorderSide(color: selected ? (isReceivable ? LsColors.income : LsColors.brand) : LsColors.line(context)),
-                    shape: const StadiumBorder(),
-                    labelStyle: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
-                      color: selected ? Colors.white : LsColors.ink(context),
                     ),
-                  );
-                }).toList(),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: _pickDueTime,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: LsColors.paper(context),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: LsColors.line(context)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Jam',
+                              style: TextStyle(
+                                  color: LsColors.mute(context),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              DateFormat('HH:mm', 'id_ID').format(_dueDate),
+                              style: TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: LsColors.ink(context)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
+              const SizedBox(height: 12),
+              _buildBillReminderSelectorTile(),
             ]),
             const SizedBox(height: 10),
             _section('Catatan', Icons.notes_rounded, LsColors.amber, [
@@ -473,18 +738,27 @@ class _AddEditBillPageState extends ConsumerState<AddEditBillPage> {
               height: 48,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isReceivable ? LsColors.income : LsColors.brand,
+                  backgroundColor:
+                      isReceivable ? LsColors.income : LsColors.brand,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
                 ),
                 onPressed: _isSaving ? null : _saveBill,
                 child: _isSaving
                     ? const CircularProgressIndicator(color: Colors.white)
                     : Text(
                         widget.existingBill == null
-                            ? (isReceivable ? 'Simpan Piutang' : 'Simpan Tagihan')
-                            : (isReceivable ? 'Perbarui Piutang' : 'Perbarui Tagihan'),
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white),
+                            ? (isReceivable
+                                ? 'Simpan Piutang'
+                                : 'Simpan Tagihan')
+                            : (isReceivable
+                                ? 'Perbarui Piutang'
+                                : 'Perbarui Tagihan'),
+                        style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white),
                       ),
               ),
             ),

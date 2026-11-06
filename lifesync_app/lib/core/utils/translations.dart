@@ -278,7 +278,11 @@ class AppTranslations {
       'semua_waktu': 'All Time',
       'rentang': 'Range',
       'bulan_ini': 'This Month',
-
+      'tema_aplikasi': 'Appearance Theme',
+      'pilih_tema': 'Select Theme',
+      'mode_terang': 'Light Mode',
+      'mode_gelap': 'Dark Mode',
+      'mode_sistem': 'System Default',
     },
     'id': {
       'ringkasan_hari_ini': 'Ringkasan Hari Ini',
@@ -553,7 +557,11 @@ class AppTranslations {
       'semua_waktu': 'Semua Waktu',
       'rentang': 'Rentang',
       'bulan_ini': 'Bulan Ini',
-
+      'tema_aplikasi': 'Tema Tampilan',
+      'pilih_tema': 'Pilih Tema',
+      'mode_terang': 'Mode Terang',
+      'mode_gelap': 'Mode Gelap',
+      'mode_sistem': 'Mengikuti Sistem',
     },
   };
 
