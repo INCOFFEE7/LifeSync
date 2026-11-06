@@ -162,46 +162,34 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               trailing: const _Chevron(),
               onTap: () async {
                 final currentMode = ref.read(themeModeProvider);
-                final selected = await showDialog<ThemeMode>(
+                final selected = await showLsOptionsSheet<ThemeMode>(
                   context: context,
-                  builder: (c) => AlertDialog(
-                    title: Text(AppTranslations.get(lang, 'pilih_tema')),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ListTile(
-                          leading: const Icon(Icons.light_mode_rounded,
-                              color: Colors.amber),
-                          title: Text(AppTranslations.get(lang, 'mode_terang')),
-                          trailing: currentMode == ThemeMode.light
-                              ? const Icon(Icons.check_rounded,
-                                  color: LsColors.brand)
-                              : null,
-                          onTap: () => Navigator.pop(c, ThemeMode.light),
-                        ),
-                        ListTile(
-                          leading: const Icon(Icons.dark_mode_rounded,
-                              color: Colors.indigo),
-                          title: Text(AppTranslations.get(lang, 'mode_gelap')),
-                          trailing: currentMode == ThemeMode.dark
-                              ? const Icon(Icons.check_rounded,
-                                  color: LsColors.brand)
-                              : null,
-                          onTap: () => Navigator.pop(c, ThemeMode.dark),
-                        ),
-                        ListTile(
-                          leading: const Icon(Icons.settings_suggest_rounded,
-                              color: Colors.blueGrey),
-                          title: Text(AppTranslations.get(lang, 'mode_sistem')),
-                          trailing: currentMode == ThemeMode.system
-                              ? const Icon(Icons.check_rounded,
-                                  color: LsColors.brand)
-                              : null,
-                          onTap: () => Navigator.pop(c, ThemeMode.system),
-                        ),
-                      ],
+                  title: AppTranslations.get(lang, 'pilih_tema'),
+                  headerIcon: Icons.palette_outlined,
+                  selectedValue: currentMode,
+                  options: [
+                    LsOptionItem(
+                      value: ThemeMode.light,
+                      title: AppTranslations.get(lang, 'mode_terang'),
+                      subtitle: AppTranslations.get(lang, 'mode_terang_sub'),
+                      icon: Icons.light_mode_rounded,
+                      iconColor: Colors.amber,
                     ),
-                  ),
+                    LsOptionItem(
+                      value: ThemeMode.dark,
+                      title: AppTranslations.get(lang, 'mode_gelap'),
+                      subtitle: AppTranslations.get(lang, 'mode_gelap_sub'),
+                      icon: Icons.dark_mode_rounded,
+                      iconColor: Colors.indigo,
+                    ),
+                    LsOptionItem(
+                      value: ThemeMode.system,
+                      title: AppTranslations.get(lang, 'mode_sistem'),
+                      subtitle: AppTranslations.get(lang, 'mode_sistem_sub'),
+                      icon: Icons.settings_suggest_rounded,
+                      iconColor: Colors.blueGrey,
+                    ),
+                  ],
                 );
                 if (selected != null) {
                   await ref
@@ -217,24 +205,28 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               subtitle: lang == 'en' ? 'English' : 'Indonesia',
               trailing: const _Chevron(),
               onTap: () async {
-                final selected = await showDialog<String>(
+                final selected = await showLsOptionsSheet<String>(
                   context: context,
-                  builder: (c) => AlertDialog(
-                    title: Text(AppTranslations.get(lang, 'pilih_bahasa')),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ListTile(
-                          title: const Text('Indonesia'),
-                          onTap: () => Navigator.pop(c, 'id'),
-                        ),
-                        ListTile(
-                          title: const Text('English'),
-                          onTap: () => Navigator.pop(c, 'en'),
-                        ),
-                      ],
+                  title: AppTranslations.get(lang, 'pilih_bahasa'),
+                  headerIcon: Icons.language_rounded,
+                  selectedValue: lang,
+                  options: [
+                    LsOptionItem(
+                      value: 'id',
+                      title: AppTranslations.get(lang, 'bahasa_indonesia'),
+                      subtitle:
+                          AppTranslations.get(lang, 'bahasa_indonesia_sub'),
+                      icon: Icons.flag_rounded,
+                      iconColor: Colors.redAccent,
                     ),
-                  ),
+                    LsOptionItem(
+                      value: 'en',
+                      title: AppTranslations.get(lang, 'bahasa_inggris'),
+                      subtitle: AppTranslations.get(lang, 'bahasa_inggris_sub'),
+                      icon: Icons.translate_rounded,
+                      iconColor: Colors.blue,
+                    ),
+                  ],
                 );
                 if (selected != null) {
                   await ref
@@ -265,47 +257,44 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ],
               ),
               onTap: () async {
-                final selected = await showDialog<String>(
+                final currentSound = ref.read(defaultSoundProvider);
+                final selected = await showLsOptionsSheet<String>(
                   context: context,
-                  builder: (c) => AlertDialog(
-                    title: Text(AppTranslations.get(lang, 'pilih_nada_dering')),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ListTile(
-                          leading:
-                              const Icon(Icons.music_note, color: Colors.blue),
-                          title:
-                              Text(AppTranslations.get(lang, 'default_sound')),
-                          onTap: () => Navigator.pop(c, 'notif.mp3'),
-                        ),
-                        ListTile(
-                          leading:
-                              const Icon(Icons.folder_open, color: Colors.blue),
-                          title: Text(
-                              AppTranslations.get(lang, 'pilih_dari_file')),
-                          onTap: () async {
-                            Navigator.pop(c);
-                            FilePickerResult? result =
-                                await FilePicker.platform.pickFiles(
-                              type: FileType.audio,
-                            );
-                            if (result != null &&
-                                result.files.single.path != null) {
-                              await ref
-                                  .read(defaultSoundProvider.notifier)
-                                  .setSound(result.files.single.path!);
-                            }
-                          },
-                        ),
-                      ],
+                  title: AppTranslations.get(lang, 'pilih_nada_dering'),
+                  headerIcon: Icons.music_note_rounded,
+                  selectedValue:
+                      currentSound.contains('/') ? 'custom' : 'notif.mp3',
+                  options: [
+                    LsOptionItem(
+                      value: 'notif.mp3',
+                      title: AppTranslations.get(lang, 'default_sound'),
+                      subtitle: AppTranslations.get(lang, 'default_sound_sub'),
+                      icon: Icons.music_note_rounded,
+                      iconColor: LsColors.brand,
                     ),
-                  ),
+                    LsOptionItem(
+                      value: 'pick_file',
+                      title: AppTranslations.get(lang, 'pilih_dari_file'),
+                      subtitle: AppTranslations.get(lang, 'file_audio_kustom'),
+                      icon: Icons.folder_open_rounded,
+                      iconColor: Colors.deepPurple,
+                    ),
+                  ],
                 );
-                if (selected != null) {
+                if (selected == 'notif.mp3') {
                   await ref
                       .read(defaultSoundProvider.notifier)
-                      .setSound(selected);
+                      .setSound('notif.mp3');
+                } else if (selected == 'pick_file') {
+                  FilePickerResult? result =
+                      await FilePicker.platform.pickFiles(
+                    type: FileType.audio,
+                  );
+                  if (result != null && result.files.single.path != null) {
+                    await ref
+                        .read(defaultSoundProvider.notifier)
+                        .setSound(result.files.single.path!);
+                  }
                 }
               },
             ),
@@ -372,7 +361,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                           builder: (ctx, setModalState) {
                             return AlertDialog(
                               shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(24)),
+                                borderRadius: BorderRadius.circular(24),
+                                side: BorderSide(
+                                    color: LsColors.line(ctx), width: 1.2),
+                              ),
+                              backgroundColor: LsColors.surface(ctx),
                               title: Row(
                                 children: [
                                   Container(
@@ -388,12 +381,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                         size: 28),
                                   ),
                                   const SizedBox(width: 12),
-                                  const Expanded(
+                                  Expanded(
                                     child: Text(
-                                      'Konfirmasi Terakhir',
+                                      AppTranslations.get(
+                                          lang, 'konfirmasi_terakhir'),
                                       style: TextStyle(
                                           fontWeight: FontWeight.w800,
-                                          fontSize: 18),
+                                          fontSize: 18,
+                                          color: LsColors.ink(ctx)),
                                     ),
                                   ),
                                 ],
@@ -402,9 +397,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
-                                    'Tindakan ini permanen. Semua data lokal di aplikasi akan dihapus bersih tanpa bisa dikembalikan.',
-                                    style: TextStyle(fontSize: 13, height: 1.4),
+                                  Text(
+                                    AppTranslations.get(
+                                        lang, 'tindakan_permanen_hapus'),
+                                    style: TextStyle(
+                                        fontSize: 13,
+                                        height: 1.4,
+                                        color: LsColors.mute(ctx)),
                                   ),
                                   const SizedBox(height: 16),
                                   Container(
@@ -422,9 +421,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                       shape: RoundedRectangleBorder(
                                           borderRadius:
                                               BorderRadius.circular(14)),
-                                      title: const Text(
-                                        'Saya memahami bahwa seluruh data akan dihapus permanen dan tidak dapat dipulihkan.',
-                                        style: TextStyle(
+                                      title: Text(
+                                        AppTranslations.get(
+                                            lang, 'saya_paham_hapus'),
+                                        style: const TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w700,
                                             color: LsColors.expense),
@@ -458,7 +458,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                               borderRadius:
                                                   BorderRadius.circular(14)),
                                         ),
-                                        child: const Text('Batal'),
+                                        child: Text(
+                                            AppTranslations.get(lang, 'batal')),
                                       ),
                                     ),
                                     const SizedBox(width: 12),
@@ -479,8 +480,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                               borderRadius:
                                                   BorderRadius.circular(14)),
                                         ),
-                                        child: const Text('Hapus Sekarang',
-                                            style: TextStyle(
+                                        child: Text(
+                                            AppTranslations.get(
+                                                lang, 'hapus_semua_sekarang'),
+                                            style: const TextStyle(
                                                 fontWeight: FontWeight.w800)),
                                       ),
                                     ),

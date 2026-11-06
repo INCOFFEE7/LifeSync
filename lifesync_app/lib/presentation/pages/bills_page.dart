@@ -804,6 +804,7 @@ class _BillsPageState extends ConsumerState<BillsPage> {
     }
 
     final isReceivable = bill.billType == 'receivable';
+    final lang = ref.watch(localeProvider).languageCode;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -949,37 +950,38 @@ class _BillsPageState extends ConsumerState<BillsPage> {
                     }
                   },
                   itemBuilder: (ctx) => [
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'copy',
                       child: Row(
                         children: [
-                          Icon(Icons.copy_rounded,
+                          const Icon(Icons.copy_rounded,
                               size: 18, color: LsColors.brand),
-                          SizedBox(width: 8),
-                          Text('Copy ke Bulan Berikutnya'),
+                          const SizedBox(width: 8),
+                          Text(AppTranslations.get(
+                              lang, 'copy_ke_bulan_berikutnya')),
                         ],
                       ),
                     ),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'edit',
                       child: Row(
                         children: [
-                          Icon(Icons.edit_outlined,
+                          const Icon(Icons.edit_outlined,
                               size: 18, color: Colors.blueGrey),
-                          SizedBox(width: 8),
-                          Text('Edit Tagihan'),
+                          const SizedBox(width: 8),
+                          Text(AppTranslations.get(lang, 'edit_tagihan')),
                         ],
                       ),
                     ),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'delete',
                       child: Row(
                         children: [
-                          Icon(Icons.delete_outline,
+                          const Icon(Icons.delete_outline,
                               size: 18, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text('Hapus Tagihan',
-                              style: TextStyle(color: Colors.red)),
+                          const SizedBox(width: 8),
+                          Text(AppTranslations.get(lang, 'hapus_tagihan'),
+                              style: const TextStyle(color: Colors.red)),
                         ],
                       ),
                     ),

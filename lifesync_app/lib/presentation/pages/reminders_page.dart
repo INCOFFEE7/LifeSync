@@ -1036,76 +1036,16 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
         }
       }
     } else {
-      final confirm = await showDialog<bool>(
+      final lang = ref.watch(localeProvider).languageCode;
+      final confirm = await showLsConfirmDialog(
         context: context,
-        builder: (ctx) => AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.cancel_outlined,
-                    color: Colors.red, size: 22),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'Batalkan Pembayaran?',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
-          content: Padding(
-            padding: const EdgeInsets.only(top: 4, bottom: 16),
-            child: Text(
-              'Status tagihan "${bill.name}" akan dikembalikan menjadi Belum Dibayar.',
-              style: const TextStyle(fontSize: 14, color: Color(0xFF475569)),
-            ),
-          ),
-          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          actions: [
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      side: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    onPressed: () => Navigator.pop(ctx, false),
-                    child: const Text('Batal',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, color: Colors.grey)),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                    ),
-                    onPressed: () => Navigator.pop(ctx, true),
-                    child: const Text('Ya, Batalkan',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+        title: AppTranslations.get(lang, 'batalkan_pembayaran'),
+        message:
+            'Status tagihan "${bill.name}" akan dikembalikan menjadi Belum Dibayar.',
+        confirmLabel: AppTranslations.get(lang, 'batal_bayar'),
+        cancelLabel: AppTranslations.get(lang, 'batal'),
+        isDanger: true,
+        customIcon: Icons.cancel_outlined,
       );
 
       if (confirm == true) {

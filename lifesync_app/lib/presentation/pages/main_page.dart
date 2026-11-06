@@ -29,13 +29,15 @@ class MainPage extends ConsumerStatefulWidget {
   ConsumerState<MainPage> createState() => _MainPageState();
 }
 
-class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver {
+class _MainPageState extends ConsumerState<MainPage>
+    with WidgetsBindingObserver {
   int _currentIndex = 0;
   StreamSubscription? _popupSubscription;
   Timer? _dueCheckTimer;
   final Set<int> _triggeredPopupIds = {};
 
-  final GlobalKey<State<FinancialRecordsHomePage>> _financialPageKey = GlobalKey();
+  final GlobalKey<State<FinancialRecordsHomePage>> _financialPageKey =
+      GlobalKey();
   final GlobalKey<State<RemindersPage>> _remindersPageKey = GlobalKey();
 
   late final List<Widget> _pages = [
@@ -51,7 +53,8 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
     WidgetsBinding.instance.addObserver(this);
     NotificationService().requestPermissions();
     NotificationService().checkLaunchNotification();
-    _popupSubscription = NotificationService().onInAppPopupTriggered.listen((data) {
+    _popupSubscription =
+        NotificationService().onInAppPopupTriggered.listen((data) {
       if (mounted) {
         _showInAppReminderDialog(data);
       }
@@ -90,8 +93,11 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
       for (var t in targets) {
         if (!t.deleted && t.mode == 'fixed' && t.fixedDailyAmount > 0) {
           final todayKey = DateFormat('yyyy-MM-dd').format(now);
-          final records = await ref.read(targetRepositoryProvider).getRecordsForTarget(t.id);
-          final hasSavedToday = records.any((rec) => DateFormat('yyyy-MM-dd').format(rec.date) == todayKey);
+          final records = await ref
+              .read(targetRepositoryProvider)
+              .getRecordsForTarget(t.id);
+          final hasSavedToday = records.any(
+              (rec) => DateFormat('yyyy-MM-dd').format(rec.date) == todayKey);
 
           if (!hasSavedToday && now.hour >= 18) {
             final notifId = (t.id + 9999).hashCode & 0x7FFFFFFF;
@@ -101,7 +107,8 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
               NotificationService().triggerInAppPopup({
                 'id': t.id,
                 'title': 'Belum Nabung Hari Ini',
-                'body': 'Kamu belum menyelesaikan tabungan "${t.name}" hari ini.',
+                'body':
+                    'Kamu belum menyelesaikan tabungan "${t.name}" hari ini.',
                 'type': 'fixed_target',
               });
 
@@ -154,30 +161,40 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
           final start = DateTime.tryParse(startTimeStr);
           final end = endTimeStr != null ? DateTime.tryParse(endTimeStr) : null;
           if (start != null) {
-            timeDisplay = DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(start);
+            timeDisplay =
+                DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(start);
             if (end != null) {
               timeDisplay += ' - ${DateFormat('HH:mm', 'id_ID').format(end)}';
             }
           }
         }
 
+        final lang = ref.watch(localeProvider).languageCode;
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+            side: BorderSide(color: LsColors.line(ctx), width: 1.2),
+          ),
+          backgroundColor: LsColors.surface(ctx),
           title: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2563EB).withAlpha(25),
+                  color: LsColors.brand.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.notifications_active, color: Color(0xFF2563EB), size: 24),
+                child: const Icon(Icons.notifications_active,
+                    color: LsColors.brand, size: 24),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: LsColors.ink(ctx)),
                 ),
               ),
             ],
@@ -188,16 +205,23 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
             children: [
               if (timeDisplay.isNotEmpty) ...[
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
+                    color: LsColors.paper(ctx),
                     borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: LsColors.line(ctx)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.access_time_filled, size: 16, color: Color(0xFF2563EB)),
+                      const Icon(Icons.access_time_filled,
+                          size: 16, color: LsColors.brand),
                       const SizedBox(width: 8),
-                      Text(timeDisplay, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
+                      Text(timeDisplay,
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: LsColors.ink(ctx))),
                     ],
                   ),
                 ),
@@ -206,7 +230,7 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
               if (body.toString().isNotEmpty)
                 Text(
                   body.toString(),
-                  style: const TextStyle(fontSize: 14, color: Color(0xFF334155)),
+                  style: TextStyle(fontSize: 14, color: LsColors.mute(ctx)),
                 ),
             ],
           ),
@@ -217,11 +241,14 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
               child: FilledButton(
                 onPressed: () => Navigator.pop(ctx),
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF2563EB),
+                  backgroundColor: LsColors.brand,
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
-                child: const Text('Tutup', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                child: Text(AppTranslations.get(lang, 'tutup'),
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.bold)),
               ),
             ),
           ],
@@ -251,17 +278,47 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
     final selectedFinDate = ref.read(selectedFinancialDateProvider);
     final lang = ref.watch(localeProvider).languageCode;
     final actions = <_AddAction>[
-      _AddAction('transaksi', AppTranslations.get(lang, 'catat_transaksi'), 'Catat pemasukan atau pengeluaran harian', Icons.account_balance_wallet_rounded, LsColors.brand,
+      _AddAction(
+          'transaksi',
+          AppTranslations.get(lang, 'catat_transaksi'),
+          'Catat pemasukan atau pengeluaran harian',
+          Icons.account_balance_wallet_rounded,
+          LsColors.brand,
           (_) => AddEditFinancialNotePage(initialDate: selectedFinDate)),
-      _AddAction('agenda', AppTranslations.get(lang, 'agenda'), 'Jadwal dan kegiatan penting', Icons.event_rounded, LsColors.violet,
+      _AddAction(
+          'agenda',
+          AppTranslations.get(lang, 'agenda'),
+          'Jadwal dan kegiatan penting',
+          Icons.event_rounded,
+          LsColors.violet,
           (_) => const CreateReminderPage()),
-      _AddAction('tagihan', AppTranslations.get(lang, 'tagihan_bulanan'), 'Tagihan rutin bulanan', Icons.receipt_long_rounded, LsColors.expense,
+      _AddAction(
+          'tagihan',
+          AppTranslations.get(lang, 'tagihan_bulanan'),
+          'Tagihan rutin bulanan',
+          Icons.receipt_long_rounded,
+          LsColors.expense,
           (_) => const AddEditBillPage(initialBillType: 'monthly')),
-      _AddAction('piutang', AppTranslations.get(lang, 'tagihan_piutang'), 'Catatan penagihan piutang orang lain', Icons.handshake_rounded, LsColors.income,
+      _AddAction(
+          'piutang',
+          AppTranslations.get(lang, 'tagihan_piutang'),
+          'Catatan penagihan piutang orang lain',
+          Icons.handshake_rounded,
+          LsColors.income,
           (_) => const AddEditBillPage(initialBillType: 'receivable')),
-      _AddAction('belanja', AppTranslations.get(lang, 'daftar_belanja'), 'Daftar kebutuhan belanjaan', Icons.shopping_cart_rounded, LsColors.amber,
+      _AddAction(
+          'belanja',
+          AppTranslations.get(lang, 'daftar_belanja'),
+          'Daftar kebutuhan belanjaan',
+          Icons.shopping_cart_rounded,
+          LsColors.amber,
           (_) => const CreateShoppingPage()),
-      _AddAction('target', AppTranslations.get(lang, 'target'), 'Mulai menabung untuk tujuan baru', Icons.savings_rounded, LsColors.income,
+      _AddAction(
+          'target',
+          AppTranslations.get(lang, 'target'),
+          'Mulai menabung untuk tujuan baru',
+          Icons.savings_rounded,
+          LsColors.income,
           (_) => const CreateTargetPage()),
     ];
     final preferred = switch (_currentIndex) {
@@ -270,56 +327,67 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
       3 => 'agenda',
       _ => 'transaksi',
     };
-    actions.sort((a, b) => (a.id == preferred ? 0 : 1).compareTo(b.id == preferred ? 0 : 1));
+    actions.sort((a, b) =>
+        (a.id == preferred ? 0 : 1).compareTo(b.id == preferred ? 0 : 1));
 
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: LsColors.surface(context),
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
       builder: (sheetContext) => ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.85),
+        constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.85),
         child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(color: LsColors.line(sheetContext), borderRadius: BorderRadius.circular(4)),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const LsEyebrow('Buat'),
-              const SizedBox(height: 4),
-              Text('Tambah Baru',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: LsColors.ink(sheetContext), letterSpacing: -0.4)),
-              const SizedBox(height: 14),
-              for (final a in actions)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: _AddActionRow(
-                    action: a,
-                    highlighted: a.id == preferred,
-                    onTap: () {
-                      Navigator.pop(sheetContext);
-                      Navigator.push(context, MaterialPageRoute(builder: a.builder));
-                    },
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                        color: LsColors.line(sheetContext),
+                        borderRadius: BorderRadius.circular(4)),
                   ),
                 ),
-            ],
+                const SizedBox(height: 16),
+                const LsEyebrow('Buat'),
+                const SizedBox(height: 4),
+                Text('Tambah Baru',
+                    style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: LsColors.ink(sheetContext),
+                        letterSpacing: -0.4)),
+                const SizedBox(height: 14),
+                for (final a in actions)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _AddActionRow(
+                      action: a,
+                      highlighted: a.id == preferred,
+                      onTap: () {
+                        Navigator.pop(sheetContext);
+                        Navigator.push(
+                            context, MaterialPageRoute(builder: a.builder));
+                      },
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }
 
-  Widget _navItem(int index, IconData icon, IconData selectedIcon, String label) {
+  Widget _navItem(
+      int index, IconData icon, IconData selectedIcon, String label) {
     final selected = _currentIndex == index;
     final color = selected ? LsColors.brand : LsColors.mute(context);
     return Expanded(
@@ -331,19 +399,26 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                 decoration: BoxDecoration(
-                  color: selected ? LsColors.brand.withValues(alpha: 0.14) : Colors.transparent,
+                  color: selected
+                      ? LsColors.brand.withValues(alpha: 0.14)
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(selected ? selectedIcon : icon, color: color, size: 21),
+                child: Icon(selected ? selectedIcon : icon,
+                    color: color, size: 21),
               ),
               const SizedBox(height: 1),
               Text(
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 10.5, fontWeight: selected ? FontWeight.w800 : FontWeight.w600, color: color),
+                style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                    color: color),
               ),
             ],
           ),
@@ -373,12 +448,21 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
             children: [
               Row(
                 children: [
-                  _navItem(0, Icons.home_outlined, Icons.home_rounded, AppTranslations.get(lang, 'beranda')),
-                  _navItem(1, Icons.account_balance_wallet_outlined, Icons.account_balance_wallet,
+                  _navItem(0, Icons.home_outlined, Icons.home_rounded,
+                      AppTranslations.get(lang, 'beranda')),
+                  _navItem(
+                      1,
+                      Icons.account_balance_wallet_outlined,
+                      Icons.account_balance_wallet,
                       AppTranslations.get(lang, 'keuangan')),
                   const Expanded(child: SizedBox(height: 56)),
-                  _navItem(2, Icons.savings_outlined, Icons.savings, AppTranslations.get(lang, 'target')),
-                  _navItem(3, Icons.notifications_none_outlined, Icons.notifications, AppTranslations.get(lang, 'pengingat')),
+                  _navItem(2, Icons.savings_outlined, Icons.savings,
+                      AppTranslations.get(lang, 'target')),
+                  _navItem(
+                      3,
+                      Icons.notifications_none_outlined,
+                      Icons.notifications,
+                      AppTranslations.get(lang, 'pengingat')),
                 ],
               ),
               Positioned(
@@ -399,9 +483,11 @@ class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver
                         height: 52,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: LsColors.surface(context), width: 3),
+                          border: Border.all(
+                              color: LsColors.surface(context), width: 3),
                         ),
-                        child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
+                        child: const Icon(Icons.add_rounded,
+                            color: Colors.white, size: 28),
                       ),
                     ),
                   ),
@@ -422,19 +508,23 @@ class _AddAction {
   final IconData icon;
   final Color color;
   final WidgetBuilder builder;
-  const _AddAction(this.id, this.title, this.subtitle, this.icon, this.color, this.builder);
+  const _AddAction(
+      this.id, this.title, this.subtitle, this.icon, this.color, this.builder);
 }
 
 class _AddActionRow extends StatelessWidget {
   final _AddAction action;
   final bool highlighted;
   final VoidCallback onTap;
-  const _AddActionRow({required this.action, required this.highlighted, required this.onTap});
+  const _AddActionRow(
+      {required this.action, required this.highlighted, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: highlighted ? action.color.withValues(alpha: 0.10) : Colors.transparent,
+      color: highlighted
+          ? action.color.withValues(alpha: 0.10)
+          : Colors.transparent,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
@@ -443,14 +533,19 @@ class _AddActionRow extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: highlighted ? action.color.withValues(alpha: 0.5) : LsColors.line(context)),
+            border: Border.all(
+                color: highlighted
+                    ? action.color.withValues(alpha: 0.5)
+                    : LsColors.line(context)),
           ),
           child: Row(
             children: [
               Container(
                 width: 42,
                 height: 42,
-                decoration: BoxDecoration(color: action.color.withValues(alpha: 0.14), shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                    color: action.color.withValues(alpha: 0.14),
+                    shape: BoxShape.circle),
                 child: Icon(action.icon, color: action.color, size: 21),
               ),
               const SizedBox(width: 12),
@@ -461,16 +556,22 @@ class _AddActionRow extends StatelessWidget {
                     Text(action.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800, color: LsColors.ink(context))),
+                        style: TextStyle(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w800,
+                            color: LsColors.ink(context))),
                     Text(action.subtitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 11.5, color: LsColors.mute(context))),
+                        style: TextStyle(
+                            fontSize: 11.5, color: LsColors.mute(context))),
                   ],
                 ),
               ),
               if (highlighted) LsChip('Disarankan', color: action.color),
-              if (!highlighted) Icon(Icons.chevron_right_rounded, color: LsColors.mute(context)),
+              if (!highlighted)
+                Icon(Icons.chevron_right_rounded,
+                    color: LsColors.mute(context)),
             ],
           ),
         ),

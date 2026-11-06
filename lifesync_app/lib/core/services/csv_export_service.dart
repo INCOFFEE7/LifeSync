@@ -138,17 +138,13 @@ class CsvExportService {
       csvContent = await generateCsv(db);
     } catch (e) {
       if (context.mounted) {
-        showDialog(
+        showLsInfoDialog(
           context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Gagal Menyiapkan Data'),
-            content: Text('Terjadi kesalahan saat mengumpulkan data: $e'),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Tutup')),
-            ],
-          ),
+          title: 'Gagal Menyiapkan Data',
+          message: 'Terjadi kesalahan saat mengumpulkan data: $e',
+          buttonLabel: 'Tutup',
+          icon: Icons.error_outline_rounded,
+          color: LsColors.expense,
         );
       }
       return;

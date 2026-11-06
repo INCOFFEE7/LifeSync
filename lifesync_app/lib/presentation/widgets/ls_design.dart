@@ -12,15 +12,21 @@ class LsColors {
   static const heroBottom = Color(0xFF1D4ED8);
 
   static Color paper(BuildContext c) =>
-      Theme.of(c).brightness == Brightness.dark ? navy : const Color(0xFFF3F6FC);
+      Theme.of(c).brightness == Brightness.dark
+          ? navy
+          : const Color(0xFFF3F6FC);
   static Color surface(BuildContext c) =>
-      Theme.of(c).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white;
-  static Color line(BuildContext c) =>
-      Theme.of(c).brightness == Brightness.dark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+      Theme.of(c).brightness == Brightness.dark
+          ? const Color(0xFF1E293B)
+          : Colors.white;
+  static Color line(BuildContext c) => Theme.of(c).brightness == Brightness.dark
+      ? const Color(0xFF334155)
+      : const Color(0xFFE2E8F0);
   static Color ink(BuildContext c) =>
       Theme.of(c).brightness == Brightness.dark ? Colors.white : navy;
-  static Color mute(BuildContext c) =>
-      Theme.of(c).brightness == Brightness.dark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+  static Color mute(BuildContext c) => Theme.of(c).brightness == Brightness.dark
+      ? const Color(0xFF94A3B8)
+      : const Color(0xFF64748B);
 }
 
 class LsCard extends StatelessWidget {
@@ -28,7 +34,11 @@ class LsCard extends StatelessWidget {
   final EdgeInsetsGeometry padding;
   final VoidCallback? onTap;
 
-  const LsCard({super.key, required this.child, this.padding = const EdgeInsets.all(12), this.onTap});
+  const LsCard(
+      {super.key,
+      required this.child,
+      this.padding = const EdgeInsets.all(12),
+      this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +68,8 @@ class LsHeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final gradientColors = colors ?? const [LsColors.heroTop, LsColors.heroBottom];
+    final gradientColors =
+        colors ?? const [LsColors.heroTop, LsColors.heroBottom];
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -70,7 +81,10 @@ class LsHeroCard extends StatelessWidget {
           colors: gradientColors,
         ),
         boxShadow: [
-          BoxShadow(color: gradientColors.first.withValues(alpha: 0.2), blurRadius: 18, offset: const Offset(0, 8)),
+          BoxShadow(
+              color: gradientColors.first.withValues(alpha: 0.2),
+              blurRadius: 18,
+              offset: const Offset(0, 8)),
         ],
       ),
       child: Stack(
@@ -130,7 +144,8 @@ class LsSectionHeader extends StatelessWidget {
   final String? actionLabel;
   final VoidCallback? onAction;
 
-  const LsSectionHeader({super.key, required this.title, this.actionLabel, this.onAction});
+  const LsSectionHeader(
+      {super.key, required this.title, this.actionLabel, this.onAction});
 
   @override
   Widget build(BuildContext context) {
@@ -140,13 +155,18 @@ class LsSectionHeader extends StatelessWidget {
         Container(
           width: 4,
           height: 18,
-          decoration: BoxDecoration(color: LsColors.brand, borderRadius: BorderRadius.circular(4)),
+          decoration: BoxDecoration(
+              color: LsColors.brand, borderRadius: BorderRadius.circular(4)),
         ),
         const SizedBox(width: 10),
         Expanded(
           child: Text(
             title,
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: LsColors.ink(context), letterSpacing: -0.3),
+            style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: LsColors.ink(context),
+                letterSpacing: -0.3),
           ),
         ),
         if (actionLabel != null)
@@ -157,7 +177,9 @@ class LsSectionHeader extends StatelessWidget {
               minimumSize: const Size(0, 32),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            child: Text(actionLabel!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+            child: Text(actionLabel!,
+                style:
+                    const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
           ),
       ],
     );
@@ -177,7 +199,9 @@ class LsChip extends StatelessWidget {
         color: color.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(label, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: color)),
+      child: Text(label,
+          style: TextStyle(
+              fontSize: 10.5, fontWeight: FontWeight.w800, color: color)),
     );
   }
 }
@@ -211,14 +235,25 @@ class LsStatTile extends StatelessWidget {
           Container(
             width: 32,
             height: 32,
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.14), shape: BoxShape.circle),
+            decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.14), shape: BoxShape.circle),
             child: Icon(icon, size: 16, color: color),
           ),
           const SizedBox(height: 8),
-          Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, height: 1, color: LsColors.ink(context))),
+          Text(value,
+              style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  height: 1,
+                  color: LsColors.ink(context))),
           const SizedBox(height: 4),
-          Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: LsColors.ink(context))),
-          Text(unit, style: TextStyle(fontSize: 10, color: LsColors.mute(context))),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: LsColors.ink(context))),
+          Text(unit,
+              style: TextStyle(fontSize: 10, color: LsColors.mute(context))),
         ],
       ),
     );
@@ -232,7 +267,13 @@ class LsRing extends StatelessWidget {
   final Color color;
   final Widget? child;
 
-  const LsRing({super.key, required this.progress, this.size = 64, this.stroke = 7, required this.color, this.child});
+  const LsRing(
+      {super.key,
+      required this.progress,
+      this.size = 64,
+      this.stroke = 7,
+      required this.color,
+      this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -240,7 +281,8 @@ class LsRing extends StatelessWidget {
       width: size,
       height: size,
       child: CustomPaint(
-        painter: _RingPainter(progress.clamp(0.0, 1.0), stroke, color, LsColors.line(context)),
+        painter: _RingPainter(
+            progress.clamp(0.0, 1.0), stroke, color, LsColors.line(context)),
         child: Center(child: child),
       ),
     );
@@ -264,13 +306,17 @@ class _RingPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
     canvas.drawArc(deflated, 0, math.pi * 2, false, base..color = track);
     if (progress > 0) {
-      canvas.drawArc(deflated, -math.pi / 2, math.pi * 2 * progress, false, base..color = color);
+      canvas.drawArc(deflated, -math.pi / 2, math.pi * 2 * progress, false,
+          base..color = color);
     }
   }
 
   @override
   bool shouldRepaint(covariant _RingPainter old) =>
-      old.progress != progress || old.color != color || old.track != track || old.stroke != stroke;
+      old.progress != progress ||
+      old.color != color ||
+      old.track != track ||
+      old.stroke != stroke;
 }
 
 class LsDropdownOption<T> {
@@ -313,7 +359,8 @@ class LsCapsuleDropdown<T> extends StatelessWidget {
       (o) => o.value == value,
       orElse: () => options.first,
     );
-    final color = activeColor ?? (isHighlighted ? LsColors.brand : LsColors.ink(context));
+    final color =
+        activeColor ?? (isHighlighted ? LsColors.brand : LsColors.ink(context));
     final bgColor = isHighlighted
         ? (activeColor ?? LsColors.brand).withValues(alpha: 0.12)
         : LsColors.surface(context);
@@ -332,7 +379,8 @@ class LsCapsuleDropdown<T> extends StatelessWidget {
         color: LsColors.surface(context),
         itemBuilder: (ctx) => options.map((opt) {
           final isSel = opt.value == value;
-          final optColor = opt.color ?? (isSel ? LsColors.brand : LsColors.ink(context));
+          final optColor =
+              opt.color ?? (isSel ? LsColors.brand : LsColors.ink(context));
           return PopupMenuItem<T>(
             value: opt.value,
             height: 38,
@@ -353,7 +401,8 @@ class LsCapsuleDropdown<T> extends StatelessWidget {
                 ),
                 if (isSel) ...[
                   const Spacer(),
-                  const Icon(Icons.check_rounded, size: 15, color: LsColors.brand),
+                  const Icon(Icons.check_rounded,
+                      size: 15, color: LsColors.brand),
                 ],
               ],
             ),
@@ -487,7 +536,8 @@ Future<bool> showLsConfirmDialog({
 }) async {
   final danger = isDestructive || isDanger;
   final accentColor = danger ? LsColors.expense : LsColors.brand;
-  final icon = customIcon ?? (danger ? Icons.delete_outline_rounded : Icons.help_outline_rounded);
+  final icon = customIcon ??
+      (danger ? Icons.delete_outline_rounded : Icons.help_outline_rounded);
 
   final result = await showDialog<bool>(
     context: context,
@@ -511,7 +561,8 @@ Future<bool> showLsConfirmDialog({
             decoration: BoxDecoration(
               color: accentColor.withValues(alpha: 0.12),
               shape: BoxShape.circle,
-              border: Border.all(color: accentColor.withValues(alpha: 0.25), width: 1.5),
+              border: Border.all(
+                  color: accentColor.withValues(alpha: 0.25), width: 1.5),
             ),
             child: Icon(icon, size: 28, color: accentColor),
           ),
@@ -546,7 +597,8 @@ Future<bool> showLsConfirmDialog({
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: LsColors.line(ctx), width: 1.2),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                   ),
                   onPressed: () => Navigator.of(ctx).pop(false),
@@ -569,7 +621,8 @@ Future<bool> showLsConfirmDialog({
                   style: FilledButton.styleFrom(
                     backgroundColor: accentColor,
                     elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                   ),
                   onPressed: () => Navigator.of(ctx).pop(true),
@@ -626,7 +679,8 @@ Future<void> showLsInfoDialog({
             decoration: BoxDecoration(
               color: accentColor.withValues(alpha: 0.12),
               shape: BoxShape.circle,
-              border: Border.all(color: accentColor.withValues(alpha: 0.25), width: 1.5),
+              border: Border.all(
+                  color: accentColor.withValues(alpha: 0.25), width: 1.5),
             ),
             child: Icon(displayIcon, size: 28, color: accentColor),
           ),
@@ -660,7 +714,8 @@ Future<void> showLsInfoDialog({
             style: FilledButton.styleFrom(
               backgroundColor: accentColor,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
             ),
             onPressed: () => Navigator.of(ctx).pop(),
             child: Text(
@@ -675,5 +730,194 @@ Future<void> showLsInfoDialog({
         ),
       ],
     ),
+  );
+}
+
+class LsOptionItem<T> {
+  final T value;
+  final String title;
+  final String? subtitle;
+  final IconData? icon;
+  final Color? iconColor;
+  final Widget? trailing;
+
+  const LsOptionItem({
+    required this.value,
+    required this.title,
+    this.subtitle,
+    this.icon,
+    this.iconColor,
+    this.trailing,
+  });
+}
+
+Future<T?> showLsOptionsSheet<T>({
+  required BuildContext context,
+  required String title,
+  String? subtitle,
+  required List<LsOptionItem<T>> options,
+  T? selectedValue,
+  IconData? headerIcon,
+}) {
+  return showModalBottomSheet<T>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: LsColors.surface(context),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (ctx) {
+      return SafeArea(
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    if (headerIcon != null) ...[
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: LsColors.brand.withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child:
+                            Icon(headerIcon, color: LsColors.brand, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: TextStyle(
+                              fontSize: 16.5,
+                              fontWeight: FontWeight.w800,
+                              color: LsColors.ink(ctx),
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          if (subtitle != null) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              subtitle,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: LsColors.mute(ctx),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close_rounded,
+                          size: 20, color: LsColors.mute(ctx)),
+                      onPressed: () => Navigator.pop(ctx),
+                      visualDensity: VisualDensity.compact,
+                      splashRadius: 18,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                ...options.map((opt) {
+                  final isSelected = opt.value == selectedValue;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: InkWell(
+                      onTap: () => Navigator.pop(ctx, opt.value),
+                      borderRadius: BorderRadius.circular(16),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 140),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? LsColors.brand.withValues(alpha: 0.08)
+                              : LsColors.paper(ctx),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isSelected
+                                ? LsColors.brand
+                                : LsColors.line(ctx),
+                            width: isSelected ? 1.6 : 1.0,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            if (opt.icon != null) ...[
+                              Container(
+                                width: 38,
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  color: (opt.iconColor ?? LsColors.brand)
+                                      .withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(
+                                  opt.icon,
+                                  color: opt.iconColor ?? LsColors.brand,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                            ],
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    opt.title,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w800
+                                          : FontWeight.w700,
+                                      color: isSelected
+                                          ? LsColors.brand
+                                          : LsColors.ink(ctx),
+                                    ),
+                                  ),
+                                  if (opt.subtitle != null) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      opt.subtitle!,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: LsColors.mute(ctx),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            if (opt.trailing != null)
+                              opt.trailing!
+                            else if (isSelected)
+                              const Icon(Icons.check_circle_rounded,
+                                  color: LsColors.brand, size: 22)
+                            else
+                              Icon(Icons.radio_button_unchecked_rounded,
+                                  color: LsColors.line(ctx), size: 22),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
   );
 }
