@@ -389,36 +389,59 @@ class _MainPageState extends ConsumerState<MainPage>
   Widget _navItem(
       int index, IconData icon, IconData selectedIcon, String label) {
     final selected = _currentIndex == index;
-    final color = selected ? LsColors.brand : LsColors.mute(context);
+    final activeColor = LsColors.brand;
+    final inactiveColor = LsColors.mute(context);
+
     return Expanded(
       child: InkWell(
         onTap: () => _onTabTapped(index),
+        splashColor: LsColors.brand.withValues(alpha: 0.1),
+        highlightColor: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
         child: SizedBox(
           height: 56,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 240),
+                curve: Curves.easeOutCubic,
+                padding: EdgeInsets.symmetric(
+                  horizontal: selected ? 14 : 8,
+                  vertical: 2.5,
+                ),
                 decoration: BoxDecoration(
                   color: selected
                       ? LsColors.brand.withValues(alpha: 0.14)
                       : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(selected ? selectedIcon : icon,
-                    color: color, size: 21),
+                child: AnimatedScale(
+                  scale: selected ? 1.1 : 1.0,
+                  duration: const Duration(milliseconds: 240),
+                  curve: Curves.easeOutBack,
+                  child: Icon(
+                    selected ? selectedIcon : icon,
+                    color: selected ? activeColor : inactiveColor,
+                    size: 21,
+                  ),
+                ),
               ),
-              const SizedBox(height: 1),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              const SizedBox(height: 2),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
                 style: TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                    color: color),
+                  fontSize: 10.5,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                  color: selected ? activeColor : inactiveColor,
+                  letterSpacing: selected ? -0.2 : 0.0,
+                ),
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
@@ -430,6 +453,7 @@ class _MainPageState extends ConsumerState<MainPage>
   @override
   Widget build(BuildContext context) {
     final lang = ref.watch(localeProvider).languageCode;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
@@ -439,6 +463,13 @@ class _MainPageState extends ConsumerState<MainPage>
         decoration: BoxDecoration(
           color: LsColors.surface(context),
           border: Border(top: BorderSide(color: LsColors.line(context))),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, -3),
+            ),
+          ],
         ),
         child: SafeArea(
           top: false,
@@ -470,24 +501,49 @@ class _MainPageState extends ConsumerState<MainPage>
                 child: Semantics(
                   button: true,
                   label: 'Tambah Baru',
-                  child: Material(
-                    color: LsColors.brand,
-                    shape: const CircleBorder(),
-                    elevation: 5,
-                    shadowColor: LsColors.brand.withValues(alpha: 0.4),
-                    child: InkWell(
-                      customBorder: const CircleBorder(),
-                      onTap: _showAddSheet,
-                      child: Container(
-                        width: 52,
-                        height: 52,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: LsColors.brand.withValues(alpha: 0.35),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      shape: const CircleBorder(),
+                      child: Ink(
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Color(0xFF3B82F6),
+                              Color(0xFF1D4ED8),
+                            ],
+                          ),
                           border: Border.all(
-                              color: LsColors.surface(context), width: 3),
+                            color: LsColors.surface(context),
+                            width: 3.5,
+                          ),
                         ),
-                        child: const Icon(Icons.add_rounded,
-                            color: Colors.white, size: 28),
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: _showAddSheet,
+                          child: const SizedBox(
+                            width: 52,
+                            height: 52,
+                            child: Icon(
+                              Icons.add_rounded,
+                              color: Colors.white,
+                              size: 28,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),

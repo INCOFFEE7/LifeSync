@@ -20,18 +20,69 @@ class FinancialRecordsHomePage extends ConsumerStatefulWidget {
 class _FinancialRecordsHomePageState
     extends ConsumerState<FinancialRecordsHomePage> {
   final NumberFormat _fmt = NumberFormat('#,###', 'id_ID');
+  late ScrollController _dayScrollController;
   DateTime _selectedDate = DateTime.now();
   DateTime? _selectedDay;
   String _periodScope = 'month'; // 'month', 'all', 'range'
   DateTimeRange? _selectedDateRange;
   String _searchQuery = '';
 
+  @override
+  void initState() {
+    super.initState();
+    _dayScrollController = ScrollController();
+    _selectedDay = DateTime.now();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToSelectedDay(animate: false);
+    });
+  }
+
+  @override
+  void dispose() {
+    _dayScrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToSelectedDay({bool animate = true}) {
+    if (!_dayScrollController.hasClients || _selectedDay == null) return;
+    if (_selectedDay!.year != _selectedDate.year ||
+        _selectedDay!.month != _selectedDate.month) return;
+
+    final dayIndex = _selectedDay!.day - 1;
+    const itemTileWidth = 44.0;
+    const itemMargin = 3.0; // 3px left + 3px right
+    const itemTotalWidth = itemTileWidth + (itemMargin * 2); // 50.0
+    const listPadding = 12.0;
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    final itemCenterPos = listPadding +
+        (dayIndex * itemTotalWidth) +
+        itemMargin +
+        (itemTileWidth / 2);
+    final targetOffset = itemCenterPos - (screenWidth / 2);
+    final safeOffset =
+        targetOffset.clamp(0.0, _dayScrollController.position.maxScrollExtent);
+
+    if (animate) {
+      _dayScrollController.animateTo(
+        safeOffset,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+      );
+    } else {
+      _dayScrollController.jumpTo(safeOffset);
+    }
+  }
+
   void resetToToday() {
     setState(() {
       _selectedDate = DateTime.now();
-      _selectedDay = null;
+      _selectedDay = DateTime.now();
       _periodScope = 'month';
       _selectedDateRange = null;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToSelectedDay(animate: true);
     });
   }
 
@@ -62,9 +113,18 @@ class _FinancialRecordsHomePageState
 
   void _shiftMonth(int delta) {
     setState(() {
-      _selectedDate =
+      final newMonth =
           DateTime(_selectedDate.year, _selectedDate.month + delta, 1);
-      _selectedDay = null;
+      _selectedDate = newMonth;
+      final now = DateTime.now();
+      if (newMonth.year == now.year && newMonth.month == now.month) {
+        _selectedDay = now;
+      } else {
+        _selectedDay = DateTime(newMonth.year, newMonth.month, 1);
+      }
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToSelectedDay(animate: true);
     });
   }
 
@@ -79,8 +139,16 @@ class _FinancialRecordsHomePageState
     if (picked != null && mounted) {
       setState(() {
         _selectedDate = picked;
-        _selectedDay = null;
+        final now = DateTime.now();
+        if (picked.year == now.year && picked.month == now.month) {
+          _selectedDay = now;
+        } else {
+          _selectedDay = DateTime(picked.year, picked.month, 1);
+        }
         _periodScope = 'month';
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToSelectedDay(animate: true);
       });
     }
   }
@@ -223,80 +291,8 @@ class _FinancialRecordsHomePageState
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                arrow(Icons.chevron_left_rounded, -1),
-                const SizedBox(width: 6),
-                InkWell(
-                  borderRadius: BorderRadius.circular(8),
-                  onTap: () {
-                    if (_periodScope == 'range') {
-                      _pickDateRange();
-                    } else {
-                      _pickMonth();
-                    }
-                  },
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: LsColors.paper(context),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: LsColors.line(context)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          label,
-                          style: TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w800,
-                            color: LsColors.ink(context),
-                            letterSpacing: -0.2,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Icon(Icons.arrow_drop_down_rounded,
-                            size: 18, color: LsColors.mute(context)),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                arrow(Icons.chevron_right_rounded, 1),
-                const Spacer(),
-                if (_periodScope == 'month' && _selectedDay != null) ...[
-                  InkWell(
-                    onTap: () => setState(() => _selectedDay = null),
-                    borderRadius: BorderRadius.circular(10),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: LsColors.brand.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                            color: LsColors.brand.withValues(alpha: 0.3)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Tgl ${_selectedDay!.day}',
-                            style: const TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.bold,
-                                color: LsColors.brand),
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(Icons.close_rounded,
-                              size: 14, color: LsColors.brand),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                ],
                 _buildIconFilterButton<String>(
                   value: _periodScope,
                   icon: _periodScope == 'range'
@@ -327,12 +323,98 @@ class _FinancialRecordsHomePageState
                     } else {
                       setState(() {
                         _periodScope = val;
-                        _selectedDay = null;
-                        if (val == 'month') _selectedDate = DateTime.now();
+                        if (val == 'month') {
+                          _selectedDate = DateTime.now();
+                          _selectedDay = DateTime.now();
+                        } else {
+                          _selectedDay = null;
+                        }
                       });
+                      if (val == 'month') {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          _scrollToSelectedDay(animate: true);
+                        });
+                      }
                     }
                   },
                 ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    arrow(Icons.chevron_left_rounded, -1),
+                    const SizedBox(width: 6),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () {
+                        if (_periodScope == 'range') {
+                          _pickDateRange();
+                        } else {
+                          _pickMonth();
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: LsColors.paper(context),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: LsColors.line(context)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              label,
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w800,
+                                color: LsColors.ink(context),
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(Icons.arrow_drop_down_rounded,
+                                size: 18, color: LsColors.mute(context)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    arrow(Icons.chevron_right_rounded, 1),
+                  ],
+                ),
+                if (_periodScope == 'month' && _selectedDay != null)
+                  InkWell(
+                    onTap: () => setState(() => _selectedDay = null),
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: LsColors.brand.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: LsColors.brand.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Tgl ${_selectedDay!.day}',
+                            style: const TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.bold,
+                                color: LsColors.brand),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.close_rounded,
+                              size: 14, color: LsColors.brand),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  const SizedBox(width: 38),
               ],
             ),
           ),
@@ -359,6 +441,7 @@ class _FinancialRecordsHomePageState
       height: 60,
       padding: const EdgeInsets.only(bottom: 6),
       child: ListView.builder(
+        controller: _dayScrollController,
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         itemCount: daysInMonth,
@@ -387,6 +470,9 @@ class _FinancialRecordsHomePageState
                   ref.read(selectedFinancialDateProvider.notifier).state = date;
                 }
               });
+              if (!isSelected) {
+                _scrollToSelectedDay(animate: true);
+              }
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),

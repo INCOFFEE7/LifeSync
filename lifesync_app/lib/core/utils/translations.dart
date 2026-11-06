@@ -313,6 +313,21 @@ class AppTranslations {
           'This action is permanent. All local app data will be deleted and cannot be recovered.',
       'saya_paham_hapus':
           'I understand that all data will be permanently deleted and cannot be recovered.',
+      'tagihan_jatuh_tempo': 'Upcoming Bills',
+      'daftar_belanja_belum_dibeli': 'Pending Shopping Items',
+      'target_nabung': 'Savings Goals',
+      'selamat_pagi': 'Good morning',
+      'selamat_siang': 'Good afternoon',
+      'selamat_sore': 'Good evening',
+      'selamat_malam': 'Good night',
+      'dari': 'of',
+      'konfirmasi_selesai': 'Confirm Done',
+      'konfirmasi_dibeli': 'Confirm Bought',
+      'waktu_pembelian': 'Purchase Time',
+      'pilih_waktu_pembelian': 'Select Purchase Time',
+      'belum_ada_belanja_pending': 'No pending shopping items.',
+      'belum_ada_pengingat_terdekat': 'No upcoming reminders.',
+      'belum_ada_tagihan_jatuh_tempo': 'No upcoming bills.',
     },
     'id': {
       'ringkasan_hari_ini': 'Ringkasan Hari Ini',
@@ -629,6 +644,23 @@ class AppTranslations {
           'Tindakan ini permanen. Semua data lokal di aplikasi akan dihapus bersih tanpa bisa dikembalikan.',
       'saya_paham_hapus':
           'Saya memahami bahwa seluruh data akan dihapus permanen dan tidak dapat dipulihkan.',
+      'tagihan_jatuh_tempo': 'Tagihan Jatuh Tempo',
+      'daftar_belanja_belum_dibeli': 'Daftar Belanja Belum Dibeli',
+      'target_nabung': 'Target Nabung',
+      'selamat_pagi': 'Selamat pagi',
+      'selamat_siang': 'Selamat siang',
+      'selamat_sore': 'Selamat sore',
+      'selamat_malam': 'Selamat malam',
+      'dari': 'dari',
+      'konfirmasi_selesai': 'Konfirmasi Selesai',
+      'konfirmasi_dibeli': 'Konfirmasi Dibeli',
+      'waktu_pembelian': 'Waktu Pembelian',
+      'pilih_waktu_pembelian': 'Pilih Waktu Pembelian',
+      'belum_ada_belanja_pending':
+          'Belum ada daftar belanjaan yang belum dibeli.',
+      'belum_ada_pengingat_terdekat': 'Belum ada pengingat terdekat.',
+      'belum_ada_tagihan_jatuh_tempo':
+          'Tidak ada tagihan yang jatuh tempo terdekat.',
     },
   };
 

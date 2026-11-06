@@ -20,7 +20,8 @@ import 'package:lifesync_app/config/app_variant.dart';
 import 'package:intl/intl.dart';
 
 class RemindersPage extends ConsumerStatefulWidget {
-  const RemindersPage({super.key});
+  final int initialIndex;
+  const RemindersPage({super.key, this.initialIndex = 0});
 
   @override
   ConsumerState<RemindersPage> createState() => _RemindersPageState();
@@ -42,7 +43,11 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(
+      length: 4,
+      vsync: this,
+      initialIndex: widget.initialIndex.clamp(0, 3),
+    );
     _tabController.addListener(() {
       if (mounted) setState(() {});
     });
@@ -1266,47 +1271,9 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
         border: Border(bottom: BorderSide(color: LsColors.line(context))),
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          arrow(Icons.chevron_left_rounded, -1),
-          const SizedBox(width: 6),
-          InkWell(
-            borderRadius: BorderRadius.circular(8),
-            onTap: () {
-              if (_periodScope == 'range') {
-                _pickDateRange();
-              } else {
-                _pickMonth();
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: LsColors.paper(context),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: LsColors.line(context)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w800,
-                      color: LsColors.ink(context),
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(Icons.arrow_drop_down_rounded,
-                      size: 18, color: LsColors.mute(context)),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 6),
-          arrow(Icons.chevron_right_rounded, 1),
-          const Spacer(),
+          // KIRI: Dropdown 1 (Filter Periode)
           _buildIconFilterButton<String>(
             value: _periodScope,
             icon: _periodScope == 'range'
@@ -1342,10 +1309,56 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
               }
             },
           ),
-          if (extraAction != null) ...[
-            const SizedBox(width: 8),
-            extraAction,
-          ],
+
+          // TENGAH: Navigasi Bulan yang Diapit
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              arrow(Icons.chevron_left_rounded, -1),
+              const SizedBox(width: 6),
+              InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () {
+                  if (_periodScope == 'range') {
+                    _pickDateRange();
+                  } else {
+                    _pickMonth();
+                  }
+                },
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: LsColors.paper(context),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: LsColors.line(context)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w800,
+                          color: LsColors.ink(context),
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(Icons.arrow_drop_down_rounded,
+                          size: 18, color: LsColors.mute(context)),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              arrow(Icons.chevron_right_rounded, 1),
+            ],
+          ),
+
+          // KANAN: Dropdown 2 (Filter Tambahan) atau Penyeimbang Simetris
+          if (extraAction != null) extraAction else const SizedBox(width: 38),
         ],
       ),
     );

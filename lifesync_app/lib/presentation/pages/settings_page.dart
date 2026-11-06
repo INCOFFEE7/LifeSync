@@ -64,7 +64,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   Future<void> _loadVersion() async {
     setState(() {
-      _version = 'v2026.10.15.02.01';
+      _version = 'v2026.11.06.01.01';
     });
   }
 

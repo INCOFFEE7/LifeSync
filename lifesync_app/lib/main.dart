@@ -20,7 +20,7 @@ import 'package:lifesync_app/presentation/providers/settings_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Detect flavor dynamically from Flutter runtime or fallback to lifesync config
   if (appFlavor == 'beebee') {
     AppEnvironment.setup(BeebeeConfig.config);
@@ -31,7 +31,7 @@ void main() async {
       logoPath: 'assets/images/WhatToDoAppLogo.png',
       logoFullPath: 'assets/images/WhatToDoHorizontalLockup.png',
       logoDarkPath: 'assets/images/WhatToDoAppLogo.png',
-      logoDarkFullPath: 'assets/images/WhatToDoHorizontalLockup.png',
+      logoDarkFullPath: 'assets/images/WhatToDoHorizontalLockupDarkmode.png',
       lightTheme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       enabledModules: ['finance_tracker', 'goals_tracker', 'reminders'],
@@ -43,7 +43,7 @@ void main() async {
 
     final dbService = DatabaseService();
     await dbService.init();
-    
+
     final notificationService = NotificationService();
     await notificationService.init();
 
@@ -62,7 +62,8 @@ void main() async {
     Future.microtask(() async {
       try {
         await notificationService.requestPermissions();
-        final rescheduler = NotificationRescheduler(dbService, notificationService);
+        final rescheduler =
+            NotificationRescheduler(dbService, notificationService);
         await rescheduler.reconcileNotifications();
       } catch (e) {
         debugPrint('Notification rescheduler error: $e');
@@ -94,7 +95,8 @@ void main() async {
           child: SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.all(20.0),
-              child: Text('Initialization Error:\n$e\n\n$stackTrace', style: const TextStyle(color: Colors.red)),
+              child: Text('Initialization Error:\n$e\n\n$stackTrace',
+                  style: const TextStyle(color: Colors.red)),
             ),
           ),
         ),
@@ -126,8 +128,8 @@ class LifeSyncApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      home: AppEnvironment.config.variant == AppVariant.beebee 
-          ? const BeebeeSplashScreen() 
+      home: AppEnvironment.config.variant == AppVariant.beebee
+          ? const BeebeeSplashScreen()
           : const AnimatedSplashScreen(),
     );
   }

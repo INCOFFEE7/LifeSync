@@ -15,6 +15,8 @@ import 'package:lifesync_app/core/services/home_widget_service.dart';
 import 'package:intl/intl.dart';
 import 'package:lifesync_app/presentation/pages/settings_page.dart';
 import 'package:lifesync_app/presentation/pages/reminders_page.dart';
+import 'package:lifesync_app/presentation/pages/targets_page.dart';
+import 'package:lifesync_app/presentation/pages/target_detail_page.dart';
 import 'package:lifesync_app/presentation/widgets/calculator_input_dialog.dart';
 import 'package:lifesync_app/core/utils/translations.dart';
 import 'package:lifesync_app/presentation/providers/localization_provider.dart';
@@ -95,7 +97,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // ── 0. SAPAAN, HERO SALDO & RINGKASAN CEPAT ──────────────────
-                _buildGreeting(),
+                _buildGreeting(lang),
                 const SizedBox(height: 12),
                 _buildHeroBalance(yearSummary, currencyFmt, sortedYears, lang),
                 const SizedBox(height: 10),
@@ -105,17 +107,20 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 // ── 1. PENGINGAT (Agenda Hari Ini & Reminders) ───────────────
                 _buildSectionTitle(AppTranslations.get(lang, 'pengingat')),
                 const SizedBox(height: 10),
-                _buildRemindersSection(data.upcomingReminders),
+                _buildRemindersSection(data.upcomingReminders, lang),
                 const SizedBox(height: 18),
 
                 // ── 2. DAFTAR BELANJA BELUM DIBELI ───────────────────────────
-                _buildSectionTitle('Daftar Belanja Belum Dibeli'),
+                _buildSectionTitle(
+                    AppTranslations.get(lang, 'daftar_belanja_belum_dibeli')),
                 const SizedBox(height: 10),
-                _buildShoppingListSection(shoppingAsync, currencyFmt, isDark),
+                _buildShoppingListSection(
+                    shoppingAsync, currencyFmt, isDark, lang),
                 const SizedBox(height: 18),
 
                 // ── 3. KEUANGAN (Rangkuman Transaksi & Tagihan 7 Hari) ───────
-                _buildSectionTitle('Tagihan Jatuh Tempo'),
+                _buildSectionTitle(
+                    AppTranslations.get(lang, 'tagihan_jatuh_tempo')),
                 const SizedBox(height: 10),
                 billsAsync.when(
                   data: (bills) {
@@ -127,7 +132,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
 
                     return _buildUpcomingBillsSection(
-                        upcomingBills, currencyFmt);
+                        upcomingBills, currencyFmt, lang);
                   },
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
@@ -136,11 +141,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 const SizedBox(height: 18),
 
                 // ── 4. NABUNG (Total Tabungan & Recommendations) ───────────────
-                _buildSectionTitle('Nabung'),
+                _buildSectionTitle(AppTranslations.get(lang, 'target_nabung')),
                 const SizedBox(height: 10),
                 _buildSavingsOverviewCard(data, lang, currencyFmt),
                 const SizedBox(height: 12),
-                _buildNabungSection(data.topTargets),
+                _buildNabungSection(data.topTargets, lang),
               ],
             ),
           );
@@ -151,20 +156,21 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildGreeting() {
+  Widget _buildGreeting(String lang) {
     final h = DateTime.now().hour;
+    final isEn = lang == 'en';
     final greet = h < 11
-        ? 'Selamat pagi'
+        ? (isEn ? 'Good morning' : 'Selamat pagi')
         : h < 15
-            ? 'Selamat siang'
+            ? (isEn ? 'Good afternoon' : 'Selamat siang')
             : h < 18
-                ? 'Selamat sore'
-                : 'Selamat malam';
+                ? (isEn ? 'Good evening' : 'Selamat sore')
+                : (isEn ? 'Good night' : 'Selamat malam');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        LsEyebrow(
-            DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(DateTime.now())),
+        LsEyebrow(DateFormat('EEEE, d MMMM yyyy', isEn ? 'en_US' : 'id_ID')
+            .format(DateTime.now())),
         const SizedBox(height: 2),
         Text(
           '$greet.',
@@ -345,7 +351,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             color: LsColors.violet,
             value: '${data.todayRemindersCount}',
             label: AppTranslations.get(lang, 'agenda_hari_ini'),
-            unit: 'hari ini',
+            unit: AppTranslations.get(lang, 'hari_ini_unit'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const RemindersPage(initialIndex: 1)),
+              );
+            },
           ),
         ),
         const SizedBox(width: 8),
@@ -354,8 +367,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             icon: Icons.receipt_long_outlined,
             color: urgent > 0 ? LsColors.expense : LsColors.income,
             value: '$urgent',
-            label: 'Tagihan',
+            label: AppTranslations.get(lang, 'tagihan'),
             unit: '≤ 7 hari',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const RemindersPage(initialIndex: 2)),
+              );
+            },
           ),
         ),
         const SizedBox(width: 8),
@@ -364,8 +384,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             icon: Icons.shopping_bag_outlined,
             color: LsColors.amber,
             value: '$unbought',
-            label: 'Belanja',
+            label: AppTranslations.get(lang, 'belanja'),
             unit: 'belum dibeli',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const RemindersPage(initialIndex: 3)),
+              );
+            },
           ),
         ),
       ],
@@ -373,9 +400,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   }
 
   Widget _buildUpcomingBillsSection(
-      List<Bill> upcomingBills, NumberFormat fmt) {
+      List<Bill> upcomingBills, NumberFormat fmt, String lang) {
     if (upcomingBills.isEmpty) {
-      return const SizedBox.shrink();
+      return _buildEmptyCard(
+          AppTranslations.get(lang, 'belum_ada_tagihan_jatuh_tempo'));
     }
 
     return Column(
@@ -395,7 +423,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const RemindersPage()),
+                MaterialPageRoute(
+                    builder: (_) => const RemindersPage(initialIndex: 2)),
               );
             },
             child: Row(
@@ -470,6 +499,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     int percentage = (progress * 100).toInt();
 
     return _buildFlatCard(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const TargetsPage()),
+        );
+      },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -479,12 +514,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               Text(AppTranslations.get(lang, 'total_tabungan'),
                   style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey.shade600,
+                      color: LsColors.mute(context),
                       fontWeight: FontWeight.w600)),
-              Text('${data.topTargets.length} Target',
+              Text(
+                  '${data.topTargets.length} ${AppTranslations.get(lang, 'target')}',
                   style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey.shade500,
+                      color: LsColors.mute(context),
                       fontWeight: FontWeight.w500)),
             ],
           ),
@@ -497,23 +533,23 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF2563EB)),
+                    color: LsColors.brand),
               ),
               Text(
-                '$percentage% Tercapai',
+                '$percentage% ${AppTranslations.get(lang, 'tercapai')}',
                 style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF10B981)),
+                    color: LsColors.income),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
-            'dari Rp ${fmt.format(data.totalTargetAmount.toInt())}',
+            '${AppTranslations.get(lang, 'dari')} Rp ${fmt.format(data.totalTargetAmount.toInt())}',
             style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey.shade500,
+                color: LsColors.mute(context),
                 fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 12),
@@ -522,8 +558,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 10,
-              backgroundColor: Colors.grey.shade200,
-              color: const Color(0xFF2563EB),
+              backgroundColor: LsColors.brand.withValues(alpha: 0.12),
+              valueColor: const AlwaysStoppedAnimation<Color>(LsColors.brand),
             ),
           ),
         ],
@@ -531,9 +567,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildRemindersSection(List<Reminder> reminders) {
+  Widget _buildRemindersSection(List<Reminder> reminders, String lang) {
     if (reminders.isEmpty) {
-      return _buildEmptyCard('Belum ada pengingat terdekat.');
+      return _buildEmptyCard(
+          AppTranslations.get(lang, 'belum_ada_pengingat_terdekat'));
     }
     return Column(
       children: reminders
@@ -596,6 +633,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     double enteredPrice = item.price;
     DateTime selectedDate = item.purchaseDate ?? DateTime.now();
     final currencyFmt = NumberFormat('#,###', 'id_ID');
+    final lang = ref.read(localeProvider).languageCode;
 
     await showModalBottomSheet(
       context: context,
@@ -604,8 +642,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setModalState) {
-            final isDark = Theme.of(ctx).brightness == Brightness.dark;
-
             return Container(
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
@@ -614,9 +650,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 right: 24,
               ),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                color: LsColors.surface(ctx),
                 borderRadius:
                     const BorderRadius.vertical(top: Radius.circular(24)),
+                border: Border(top: BorderSide(color: LsColors.line(ctx))),
               ),
               child: SingleChildScrollView(
                 child: Column(
@@ -631,28 +668,26 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF10B981)
-                                    .withValues(alpha: 0.1),
+                                color: LsColors.income.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: const Icon(Icons.shopping_bag_outlined,
-                                  color: Color(0xFF10B981), size: 24),
+                                  color: LsColors.income, size: 24),
                             ),
                             const SizedBox(width: 12),
                             Text(
-                              'Konfirmasi Dibeli',
+                              AppTranslations.get(lang, 'konfirmasi_dibeli'),
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: isDark
-                                    ? Colors.white
-                                    : const Color(0xFF0F172A),
+                                color: LsColors.ink(ctx),
                               ),
                             ),
                           ],
                         ),
                         IconButton(
                           icon: const Icon(Icons.close),
+                          color: LsColors.mute(ctx),
                           onPressed: () => Navigator.pop(ctx),
                         ),
                       ],
@@ -663,30 +698,35 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF2563EB)),
+                          color: LsColors.brand),
                     ),
                     if (item.notes != null && item.notes!.isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text('Catatan: ${item.notes}',
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 12,
                               fontStyle: FontStyle.italic,
-                              color: Colors.grey)),
+                              color: LsColors.mute(ctx))),
                     ],
                     const SizedBox(height: 16),
 
                     // Dibeli Oleh (Opsional)
                     TextFormField(
                       controller: purchasedByController,
+                      style: TextStyle(color: LsColors.ink(ctx)),
                       decoration: InputDecoration(
                         labelText: 'Dibeli Oleh Siapa (Opsional)',
                         hintText: 'e.g. Ibu, Ayah, Siska',
+                        hintStyle: TextStyle(color: LsColors.mute(ctx)),
+                        labelStyle: TextStyle(color: LsColors.mute(ctx)),
                         filled: true,
-                        fillColor: isDark
-                            ? const Color(0xFF0F172A)
-                            : const Color(0xFFF8FAFC),
+                        fillColor: LsColors.paper(ctx),
                         border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: LsColors.line(ctx))),
+                        enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: LsColors.line(ctx))),
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 14),
                       ),
@@ -696,15 +736,20 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                     // Tempat Membeli (Opsional)
                     TextFormField(
                       controller: locationController,
+                      style: TextStyle(color: LsColors.ink(ctx)),
                       decoration: InputDecoration(
                         labelText: 'Tempat Membeli (Opsional)',
                         hintText: 'e.g. Pasar Tradisional, Minimarket',
+                        hintStyle: TextStyle(color: LsColors.mute(ctx)),
+                        labelStyle: TextStyle(color: LsColors.mute(ctx)),
                         filled: true,
-                        fillColor: isDark
-                            ? const Color(0xFF0F172A)
-                            : const Color(0xFFF8FAFC),
+                        fillColor: LsColors.paper(ctx),
                         border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: LsColors.line(ctx))),
+                        enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: LsColors.line(ctx))),
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 14),
                       ),
@@ -733,22 +778,28 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       },
                       decoration: InputDecoration(
                         labelText: 'Harga Pembelian (Opsional)',
+                        labelStyle: TextStyle(color: LsColors.mute(ctx)),
                         prefixText: 'Rp ',
-                        suffixIcon: const Icon(Icons.calculate,
-                            color: Color(0xFF10B981)),
+                        prefixStyle: TextStyle(
+                            color: LsColors.income,
+                            fontWeight: FontWeight.bold),
+                        suffixIcon:
+                            const Icon(Icons.calculate, color: LsColors.income),
                         filled: true,
-                        fillColor: isDark
-                            ? const Color(0xFF0F172A)
-                            : const Color(0xFFF8FAFC),
+                        fillColor: LsColors.paper(ctx),
                         border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: LsColors.line(ctx))),
+                        enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: LsColors.line(ctx))),
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 14),
                       ),
                       style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
-                          color: Color(0xFF10B981)),
+                          color: LsColors.income),
                     ),
                     const SizedBox(height: 12),
 
@@ -758,20 +809,21 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                           horizontal: 12, vertical: 2),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(color: Colors.grey.shade300),
+                        side: BorderSide(color: LsColors.line(ctx)),
                       ),
-                      title: const Text('Waktu Pembelian',
-                          style: TextStyle(fontSize: 11, color: Colors.grey)),
+                      title: Text(AppTranslations.get(lang, 'waktu_pembelian'),
+                          style: TextStyle(
+                              fontSize: 11, color: LsColors.mute(ctx))),
                       subtitle: Text(
                         DateFormat('dd MMMM yyyy, HH:mm', 'id_ID')
                             .format(selectedDate),
                         style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
-                            color: isDark ? Colors.white : Colors.black87),
+                            color: LsColors.ink(ctx)),
                       ),
                       trailing: const Icon(Icons.calendar_today,
-                          color: Color(0xFF2563EB), size: 18),
+                          color: LsColors.brand, size: 18),
                       onTap: () async {
                         final pDate = await showLsDateTimePickerSheet(
                           context: ctx,
@@ -779,7 +831,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                           firstDate: DateTime(2020),
                           lastDate: DateTime(2035),
                           enableTime: true,
-                          title: 'Pilih Waktu Pembelian',
+                          title: AppTranslations.get(
+                              lang, 'pilih_waktu_pembelian'),
                         );
                         if (pDate != null) {
                           setModalState(() {
@@ -798,21 +851,21 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12)),
-                              side: BorderSide(color: Colors.grey.shade300),
+                              side: BorderSide(color: LsColors.line(ctx)),
                             ),
                             onPressed: () => Navigator.pop(ctx),
-                            child: const Text('Batal',
+                            child: Text(AppTranslations.get(lang, 'batal'),
                                 style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.grey)),
+                                    color: LsColors.mute(ctx))),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF10B981),
+                              backgroundColor: LsColors.income,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
@@ -843,8 +896,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
                               if (ctx.mounted) Navigator.pop(ctx);
                             },
-                            child: const Text('Konfirmasi Selesai',
-                                style: TextStyle(
+                            child: Text(
+                                AppTranslations.get(lang, 'konfirmasi_selesai'),
+                                style: const TextStyle(
                                     fontSize: 15, fontWeight: FontWeight.bold)),
                           ),
                         ),
@@ -861,50 +915,61 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   }
 
   Widget _buildShoppingListSection(AsyncValue<List<ShoppingItem>> shoppingAsync,
-      NumberFormat fmt, bool isDark) {
+      NumberFormat fmt, bool isDark, String lang) {
     return shoppingAsync.when(
       data: (items) {
         final unpurchased =
             items.where((i) => !i.deleted && !i.isChecked).take(15).toList();
         if (unpurchased.isEmpty) {
           return _buildEmptyCard(
-              'Belum ada daftar belanjaan yang belum dibeli.');
+              AppTranslations.get(lang, 'belum_ada_belanja_pending'));
         }
         return Column(
           children: unpurchased.map((item) {
-            return Card(
-              margin: const EdgeInsets.only(bottom: 8),
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
-              elevation: 0,
-              child: ListTile(
-                dense: true,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                onTap: () {
-                  _showShoppingCheckoffDialog(item);
-                },
-                leading: Checkbox(
-                  activeColor: const Color(0xFF2563EB),
-                  value: item.isChecked,
-                  onChanged: (val) {
-                    _showShoppingCheckoffDialog(item);
-                  },
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: LsCard(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                onTap: () => _showShoppingCheckoffDialog(item),
+                child: Row(
+                  children: [
+                    Checkbox(
+                      activeColor: LsColors.brand,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4)),
+                      value: item.isChecked,
+                      onChanged: (val) {
+                        _showShoppingCheckoffDialog(item);
+                      },
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.name,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                              decoration: item.isChecked
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                              color: item.isChecked
+                                  ? LsColors.mute(context)
+                                  : LsColors.ink(context),
+                            ),
+                          ),
+                          _buildShoppingItemSecondaryDetails(item, fmt, isDark),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(Icons.chevron_right_rounded,
+                        size: 20, color: LsColors.mute(context)),
+                  ],
                 ),
-                title: Text(
-                  item.name,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    decoration:
-                        item.isChecked ? TextDecoration.lineThrough : null,
-                    color: item.isChecked
-                        ? Colors.grey.shade400
-                        : (isDark ? Colors.white : const Color(0xFF1F2937)),
-                  ),
-                ),
-                subtitle: _buildShoppingItemSecondaryDetails(item, fmt, isDark),
               ),
             );
           }).toList(),
@@ -915,15 +980,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildNabungSection(List<TargetDashboardInfo> targets) {
+  Widget _buildNabungSection(List<TargetDashboardInfo> targets, String lang) {
     if (targets.isEmpty) {
-      return _buildEmptyCard('Belum ada target nabung.');
+      return _buildEmptyCard(AppTranslations.get(lang, 'belum_ada_target'));
     }
     return Column(
       children: targets
           .map((t) => Padding(
                 padding: const EdgeInsets.only(bottom: 12.0),
-                child: _buildTargetCard(t),
+                child: _buildTargetCard(t, lang),
               ))
           .toList(),
     );
@@ -1008,7 +1073,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   Widget _buildSectionTitle(String title) => LsSectionHeader(title: title);
 
-  Widget _buildTargetCard(TargetDashboardInfo info) {
+  Widget _buildTargetCard(TargetDashboardInfo info, String lang) {
     final target = info.target;
     double progress =
         target.targetAmount > 0 ? (info.savings / target.targetAmount) : 0;
@@ -1017,6 +1082,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     if (daysLeft < 0) daysLeft = 0;
 
     return _buildFlatCard(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => TargetDetailPage(target: target),
+          ),
+        );
+      },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1025,20 +1098,20 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
+                  color: LsColors.brand.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.flag_rounded,
-                    color: Color(0xFF2563EB), size: 20),
+                    color: LsColors.brand, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   target.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1F2937)),
+                      fontWeight: FontWeight.w700,
+                      color: LsColors.ink(context)),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1048,19 +1121,18 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 '${(progress * 100).toInt()}%',
                 style: const TextStyle(
                     fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF2563EB)),
+                    fontWeight: FontWeight.w800,
+                    color: LsColors.brand),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: progress,
-              backgroundColor: const Color(0xFFEFF6FF),
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(Color(0xFF2563EB)),
+              backgroundColor: LsColors.brand.withValues(alpha: 0.12),
+              valueColor: const AlwaysStoppedAnimation<Color>(LsColors.brand),
               minHeight: 8,
             ),
           ),
@@ -1073,14 +1145,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   'Rp ${NumberFormat('#,###', 'id_ID').format(info.savings.toInt())} / Rp ${NumberFormat('#,###', 'id_ID').format(target.targetAmount.toInt())}',
                   style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey.shade600,
-                      fontWeight: FontWeight.w500),
+                      color: LsColors.mute(context),
+                      fontWeight: FontWeight.w600),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               Text(
-                '$daysLeft hari lagi',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                '$daysLeft ${AppTranslations.get(lang, 'hari_lagi')}',
+                style: TextStyle(fontSize: 12, color: LsColors.mute(context)),
               ),
             ],
           ),
@@ -1214,6 +1286,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildFlatCard({required Widget child}) =>
-      LsCard(padding: const EdgeInsets.all(13), child: child);
+  Widget _buildFlatCard({required Widget child, VoidCallback? onTap}) =>
+      LsCard(padding: const EdgeInsets.all(13), onTap: onTap, child: child);
 }

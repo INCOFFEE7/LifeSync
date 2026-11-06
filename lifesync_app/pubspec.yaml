@@ -2,7 +2,7 @@ name: lifesync_app
 description: "LifeSync - Smart Reminder & Adaptive Financial Goal Tracker"
 publish_to: 'none'
 
-version: 2026.10.15+2026101502
+version: 2026.11.06+202611060101
 
 environment:
   sdk: '>=3.2.0 <4.0.0'
