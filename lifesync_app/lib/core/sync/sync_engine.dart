@@ -25,24 +25,28 @@ final syncEngineProvider = Provider((ref) {
 class SyncEngine {
   final Isar db;
   final GoogleAuthService authService;
-  
+
   SyncEngine(this.db, this.authService);
 
   Future<void> performSync() async {
     final prefs = await SharedPreferences.getInstance();
     if (prefs.getBool('has_deleted_all') == true) {
-      debugPrint('[SyncEngine] Skipped sync because user performed delete-all.');
+      debugPrint(
+          '[SyncEngine] Skipped sync because user performed delete-all.');
       return;
     }
 
     final client = await authService.getAuthenticatedClient();
     if (client == null) throw Exception('User not authenticated');
-    
+
     final spreadsheetId = await authService.getSpreadsheetId();
     if (spreadsheetId == null) throw Exception('Spreadsheet not configured');
-    
+
     final sheetsApi = sheets.SheetsApi(client);
-    
+
+    // Auto-provision any missing sheets/tabs in older spreadsheets
+    await _ensureRequiredSheetsExist(sheetsApi, spreadsheetId);
+
     // Sync ALL LifeHaven modules
     await _syncReminders(sheetsApi, spreadsheetId);
     await _syncFinancialNotes(sheetsApi, spreadsheetId);
@@ -50,7 +54,7 @@ class SyncEngine {
     await _syncBills(sheetsApi, spreadsheetId);
     await _syncTargets(sheetsApi, spreadsheetId);
     await _syncShoppingItems(sheetsApi, spreadsheetId);
-    
+
     // Sync BeeNest modules if in beebee flavor
     if (AppEnvironment.config.variant == AppVariant.beebee) {
       await _syncFastingDebts(sheetsApi, spreadsheetId);
@@ -59,17 +63,151 @@ class SyncEngine {
     }
   }
 
+  Future<void> _ensureRequiredSheetsExist(
+      sheets.SheetsApi sheetsApi, String spreadsheetId) async {
+    try {
+      final spreadsheet = await sheetsApi.spreadsheets.get(spreadsheetId);
+      final existingTitles = spreadsheet.sheets
+              ?.map((s) => s.properties?.title)
+              .whereType<String>()
+              .toSet() ??
+          <String>{};
+
+      final Map<String, List<Object?>> requiredHeaders = {
+        'Reminders': [
+          'SyncID',
+          'UpdatedAt',
+          'Deleted',
+          'Title',
+          'Description',
+          'Category',
+          'Priority',
+          'TargetDateTime',
+          'Status',
+          'CreatedAt',
+          'CompletedAt'
+        ],
+        'FinancialNotes': ['ID', 'Title', 'Date', 'Notes', 'UpdatedAt'],
+        'FinancialItems': [
+          'ID',
+          'NoteID',
+          'Description',
+          'Amount',
+          'Type',
+          'CreatedAt',
+          'UpdatedAt'
+        ],
+        'Bills': [
+          'ID',
+          'Title',
+          'Amount',
+          'DueDate',
+          'IsPaid',
+          'Category',
+          'Notes',
+          'UpdatedAt'
+        ],
+        'Targets': [
+          'ID',
+          'Name',
+          'TargetAmount',
+          'CurrentAmount',
+          'Deadline',
+          'Category',
+          'IsCompleted',
+          'Notes',
+          'UpdatedAt'
+        ],
+        'ShoppingItems': [
+          'ID',
+          'Name',
+          'EstimatedPrice',
+          'IsChecked',
+          'Category',
+          'Notes',
+          'UpdatedAt'
+        ],
+        'DailyIncomeRecords': ['ID', 'Date', 'Amount', 'Notes', 'UpdatedAt'],
+        'AppSettings': ['Key', 'Value', 'UpdatedAt'],
+        'SyncLogs': ['Timestamp', 'Status', 'Message'],
+      };
+
+      if (AppEnvironment.config.variant == AppVariant.beebee) {
+        requiredHeaders.addAll({
+          'FastingDebts': [
+            'ID',
+            'Year',
+            'TotalDays',
+            'DaysPaid',
+            'Notes',
+            'UpdatedAt'
+          ],
+          'QadhaRecords': ['ID', 'Date', 'Days', 'Notes', 'UpdatedAt'],
+          'MenstruationRecords': [
+            'ID',
+            'StartDate',
+            'EndDate',
+            'PeriodType',
+            'Notes',
+            'UpdatedAt'
+          ],
+        });
+      }
+
+      final List<sheets.Request> requests = [];
+      for (final title in requiredHeaders.keys) {
+        if (!existingTitles.contains(title)) {
+          requests.add(sheets.Request(
+            addSheet: sheets.AddSheetRequest(
+              properties: sheets.SheetProperties(title: title),
+            ),
+          ));
+        }
+      }
+
+      if (requests.isNotEmpty) {
+        final batchUpdateReq =
+            sheets.BatchUpdateSpreadsheetRequest(requests: requests);
+        await sheetsApi.spreadsheets.batchUpdate(batchUpdateReq, spreadsheetId);
+
+        // Add header rows to the newly created sheets
+        final List<sheets.ValueRange> headerRanges = [];
+        for (final title in requiredHeaders.keys) {
+          if (!existingTitles.contains(title)) {
+            headerRanges.add(sheets.ValueRange(
+              range: '$title!A1',
+              values: [requiredHeaders[title]!],
+            ));
+          }
+        }
+        if (headerRanges.isNotEmpty) {
+          await sheetsApi.spreadsheets.values.batchUpdate(
+            sheets.BatchUpdateValuesRequest(
+              data: headerRanges,
+              valueInputOption: 'USER_ENTERED',
+            ),
+            spreadsheetId,
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('[SyncEngine] Error auto-provisioning missing sheets: $e');
+    }
+  }
+
   bool _isRowModified(List<Object?> localRow, List<Object?> cloudRow) {
     for (int i = 0; i < localRow.length; i++) {
       final localVal = localRow[i]?.toString() ?? '';
-      final cloudVal = i < cloudRow.length ? (cloudRow[i]?.toString() ?? '') : '';
+      final cloudVal =
+          i < cloudRow.length ? (cloudRow[i]?.toString() ?? '') : '';
       if (localVal != cloudVal) return true;
     }
     return false;
   }
 
   // ── 1. Reminders Sync ──────────────────────────────────────────────────────
-  Future<void> _syncReminders(sheets.SheetsApi sheetsApi, String spreadsheetId) async {
+  Future<void> _syncReminders(
+      sheets.SheetsApi sheetsApi, String spreadsheetId) async {
     final range = 'Reminders!A2:Z';
     sheets.ValueRange? cloudData;
     try {
@@ -77,7 +215,9 @@ class SyncEngine {
     } catch (_) {}
 
     final localReminders = await db.reminders.where().findAll();
-    final Map<String, Reminder> localMap = {for (var r in localReminders) r.syncId: r};
+    final Map<String, Reminder> localMap = {
+      for (var r in localReminders) r.syncId: r
+    };
 
     final List<List<Object?>> rowsToAppend = [];
     final List<sheets.ValueRange> rowsToUpdate = [];
@@ -99,7 +239,8 @@ class SyncEngine {
         final cloudEntry = cloudMap[local.syncId]!;
         if (_isRowModified(localRow, cloudEntry.row)) {
           rowsToUpdate.add(sheets.ValueRange()
-            ..range = 'Reminders!A${cloudEntry.sheetRow}:Z${cloudEntry.sheetRow}'
+            ..range =
+                'Reminders!A${cloudEntry.sheetRow}:Z${cloudEntry.sheetRow}'
             ..values = [localRow]);
         }
         local.syncStatus = 'synced';
@@ -114,13 +255,16 @@ class SyncEngine {
 
     if (rowsToAppend.isNotEmpty) {
       final appendRequest = sheets.ValueRange()..values = rowsToAppend;
-      await sheetsApi.spreadsheets.values.append(appendRequest, spreadsheetId, range, valueInputOption: 'USER_ENTERED');
+      await sheetsApi.spreadsheets.values.append(
+          appendRequest, spreadsheetId, range,
+          valueInputOption: 'USER_ENTERED');
     }
     if (rowsToUpdate.isNotEmpty) {
       final batchRequest = sheets.BatchUpdateValuesRequest()
         ..data = rowsToUpdate
         ..valueInputOption = 'USER_ENTERED';
-      await sheetsApi.spreadsheets.values.batchUpdate(batchRequest, spreadsheetId);
+      await sheetsApi.spreadsheets.values
+          .batchUpdate(batchRequest, spreadsheetId);
     }
 
     await db.writeTxn(() async {
@@ -145,7 +289,8 @@ class SyncEngine {
   }
 
   // ── 2. Financial Notes Sync ───────────────────────────────────────────────
-  Future<void> _syncFinancialNotes(sheets.SheetsApi sheetsApi, String spreadsheetId) async {
+  Future<void> _syncFinancialNotes(
+      sheets.SheetsApi sheetsApi, String spreadsheetId) async {
     final range = 'FinancialNotes!A2:Z';
     sheets.ValueRange? cloudData;
     try {
@@ -167,12 +312,19 @@ class SyncEngine {
     }
 
     for (final local in localNotes) {
-      final localRow = [local.id.toString(), local.title, local.date.toIso8601String(), local.notes ?? '', local.updatedAt.toIso8601String()];
+      final localRow = [
+        local.id.toString(),
+        local.title,
+        local.date.toIso8601String(),
+        local.notes ?? '',
+        local.updatedAt.toIso8601String()
+      ];
       if (cloudMap.containsKey(local.id.toString())) {
         final cloudEntry = cloudMap[local.id.toString()]!;
         if (_isRowModified(localRow, cloudEntry.row)) {
           rowsToUpdate.add(sheets.ValueRange()
-            ..range = 'FinancialNotes!A${cloudEntry.sheetRow}:Z${cloudEntry.sheetRow}'
+            ..range =
+                'FinancialNotes!A${cloudEntry.sheetRow}:Z${cloudEntry.sheetRow}'
             ..values = [localRow]);
         }
       } else {
@@ -182,18 +334,22 @@ class SyncEngine {
 
     if (rowsToAppend.isNotEmpty) {
       final appendRequest = sheets.ValueRange()..values = rowsToAppend;
-      await sheetsApi.spreadsheets.values.append(appendRequest, spreadsheetId, range, valueInputOption: 'USER_ENTERED');
+      await sheetsApi.spreadsheets.values.append(
+          appendRequest, spreadsheetId, range,
+          valueInputOption: 'USER_ENTERED');
     }
     if (rowsToUpdate.isNotEmpty) {
       final batchRequest = sheets.BatchUpdateValuesRequest()
         ..data = rowsToUpdate
         ..valueInputOption = 'USER_ENTERED';
-      await sheetsApi.spreadsheets.values.batchUpdate(batchRequest, spreadsheetId);
+      await sheetsApi.spreadsheets.values
+          .batchUpdate(batchRequest, spreadsheetId);
     }
   }
 
   // ── 3. Financial Items Sync ───────────────────────────────────────────────
-  Future<void> _syncFinancialItems(sheets.SheetsApi sheetsApi, String spreadsheetId) async {
+  Future<void> _syncFinancialItems(
+      sheets.SheetsApi sheetsApi, String spreadsheetId) async {
     final range = 'FinancialItems!A2:Z';
     sheets.ValueRange? cloudData;
     try {
@@ -215,12 +371,20 @@ class SyncEngine {
     }
 
     for (final local in localItems) {
-      final localRow = [local.id.toString(), local.noteId.toString(), local.description, local.amount.toString(), local.type, local.updatedAt.toIso8601String()];
+      final localRow = [
+        local.id.toString(),
+        local.noteId.toString(),
+        local.description,
+        local.amount.toString(),
+        local.type,
+        local.updatedAt.toIso8601String()
+      ];
       if (cloudMap.containsKey(local.id.toString())) {
         final cloudEntry = cloudMap[local.id.toString()]!;
         if (_isRowModified(localRow, cloudEntry.row)) {
           rowsToUpdate.add(sheets.ValueRange()
-            ..range = 'FinancialItems!A${cloudEntry.sheetRow}:Z${cloudEntry.sheetRow}'
+            ..range =
+                'FinancialItems!A${cloudEntry.sheetRow}:Z${cloudEntry.sheetRow}'
             ..values = [localRow]);
         }
       } else {
@@ -230,18 +394,22 @@ class SyncEngine {
 
     if (rowsToAppend.isNotEmpty) {
       final appendRequest = sheets.ValueRange()..values = rowsToAppend;
-      await sheetsApi.spreadsheets.values.append(appendRequest, spreadsheetId, range, valueInputOption: 'USER_ENTERED');
+      await sheetsApi.spreadsheets.values.append(
+          appendRequest, spreadsheetId, range,
+          valueInputOption: 'USER_ENTERED');
     }
     if (rowsToUpdate.isNotEmpty) {
       final batchRequest = sheets.BatchUpdateValuesRequest()
         ..data = rowsToUpdate
         ..valueInputOption = 'USER_ENTERED';
-      await sheetsApi.spreadsheets.values.batchUpdate(batchRequest, spreadsheetId);
+      await sheetsApi.spreadsheets.values
+          .batchUpdate(batchRequest, spreadsheetId);
     }
   }
 
   // ── 4. Bills Sync ─────────────────────────────────────────────────────────
-  Future<void> _syncBills(sheets.SheetsApi sheetsApi, String spreadsheetId) async {
+  Future<void> _syncBills(
+      sheets.SheetsApi sheetsApi, String spreadsheetId) async {
     final range = 'Bills!A2:Z';
     sheets.ValueRange? cloudData;
     try {
@@ -278,13 +446,16 @@ class SyncEngine {
 
     if (rowsToAppend.isNotEmpty) {
       final appendRequest = sheets.ValueRange()..values = rowsToAppend;
-      await sheetsApi.spreadsheets.values.append(appendRequest, spreadsheetId, range, valueInputOption: 'USER_ENTERED');
+      await sheetsApi.spreadsheets.values.append(
+          appendRequest, spreadsheetId, range,
+          valueInputOption: 'USER_ENTERED');
     }
     if (rowsToUpdate.isNotEmpty) {
       final batchRequest = sheets.BatchUpdateValuesRequest()
         ..data = rowsToUpdate
         ..valueInputOption = 'USER_ENTERED';
-      await sheetsApi.spreadsheets.values.batchUpdate(batchRequest, spreadsheetId);
+      await sheetsApi.spreadsheets.values
+          .batchUpdate(batchRequest, spreadsheetId);
     }
   }
 
@@ -306,7 +477,8 @@ class SyncEngine {
   }
 
   // ── 5. Savings Targets Sync ───────────────────────────────────────────────
-  Future<void> _syncTargets(sheets.SheetsApi sheetsApi, String spreadsheetId) async {
+  Future<void> _syncTargets(
+      sheets.SheetsApi sheetsApi, String spreadsheetId) async {
     final range = 'IncomeTargets!A2:Z';
     sheets.ValueRange? cloudData;
     try {
@@ -328,12 +500,20 @@ class SyncEngine {
     }
 
     for (final local in localTargets) {
-      final localRow = [local.syncId, local.name, local.targetAmount.toString(), local.mode, local.fixedDailyAmount.toString(), local.updatedAt.toIso8601String()];
+      final localRow = [
+        local.syncId,
+        local.name,
+        local.targetAmount.toString(),
+        local.mode,
+        local.fixedDailyAmount.toString(),
+        local.updatedAt.toIso8601String()
+      ];
       if (cloudMap.containsKey(local.syncId)) {
         final cloudEntry = cloudMap[local.syncId]!;
         if (_isRowModified(localRow, cloudEntry.row)) {
           rowsToUpdate.add(sheets.ValueRange()
-            ..range = 'IncomeTargets!A${cloudEntry.sheetRow}:Z${cloudEntry.sheetRow}'
+            ..range =
+                'IncomeTargets!A${cloudEntry.sheetRow}:Z${cloudEntry.sheetRow}'
             ..values = [localRow]);
         }
       } else {
@@ -343,18 +523,22 @@ class SyncEngine {
 
     if (rowsToAppend.isNotEmpty) {
       final appendRequest = sheets.ValueRange()..values = rowsToAppend;
-      await sheetsApi.spreadsheets.values.append(appendRequest, spreadsheetId, range, valueInputOption: 'USER_ENTERED');
+      await sheetsApi.spreadsheets.values.append(
+          appendRequest, spreadsheetId, range,
+          valueInputOption: 'USER_ENTERED');
     }
     if (rowsToUpdate.isNotEmpty) {
       final batchRequest = sheets.BatchUpdateValuesRequest()
         ..data = rowsToUpdate
         ..valueInputOption = 'USER_ENTERED';
-      await sheetsApi.spreadsheets.values.batchUpdate(batchRequest, spreadsheetId);
+      await sheetsApi.spreadsheets.values
+          .batchUpdate(batchRequest, spreadsheetId);
     }
   }
 
   // ── 6. Shopping Items Sync ────────────────────────────────────────────────
-  Future<void> _syncShoppingItems(sheets.SheetsApi sheetsApi, String spreadsheetId) async {
+  Future<void> _syncShoppingItems(
+      sheets.SheetsApi sheetsApi, String spreadsheetId) async {
     final range = 'ShoppingItems!A2:Z';
     sheets.ValueRange? cloudData;
     try {
@@ -381,7 +565,8 @@ class SyncEngine {
         final cloudEntry = cloudMap[local.syncId]!;
         if (_isRowModified(localRow, cloudEntry.row)) {
           rowsToUpdate.add(sheets.ValueRange()
-            ..range = 'ShoppingItems!A${cloudEntry.sheetRow}:Z${cloudEntry.sheetRow}'
+            ..range =
+                'ShoppingItems!A${cloudEntry.sheetRow}:Z${cloudEntry.sheetRow}'
             ..values = [localRow]);
         }
       } else {
@@ -391,13 +576,16 @@ class SyncEngine {
 
     if (rowsToAppend.isNotEmpty) {
       final appendRequest = sheets.ValueRange()..values = rowsToAppend;
-      await sheetsApi.spreadsheets.values.append(appendRequest, spreadsheetId, range, valueInputOption: 'USER_ENTERED');
+      await sheetsApi.spreadsheets.values.append(
+          appendRequest, spreadsheetId, range,
+          valueInputOption: 'USER_ENTERED');
     }
     if (rowsToUpdate.isNotEmpty) {
       final batchRequest = sheets.BatchUpdateValuesRequest()
         ..data = rowsToUpdate
         ..valueInputOption = 'USER_ENTERED';
-      await sheetsApi.spreadsheets.values.batchUpdate(batchRequest, spreadsheetId);
+      await sheetsApi.spreadsheets.values
+          .batchUpdate(batchRequest, spreadsheetId);
     }
   }
 
@@ -419,7 +607,8 @@ class SyncEngine {
   }
 
   // ── 7. BeeNest Fasting Debts Sync ─────────────────────────────────────────
-  Future<void> _syncFastingDebts(sheets.SheetsApi sheetsApi, String spreadsheetId) async {
+  Future<void> _syncFastingDebts(
+      sheets.SheetsApi sheetsApi, String spreadsheetId) async {
     final range = 'FastingDebts!A2:Z';
     sheets.ValueRange? cloudData;
     try {
@@ -441,12 +630,19 @@ class SyncEngine {
     }
 
     for (final local in localData) {
-      final localRow = [local.syncId, local.ramadanYear.toString(), local.initialDebt.toString(), local.currentDebt.toString(), local.updatedAt.toIso8601String()];
+      final localRow = [
+        local.syncId,
+        local.ramadanYear.toString(),
+        local.initialDebt.toString(),
+        local.currentDebt.toString(),
+        local.updatedAt.toIso8601String()
+      ];
       if (cloudMap.containsKey(local.syncId)) {
         final cloudEntry = cloudMap[local.syncId]!;
         if (_isRowModified(localRow, cloudEntry.row)) {
           rowsToUpdate.add(sheets.ValueRange()
-            ..range = 'FastingDebts!A${cloudEntry.sheetRow}:Z${cloudEntry.sheetRow}'
+            ..range =
+                'FastingDebts!A${cloudEntry.sheetRow}:Z${cloudEntry.sheetRow}'
             ..values = [localRow]);
         }
       } else {
@@ -456,18 +652,22 @@ class SyncEngine {
 
     if (rowsToAppend.isNotEmpty) {
       final appendRequest = sheets.ValueRange()..values = rowsToAppend;
-      await sheetsApi.spreadsheets.values.append(appendRequest, spreadsheetId, range, valueInputOption: 'USER_ENTERED');
+      await sheetsApi.spreadsheets.values.append(
+          appendRequest, spreadsheetId, range,
+          valueInputOption: 'USER_ENTERED');
     }
     if (rowsToUpdate.isNotEmpty) {
       final batchRequest = sheets.BatchUpdateValuesRequest()
         ..data = rowsToUpdate
         ..valueInputOption = 'USER_ENTERED';
-      await sheetsApi.spreadsheets.values.batchUpdate(batchRequest, spreadsheetId);
+      await sheetsApi.spreadsheets.values
+          .batchUpdate(batchRequest, spreadsheetId);
     }
   }
 
   // ── 8. BeeNest Qadha Records Sync ──────────────────────────────────────────
-  Future<void> _syncQadhaRecords(sheets.SheetsApi sheetsApi, String spreadsheetId) async {
+  Future<void> _syncQadhaRecords(
+      sheets.SheetsApi sheetsApi, String spreadsheetId) async {
     final range = 'QadhaRecords!A2:Z';
     sheets.ValueRange? cloudData;
     try {
@@ -489,12 +689,18 @@ class SyncEngine {
     }
 
     for (final local in localData) {
-      final localRow = [local.syncId, local.fastingDebtId.toString(), local.date.toIso8601String(), local.amount.toString()];
+      final localRow = [
+        local.syncId,
+        local.fastingDebtId.toString(),
+        local.date.toIso8601String(),
+        local.amount.toString()
+      ];
       if (cloudMap.containsKey(local.syncId)) {
         final cloudEntry = cloudMap[local.syncId]!;
         if (_isRowModified(localRow, cloudEntry.row)) {
           rowsToUpdate.add(sheets.ValueRange()
-            ..range = 'QadhaRecords!A${cloudEntry.sheetRow}:Z${cloudEntry.sheetRow}'
+            ..range =
+                'QadhaRecords!A${cloudEntry.sheetRow}:Z${cloudEntry.sheetRow}'
             ..values = [localRow]);
         }
       } else {
@@ -504,18 +710,22 @@ class SyncEngine {
 
     if (rowsToAppend.isNotEmpty) {
       final appendRequest = sheets.ValueRange()..values = rowsToAppend;
-      await sheetsApi.spreadsheets.values.append(appendRequest, spreadsheetId, range, valueInputOption: 'USER_ENTERED');
+      await sheetsApi.spreadsheets.values.append(
+          appendRequest, spreadsheetId, range,
+          valueInputOption: 'USER_ENTERED');
     }
     if (rowsToUpdate.isNotEmpty) {
       final batchRequest = sheets.BatchUpdateValuesRequest()
         ..data = rowsToUpdate
         ..valueInputOption = 'USER_ENTERED';
-      await sheetsApi.spreadsheets.values.batchUpdate(batchRequest, spreadsheetId);
+      await sheetsApi.spreadsheets.values
+          .batchUpdate(batchRequest, spreadsheetId);
     }
   }
 
   // ── 9. BeeNest Menstruation Records Sync ──────────────────────────────────
-  Future<void> _syncMenstruationRecords(sheets.SheetsApi sheetsApi, String spreadsheetId) async {
+  Future<void> _syncMenstruationRecords(
+      sheets.SheetsApi sheetsApi, String spreadsheetId) async {
     final range = 'MenstruationRecords!A2:Z';
     sheets.ValueRange? cloudData;
     try {
@@ -537,12 +747,19 @@ class SyncEngine {
     }
 
     for (final local in localData) {
-      final localRow = [local.syncId, local.startDate.toIso8601String(), local.endDate.toIso8601String(), local.duration.toString(), local.isRamadan.toString()];
+      final localRow = [
+        local.syncId,
+        local.startDate.toIso8601String(),
+        local.endDate.toIso8601String(),
+        local.duration.toString(),
+        local.isRamadan.toString()
+      ];
       if (cloudMap.containsKey(local.syncId)) {
         final cloudEntry = cloudMap[local.syncId]!;
         if (_isRowModified(localRow, cloudEntry.row)) {
           rowsToUpdate.add(sheets.ValueRange()
-            ..range = 'MenstruationRecords!A${cloudEntry.sheetRow}:Z${cloudEntry.sheetRow}'
+            ..range =
+                'MenstruationRecords!A${cloudEntry.sheetRow}:Z${cloudEntry.sheetRow}'
             ..values = [localRow]);
         }
       } else {
@@ -552,13 +769,16 @@ class SyncEngine {
 
     if (rowsToAppend.isNotEmpty) {
       final appendRequest = sheets.ValueRange()..values = rowsToAppend;
-      await sheetsApi.spreadsheets.values.append(appendRequest, spreadsheetId, range, valueInputOption: 'USER_ENTERED');
+      await sheetsApi.spreadsheets.values.append(
+          appendRequest, spreadsheetId, range,
+          valueInputOption: 'USER_ENTERED');
     }
     if (rowsToUpdate.isNotEmpty) {
       final batchRequest = sheets.BatchUpdateValuesRequest()
         ..data = rowsToUpdate
         ..valueInputOption = 'USER_ENTERED';
-      await sheetsApi.spreadsheets.values.batchUpdate(batchRequest, spreadsheetId);
+      await sheetsApi.spreadsheets.values
+          .batchUpdate(batchRequest, spreadsheetId);
     }
   }
 }

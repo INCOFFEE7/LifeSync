@@ -37,13 +37,18 @@ const FinancialItemSchema = CollectionSchema(
       name: r'noteId',
       type: IsarType.long,
     ),
-    r'type': PropertySchema(
+    r'previousAmount': PropertySchema(
       id: 4,
+      name: r'previousAmount',
+      type: IsarType.double,
+    ),
+    r'type': PropertySchema(
+      id: 5,
       name: r'type',
       type: IsarType.string,
     ),
     r'updatedAt': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -97,8 +102,9 @@ void _financialItemSerialize(
   writer.writeDateTime(offsets[1], object.createdAt);
   writer.writeString(offsets[2], object.description);
   writer.writeLong(offsets[3], object.noteId);
-  writer.writeString(offsets[4], object.type);
-  writer.writeDateTime(offsets[5], object.updatedAt);
+  writer.writeDouble(offsets[4], object.previousAmount);
+  writer.writeString(offsets[5], object.type);
+  writer.writeDateTime(offsets[6], object.updatedAt);
 }
 
 FinancialItem _financialItemDeserialize(
@@ -113,8 +119,9 @@ FinancialItem _financialItemDeserialize(
   object.description = reader.readString(offsets[2]);
   object.id = id;
   object.noteId = reader.readLong(offsets[3]);
-  object.type = reader.readString(offsets[4]);
-  object.updatedAt = reader.readDateTime(offsets[5]);
+  object.previousAmount = reader.readDoubleOrNull(offsets[4]);
+  object.type = reader.readString(offsets[5]);
+  object.updatedAt = reader.readDateTime(offsets[6]);
   return object;
 }
 
@@ -134,8 +141,10 @@ P _financialItemDeserializeProp<P>(
     case 3:
       return (reader.readLong(offset)) as P;
     case 4:
-      return (reader.readString(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 5:
+      return (reader.readString(offset)) as P;
+    case 6:
       return (reader.readDateTime(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -705,6 +714,90 @@ extension FinancialItemQueryFilter
     });
   }
 
+  QueryBuilder<FinancialItem, FinancialItem, QAfterFilterCondition>
+      previousAmountIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'previousAmount',
+      ));
+    });
+  }
+
+  QueryBuilder<FinancialItem, FinancialItem, QAfterFilterCondition>
+      previousAmountIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'previousAmount',
+      ));
+    });
+  }
+
+  QueryBuilder<FinancialItem, FinancialItem, QAfterFilterCondition>
+      previousAmountEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'previousAmount',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<FinancialItem, FinancialItem, QAfterFilterCondition>
+      previousAmountGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'previousAmount',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<FinancialItem, FinancialItem, QAfterFilterCondition>
+      previousAmountLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'previousAmount',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<FinancialItem, FinancialItem, QAfterFilterCondition>
+      previousAmountBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'previousAmount',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
   QueryBuilder<FinancialItem, FinancialItem, QAfterFilterCondition> typeEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -955,6 +1048,20 @@ extension FinancialItemQuerySortBy
     });
   }
 
+  QueryBuilder<FinancialItem, FinancialItem, QAfterSortBy>
+      sortByPreviousAmount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'previousAmount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FinancialItem, FinancialItem, QAfterSortBy>
+      sortByPreviousAmountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'previousAmount', Sort.desc);
+    });
+  }
+
   QueryBuilder<FinancialItem, FinancialItem, QAfterSortBy> sortByType() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'type', Sort.asc);
@@ -1045,6 +1152,20 @@ extension FinancialItemQuerySortThenBy
     });
   }
 
+  QueryBuilder<FinancialItem, FinancialItem, QAfterSortBy>
+      thenByPreviousAmount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'previousAmount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FinancialItem, FinancialItem, QAfterSortBy>
+      thenByPreviousAmountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'previousAmount', Sort.desc);
+    });
+  }
+
   QueryBuilder<FinancialItem, FinancialItem, QAfterSortBy> thenByType() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'type', Sort.asc);
@@ -1098,6 +1219,13 @@ extension FinancialItemQueryWhereDistinct
     });
   }
 
+  QueryBuilder<FinancialItem, FinancialItem, QDistinct>
+      distinctByPreviousAmount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'previousAmount');
+    });
+  }
+
   QueryBuilder<FinancialItem, FinancialItem, QDistinct> distinctByType(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -1141,6 +1269,13 @@ extension FinancialItemQueryProperty
   QueryBuilder<FinancialItem, int, QQueryOperations> noteIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'noteId');
+    });
+  }
+
+  QueryBuilder<FinancialItem, double?, QQueryOperations>
+      previousAmountProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'previousAmount');
     });
   }
 

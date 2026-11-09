@@ -15,6 +15,8 @@ class FinancialItem {
   /// 'income' or 'expense'
   late String type;
 
+  double? previousAmount;
+
   DateTime createdAt = DateTime.now();
   DateTime updatedAt = DateTime.now();
 }

@@ -187,6 +187,7 @@ class _AddEditFinancialNotePageState
     DateTime itemTimestamp =
         itemToEdit != null ? itemToEdit.createdAt : DateTime.now();
     bool showKeypad = false;
+    bool isFirstEditPress = itemToEdit != null;
 
     showModalBottomSheet(
       context: context,
@@ -204,29 +205,32 @@ class _AddEditFinancialNotePageState
               setModalState(() {
                 if (k == 'C') {
                   calcExpr = '0';
+                  isFirstEditPress = false;
                   return;
                 }
-                if (calcExpr == '0' &&
-                    k != '.' &&
-                    k != '+' &&
-                    k != '-' &&
-                    k != '*' &&
-                    k != '/' &&
-                    k != '×' &&
-                    k != '÷') {
-                  calcExpr = k;
-                  return;
-                }
-                final last = calcExpr[calcExpr.length - 1];
                 final isOp = (String c) =>
                     c == '+' ||
                     c == '-' ||
                     c == '*' ||
                     c == '/' ||
                     c == '×' ||
-                    c == '÷' ||
-                    c == '.';
-                if (isOp(k) && isOp(last)) {
+                    c == '÷';
+
+                if (isFirstEditPress) {
+                  isFirstEditPress = false;
+                  if (!isOp(k) && k != '.') {
+                    calcExpr = k;
+                    return;
+                  }
+                }
+
+                if (calcExpr == '0' && k != '.' && !isOp(k)) {
+                  calcExpr = k;
+                  return;
+                }
+                final last = calcExpr[calcExpr.length - 1];
+                final isOpOrDot = (String c) => isOp(c) || c == '.';
+                if (isOpOrDot(k) && isOpOrDot(last)) {
                   calcExpr = calcExpr.substring(0, calcExpr.length - 1) + k;
                   return;
                 }
@@ -236,6 +240,7 @@ class _AddEditFinancialNotePageState
 
             void onDelete() {
               setModalState(() {
+                isFirstEditPress = false;
                 if (calcExpr.length > 1) {
                   calcExpr = calcExpr.substring(0, calcExpr.length - 1);
                 } else {
@@ -246,6 +251,7 @@ class _AddEditFinancialNotePageState
 
             void onEquals() {
               setModalState(() {
+                isFirstEditPress = false;
                 calcExpr = evaluated.toInt().toString();
               });
             }
@@ -496,6 +502,10 @@ class _AddEditFinancialNotePageState
                               ..amount = finalVal
                               ..type = finalType
                               ..createdAt = itemTimestamp
+                              ..previousAmount = (itemToEdit.amount != finalVal)
+                                  ? (itemToEdit.previousAmount ??
+                                      itemToEdit.amount)
+                                  : itemToEdit.previousAmount
                               ..updatedAt = DateTime.now();
                           } else {
                             _draftItems.add(FinancialItem()
@@ -519,6 +529,160 @@ class _AddEditFinancialNotePageState
               ),
             );
           },
+        );
+      },
+    );
+  }
+
+  void _showItemHistoryModal(BuildContext context, FinancialItem item) {
+    final currencyFmt = NumberFormat('#,###', 'id_ID');
+    final isEdited = item.updatedAt.isAfter(item.createdAt) &&
+        item.updatedAt.difference(item.createdAt).inSeconds > 5;
+    final isIncome = item.type == 'income';
+    final sign = isIncome ? '+' : '-';
+    final c = isIncome ? const Color(0xFF10B981) : const Color(0xFFEF4444);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withAlpha(80),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Icon(Icons.history_rounded, size: 22, color: LsColors.brand),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Riwayat Transaksi Item',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: LsColors.ink(ctx),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                item.description,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: LsColors.ink(ctx),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 2),
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withAlpha(30),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.schedule,
+                        size: 14, color: Colors.blue),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Dibuat Pertama Kali',
+                            style: TextStyle(fontSize: 11, color: Colors.grey)),
+                        Text(
+                          DateFormat('dd MMMM yyyy, HH:mm', 'id_ID')
+                              .format(item.createdAt),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 13),
+                        ),
+                        if (item.previousAmount != null)
+                          Text(
+                            'Nominal Awal: $sign Rp ${currencyFmt.format(item.previousAmount!.toInt())}',
+                            style: TextStyle(
+                                fontSize: 12, color: LsColors.mute(ctx)),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              if (isEdited) ...[
+                const Padding(
+                  padding: EdgeInsets.only(left: 11),
+                  child: SizedBox(
+                    height: 20,
+                    child: VerticalDivider(
+                        width: 1, thickness: 1, color: Colors.grey),
+                  ),
+                ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.only(top: 2),
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withAlpha(30),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.edit,
+                          size: 14, color: Color(0xFFF59E0B)),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Terakhir Diedit',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFFF59E0B),
+                                  fontWeight: FontWeight.w600)),
+                          Text(
+                            DateFormat('dd MMMM yyyy, HH:mm', 'id_ID')
+                                .format(item.updatedAt),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600, fontSize: 13),
+                          ),
+                          Text(
+                            'Nominal Saat Ini: $sign Rp ${currencyFmt.format(item.amount.toInt())}',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: c),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 12),
+            ],
+          ),
         );
       },
     );
@@ -884,47 +1048,58 @@ class _AddEditFinancialNotePageState
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(item.description,
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.w700,
-                                              color: LsColors.ink(context))),
-                                      const SizedBox(height: 2),
-                                      Wrap(
-                                        crossAxisAlignment:
-                                            WrapCrossAlignment.center,
-                                        spacing: 4,
-                                        children: [
-                                          Text(
-                                            DateFormat('dd MMM yyyy, HH:mm',
-                                                    'id_ID')
-                                                .format(item.createdAt),
+                                  child: InkWell(
+                                    onTap: () =>
+                                        _showItemHistoryModal(context, item),
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(item.description,
                                             style: TextStyle(
-                                                fontSize: 11,
-                                                color: LsColors.mute(context)),
-                                          ),
-                                          if (item.updatedAt
-                                                  .isAfter(item.createdAt) &&
-                                              item.updatedAt
-                                                      .difference(
-                                                          item.createdAt)
-                                                      .inSeconds >
-                                                  5)
-                                            Text(
-                                              '• Diedit: ${DateFormat('dd MMM, HH:mm', 'id_ID').format(item.updatedAt)}',
-                                              style: const TextStyle(
-                                                fontSize: 10,
-                                                fontStyle: FontStyle.italic,
-                                                color: Color(0xFFF59E0B),
-                                                fontWeight: FontWeight.w600,
+                                                fontWeight: FontWeight.w700,
+                                                color: LsColors.ink(context))),
+                                        const SizedBox(height: 2),
+                                        Text.rich(
+                                          TextSpan(
+                                            children: [
+                                              TextSpan(
+                                                text: DateFormat(
+                                                        'dd MMM yyyy, HH:mm',
+                                                        'id_ID')
+                                                    .format(item.createdAt),
+                                                style: TextStyle(
+                                                    fontSize: 11,
+                                                    color:
+                                                        LsColors.mute(context)),
                                               ),
-                                            ),
-                                        ],
-                                      ),
-                                    ],
+                                              if (item.updatedAt.isAfter(
+                                                      item.createdAt) &&
+                                                  item.updatedAt
+                                                          .difference(
+                                                              item.createdAt)
+                                                          .inSeconds >
+                                                      5) ...[
+                                                const TextSpan(text: '  '),
+                                                TextSpan(
+                                                  text:
+                                                      '• Diedit: ${DateFormat('dd MMM, HH:mm', 'id_ID').format(item.updatedAt)}',
+                                                  style: const TextStyle(
+                                                    fontSize: 10,
+                                                    fontStyle: FontStyle.italic,
+                                                    color: Color(0xFFF59E0B),
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                                 Text(
