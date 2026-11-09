@@ -386,7 +386,7 @@ class _FinancialNoteDetailPageState
                           ..amount = finalVal
                           ..type = type
                           ..createdAt = itemTimestamp
-                          ..updatedAt = DateTime.now();
+                          ..updatedAt = itemTimestamp;
 
                         await ref
                             .read(financialNotesNotifierProvider.notifier)
@@ -622,13 +622,37 @@ class _FinancialNoteDetailPageState
                                                 color: LsColors.ink(context)),
                                           ),
                                           const SizedBox(height: 2),
-                                          Text(
-                                            DateFormat('dd MMM yyyy, HH:mm',
-                                                    'id_ID')
-                                                .format(item.createdAt),
-                                            style: TextStyle(
-                                                fontSize: 11,
-                                                color: LsColors.mute(context)),
+                                          Wrap(
+                                            crossAxisAlignment:
+                                                WrapCrossAlignment.center,
+                                            spacing: 4,
+                                            children: [
+                                              Text(
+                                                DateFormat('dd MMM yyyy, HH:mm',
+                                                        'id_ID')
+                                                    .format(item.createdAt),
+                                                style: TextStyle(
+                                                    fontSize: 11,
+                                                    color:
+                                                        LsColors.mute(context)),
+                                              ),
+                                              if (item.updatedAt.isAfter(
+                                                      item.createdAt) &&
+                                                  item.updatedAt
+                                                          .difference(
+                                                              item.createdAt)
+                                                          .inSeconds >
+                                                      5)
+                                                Text(
+                                                  '• Diedit: ${DateFormat('dd MMM, HH:mm', 'id_ID').format(item.updatedAt)}',
+                                                  style: const TextStyle(
+                                                    fontSize: 10,
+                                                    fontStyle: FontStyle.italic,
+                                                    color: Color(0xFFF59E0B),
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                            ],
                                           ),
                                         ],
                                       ),

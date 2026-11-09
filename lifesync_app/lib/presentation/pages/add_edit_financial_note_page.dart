@@ -394,11 +394,34 @@ class _AddEditFinancialNotePageState
                       contentPadding: EdgeInsets.zero,
                       title: const Text('Waktu Transaksi Item',
                           style: TextStyle(fontSize: 11, color: Colors.grey)),
-                      subtitle: Text(
-                        DateFormat('dd MMMM yyyy, HH:mm', 'id_ID')
-                            .format(itemTimestamp),
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 13),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            DateFormat('dd MMMM yyyy, HH:mm', 'id_ID')
+                                .format(itemTimestamp),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                          if (itemToEdit != null &&
+                              itemToEdit.updatedAt
+                                  .isAfter(itemToEdit.createdAt) &&
+                              itemToEdit.updatedAt
+                                      .difference(itemToEdit.createdAt)
+                                      .inSeconds >
+                                  5) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              'Terakhir diedit: ${DateFormat('dd MMMM yyyy, HH:mm', 'id_ID').format(itemToEdit.updatedAt)}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontStyle: FontStyle.italic,
+                                color: Color(0xFFF59E0B),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                       trailing: const Icon(Icons.access_time_filled,
                           color: Color(0xFF2563EB), size: 20),
@@ -480,7 +503,7 @@ class _AddEditFinancialNotePageState
                               ..amount = finalVal
                               ..type = finalType
                               ..createdAt = itemTimestamp
-                              ..updatedAt = DateTime.now());
+                              ..updatedAt = itemTimestamp);
                           }
                         });
                         Navigator.pop(ctx);
@@ -870,13 +893,36 @@ class _AddEditFinancialNotePageState
                                               fontWeight: FontWeight.w700,
                                               color: LsColors.ink(context))),
                                       const SizedBox(height: 2),
-                                      Text(
-                                        DateFormat(
-                                                'dd MMM yyyy, HH:mm', 'id_ID')
-                                            .format(item.createdAt),
-                                        style: TextStyle(
-                                            fontSize: 11,
-                                            color: LsColors.mute(context)),
+                                      Wrap(
+                                        crossAxisAlignment:
+                                            WrapCrossAlignment.center,
+                                        spacing: 4,
+                                        children: [
+                                          Text(
+                                            DateFormat('dd MMM yyyy, HH:mm',
+                                                    'id_ID')
+                                                .format(item.createdAt),
+                                            style: TextStyle(
+                                                fontSize: 11,
+                                                color: LsColors.mute(context)),
+                                          ),
+                                          if (item.updatedAt
+                                                  .isAfter(item.createdAt) &&
+                                              item.updatedAt
+                                                      .difference(
+                                                          item.createdAt)
+                                                      .inSeconds >
+                                                  5)
+                                            Text(
+                                              '• Diedit: ${DateFormat('dd MMM, HH:mm', 'id_ID').format(item.updatedAt)}',
+                                              style: const TextStyle(
+                                                fontSize: 10,
+                                                fontStyle: FontStyle.italic,
+                                                color: Color(0xFFF59E0B),
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                        ],
                                       ),
                                     ],
                                   ),

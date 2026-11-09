@@ -48,7 +48,6 @@ class IsarFinancialNoteRepository implements FinancialNoteRepository {
   @override
   Future<int> saveItem(FinancialItem item) async {
     if (kIsWeb) return 0;
-    item.updatedAt = DateTime.now();
     return await isar.writeTxn(() async {
       return await isar.financialItems.put(item);
     });
