@@ -8,6 +8,22 @@ Preserve all unrelated features, screens, UI, business logic, navigation, API co
 
 Minimal diff. No unrelated refactoring. No unauthorized feature changes.
 
+## MANDATORY WORKFLOW: REQUEST TEMPLATE ON EVERY NEW INPUT
+
+Setiap ada input / permintaan perubahan baru dari pengguna, agent WAJIB menampilkan Request & Integrity Template (berdasarkan FEATURE_REQUEST_TEMPLATE.md) sebelum/saat eksekusi:
+
+1. **User Request Breakdown**:
+   - As-Is vs To-Be.
+   - Poin In-Scope spesifik (hanya apa yang diminta user).
+   - Batasan tegas Out-of-Scope (apa yang DILARANG diubah).
+2. **Page Audit (Checklist Frontend & Backend di Halaman Tersebut)**:
+   - Pemetaan seluruh fitur UI existing di halaman terkait (AppBar, navigasi, tabs, cards, dialogs, dark/light theme).
+   - Pemetaan seluruh logic/state/database existing (providers, queries, background sync, notifikasi).
+3. **Safety & Minimal Diff Check**:
+   - Skema database aman (dilarang truncate/reset).
+   - versionCode selalu aman & ter-upgrade (> versi lama, integer valid).
+   - Hanya ubah file yang ditargetkan tanpa refactoring liar.
+
 ## BEFORE CODING
 
 1. Inspect project structure, `pubspec.yaml`, architecture, and relevant source files.
