@@ -15,15 +15,17 @@ class FinancialNoteDetailPage extends ConsumerStatefulWidget {
   const FinancialNoteDetailPage({super.key, required this.noteId});
 
   @override
-  ConsumerState<FinancialNoteDetailPage> createState() => _FinancialNoteDetailPageState();
+  ConsumerState<FinancialNoteDetailPage> createState() =>
+      _FinancialNoteDetailPageState();
 }
 
-class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPage> {
-
+class _FinancialNoteDetailPageState
+    extends ConsumerState<FinancialNoteDetailPage> {
   // ── Helper: Evaluate expression string to double ──────────────────────────
   double _evaluateExpr(String expr) {
     try {
-      String sanitized = expr.replaceAll('×', '*').replaceAll('÷', '/').replaceAll(' ', '');
+      String sanitized =
+          expr.replaceAll('×', '*').replaceAll('÷', '/').replaceAll(' ', '');
       if (sanitized.isEmpty) return 0.0;
 
       List<String> tokens = [];
@@ -31,14 +33,23 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
 
       for (int i = 0; i < sanitized.length; i++) {
         String char = sanitized[i];
-        if (char == '+' || char == '×' || char == '*' || char == '÷' || char == '/') {
+        if (char == '+' ||
+            char == '×' ||
+            char == '*' ||
+            char == '÷' ||
+            char == '/') {
           if (currentNum.isNotEmpty) {
             tokens.add(currentNum);
             currentNum = '';
           }
           tokens.add(char);
         } else if (char == '-') {
-          if (currentNum.isEmpty && (tokens.isEmpty || tokens.last == '+' || tokens.last == '-' || tokens.last == '*' || tokens.last == '/')) {
+          if (currentNum.isEmpty &&
+              (tokens.isEmpty ||
+                  tokens.last == '+' ||
+                  tokens.last == '-' ||
+                  tokens.last == '*' ||
+                  tokens.last == '/')) {
             currentNum += char;
           } else {
             if (currentNum.isNotEmpty) {
@@ -61,7 +72,9 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
         if (tokens[i] == '*' || tokens[i] == '/') {
           double left = double.parse(tokens[i - 1]);
           double right = double.parse(tokens[i + 1]);
-          double res = tokens[i] == '*' ? (left * right) : (right == 0 ? 0 : left / right);
+          double res = tokens[i] == '*'
+              ? (left * right)
+              : (right == 0 ? 0 : left / right);
           tokens[i - 1] = res.toString();
           tokens.removeAt(i);
           tokens.removeAt(i);
@@ -73,7 +86,8 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
       for (int i = 1; i < tokens.length - 1; i += 2) {
         String op = tokens[i];
         double nextNum = double.parse(tokens[i + 1]);
-        if (op == '+') total += nextNum;
+        if (op == '+')
+          total += nextNum;
         else if (op == '-') total -= nextNum;
       }
       return total;
@@ -83,7 +97,10 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
   }
 
   bool _hasOperator(String expr) {
-    return expr.contains('+') || expr.contains('-') || expr.contains('×') || expr.contains('÷');
+    return expr.contains('+') ||
+        expr.contains('-') ||
+        expr.contains('×') ||
+        expr.contains('÷');
   }
 
   String _formatCurrency(double val) {
@@ -97,7 +114,7 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
     final descController = TextEditingController();
     String calcExpr = '0';
     String type = 'expense';
-    DateTime itemTimestamp = DateTime(noteDate.year, noteDate.month, noteDate.day, DateTime.now().hour, DateTime.now().minute);
+    DateTime itemTimestamp = DateTime.now();
     bool showKeypad = false;
 
     showModalBottomSheet(
@@ -118,12 +135,18 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                   calcExpr = '0';
                   return;
                 }
-                if (calcExpr == '0' && k != '.' && k != '+' && k != '-' && k != '×' && k != '÷') {
+                if (calcExpr == '0' &&
+                    k != '.' &&
+                    k != '+' &&
+                    k != '-' &&
+                    k != '×' &&
+                    k != '÷') {
                   calcExpr = k;
                   return;
                 }
                 final last = calcExpr[calcExpr.length - 1];
-                final isOp = (String c) => c == '+' || c == '-' || c == '×' || c == '÷' || c == '.';
+                final isOp = (String c) =>
+                    c == '+' || c == '-' || c == '×' || c == '÷' || c == '.';
                 if (isOp(k) && isOp(last)) {
                   calcExpr = calcExpr.substring(0, calcExpr.length - 1) + k;
                   return;
@@ -149,17 +172,26 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
             }
 
             return Container(
-              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom + 16, top: 20, left: 20, right: 20),
+              padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                  top: 20,
+                  left: 20,
+                  right: 20),
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(28)),
               ),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text('Tambah Item Transaksi', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: LsColors.ink(context))),
+                    Text('Tambah Item Transaksi',
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: LsColors.ink(context))),
                     const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.all(4),
@@ -170,16 +202,24 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                       ),
                       child: Row(
                         children: [
-                          for (final opt in const [['expense', 'Pengeluaran'], ['income', 'Pemasukan']])
+                          for (final opt in const [
+                            ['expense', 'Pengeluaran'],
+                            ['income', 'Pemasukan']
+                          ])
                             Expanded(
                               child: GestureDetector(
                                 onTap: () => setModalState(() => type = opt[0]),
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 150),
-                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 10),
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
-                                    color: type == opt[0] ? (opt[0] == 'income' ? LsColors.income : LsColors.expense) : Colors.transparent,
+                                    color: type == opt[0]
+                                        ? (opt[0] == 'income'
+                                            ? LsColors.income
+                                            : LsColors.expense)
+                                        : Colors.transparent,
                                     borderRadius: BorderRadius.circular(11),
                                   ),
                                   child: Text(
@@ -187,7 +227,9 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                                     style: TextStyle(
                                       fontWeight: FontWeight.w800,
                                       fontSize: 13,
-                                      color: type == opt[0] ? Colors.white : LsColors.mute(context),
+                                      color: type == opt[0]
+                                          ? Colors.white
+                                          : LsColors.mute(context),
                                     ),
                                   ),
                                 ),
@@ -199,21 +241,28 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                     const SizedBox(height: 16),
                     TextField(
                       controller: descController,
-                      onTap: () { if (showKeypad) setModalState(() => showKeypad = false); },
+                      onTap: () {
+                        if (showKeypad) setModalState(() => showKeypad = false);
+                      },
                       decoration: InputDecoration(
                         labelText: 'Nama Item Transaksi *',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14)),
                       ),
                     ),
                     const SizedBox(height: 12),
                     ListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Waktu Transaksi Item', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                      title: const Text('Waktu Transaksi Item',
+                          style: TextStyle(fontSize: 11, color: Colors.grey)),
                       subtitle: Text(
-                        DateFormat('dd MMMM yyyy, HH:mm', 'id_ID').format(itemTimestamp),
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        DateFormat('dd MMMM yyyy, HH:mm', 'id_ID')
+                            .format(itemTimestamp),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 13),
                       ),
-                      trailing: const Icon(Icons.access_time_filled, color: Color(0xFF2563EB), size: 20),
+                      trailing: const Icon(Icons.access_time_filled,
+                          color: Color(0xFF2563EB), size: 20),
                       onTap: () async {
                         final picked = await showLsDateTimePickerSheet(
                           context: context,
@@ -236,24 +285,49 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                         setModalState(() => showKeypad = true);
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 14, horizontal: 16),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                          color: isDark
+                              ? const Color(0xFF0F172A)
+                              : const Color(0xFFF1F5F9),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: showKeypad ? (type == 'income' ? const Color(0xFF10B981) : const Color(0xFFEF4444)) : Colors.transparent, width: 1.5),
+                          border: Border.all(
+                              color: showKeypad
+                                  ? (type == 'income'
+                                      ? const Color(0xFF10B981)
+                                      : const Color(0xFFEF4444))
+                                  : Colors.transparent,
+                              width: 1.5),
                         ),
                         child: Column(
                           children: [
-                            Text('NOMINAL', style: TextStyle(fontSize: 11, color: isDark ? Colors.white54 : Colors.black54, fontWeight: FontWeight.w600)),
+                            Text('NOMINAL',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: isDark
+                                        ? Colors.white54
+                                        : Colors.black54,
+                                    fontWeight: FontWeight.w600)),
                             const SizedBox(height: 4),
                             if (showExpr) ...[
                               Text(
                                 calcExpr,
-                                style: TextStyle(fontSize: 14, color: isDark ? Colors.white54 : const Color(0xFF64748B)),
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    color: isDark
+                                        ? Colors.white54
+                                        : const Color(0xFF64748B)),
                               ),
                               const SizedBox(height: 2),
                             ],
-                            Text(formattedAmt, style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: type == 'income' ? const Color(0xFF10B981) : const Color(0xFFEF4444))),
+                            Text(formattedAmt,
+                                style: TextStyle(
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.bold,
+                                    color: type == 'income'
+                                        ? const Color(0xFF10B981)
+                                        : const Color(0xFFEF4444))),
                           ],
                         ),
                       ),
@@ -270,23 +344,30 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                     const SizedBox(height: 20),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: type == 'income' ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                        backgroundColor: type == 'income'
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFFEF4444),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
                       ),
                       onPressed: () async {
                         final desc = descController.text.trim();
                         final finalVal = _evaluateExpr(calcExpr);
                         if (desc.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Nama item transaksi wajib diisi!')),
+                            const SnackBar(
+                                content:
+                                    Text('Nama item transaksi wajib diisi!')),
                           );
                           return;
                         }
                         if (finalVal <= 0) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Nominal transaksi harus lebih dari 0!')),
+                            const SnackBar(
+                                content: Text(
+                                    'Nominal transaksi harus lebih dari 0!')),
                           );
                           return;
                         }
@@ -294,7 +375,8 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                         final confirm = await showLsConfirmDialog(
                           context: context,
                           title: 'Tambah Item Transaksi',
-                          message: 'Apakah Anda yakin ingin menambahkan transaksi "$desc"?',
+                          message:
+                              'Apakah Anda yakin ingin menambahkan transaksi "$desc"?',
                         );
                         if (!confirm) return;
 
@@ -306,10 +388,16 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                           ..createdAt = itemTimestamp
                           ..updatedAt = DateTime.now();
 
-                        await ref.read(financialNotesNotifierProvider.notifier).addItemToNote(item);
+                        await ref
+                            .read(financialNotesNotifierProvider.notifier)
+                            .addItemToNote(item);
                         if (mounted) Navigator.pop(ctx);
                       },
-                      child: const Text('+ Tambah ke Catatan Ini', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                      child: const Text('+ Tambah ke Catatan Ini',
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white)),
                     ),
                   ],
                 ),
@@ -325,13 +413,16 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
     final confirm = await showLsConfirmDialog(
       context: context,
       title: 'Hapus Catatan?',
-      message: 'Seluruh item transaksi dalam catatan ini akan ikut terhapus. Lanjutkan?',
+      message:
+          'Seluruh item transaksi dalam catatan ini akan ikut terhapus. Lanjutkan?',
       confirmLabel: 'Hapus',
       cancelLabel: 'Batal',
       isDanger: true,
     );
     if (confirm) {
-      await ref.read(financialNotesNotifierProvider.notifier).deleteNote(noteId);
+      await ref
+          .read(financialNotesNotifierProvider.notifier)
+          .deleteNote(noteId);
       if (mounted) Navigator.pop(context);
     }
   }
@@ -343,7 +434,8 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
     final notesAsync = ref.watch(financialNotesNotifierProvider);
 
     return notesAsync.when(
-      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, _) => Scaffold(body: Center(child: Text('Error: $e'))),
       data: (allNotes) {
         final noteItem = allNotes.firstWhere(
@@ -352,7 +444,8 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
         );
 
         if (noteItem.note.id == 0) {
-          return const Scaffold(body: Center(child: Text('Catatan tidak ditemukan')));
+          return const Scaffold(
+              body: Center(child: Text('Catatan tidak ditemukan')));
         }
 
         final note = noteItem.note;
@@ -362,7 +455,8 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
         return Scaffold(
           backgroundColor: LsColors.paper(context),
           appBar: AppBar(
-            title: Text(note.title, style: const TextStyle(fontWeight: FontWeight.w800)),
+            title: Text(note.title,
+                style: const TextStyle(fontWeight: FontWeight.w800)),
             backgroundColor: LsColors.surface(context),
             surfaceTintColor: Colors.transparent,
             scrolledUnderElevation: 0,
@@ -374,7 +468,9 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => AddEditFinancialNotePage(existingNote: noteItem)),
+                    MaterialPageRoute(
+                        builder: (_) =>
+                            AddEditFinancialNotePage(existingNote: noteItem)),
                   );
                 },
               ),
@@ -399,42 +495,60 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.calendar_today, size: 14, color: Colors.white70),
+                                  const Icon(Icons.calendar_today,
+                                      size: 14, color: Colors.white70),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      DateFormat('EEEE, d MMMM yyyy, HH:mm', 'id_ID').format(note.date),
-                                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Colors.white70),
+                                      DateFormat('EEEE, d MMMM yyyy, HH:mm',
+                                              'id_ID')
+                                          .format(note.date),
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 12,
+                                          color: Colors.white70),
                                     ),
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 14),
-                              LsEyebrow('Total Catatan (${items.length} Item)', color: Colors.white70),
+                              LsEyebrow('Total Catatan (${items.length} Item)',
+                                  color: Colors.white70),
                               const SizedBox(height: 6),
                               FittedBox(
                                 fit: BoxFit.scaleDown,
                                 alignment: Alignment.centerLeft,
                                 child: Text(
                                   '${net < 0 ? '-' : ''}Rp ${currencyFmt.format(net.abs().toInt())}',
-                                  style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w800, height: 1.1, letterSpacing: -1, color: Colors.white),
+                                  style: const TextStyle(
+                                      fontSize: 38,
+                                      fontWeight: FontWeight.w800,
+                                      height: 1.1,
+                                      letterSpacing: -1,
+                                      color: Colors.white),
                                 ),
                               ),
-                              if (note.notes != null && note.notes!.isNotEmpty) ...[
+                              if (note.notes != null &&
+                                  note.notes!.isNotEmpty) ...[
                                 const SizedBox(height: 10),
                                 Text(
                                   note.notes!,
-                                  style: const TextStyle(fontStyle: FontStyle.italic, fontSize: 12, color: Colors.white70),
+                                  style: const TextStyle(
+                                      fontStyle: FontStyle.italic,
+                                      fontSize: 12,
+                                      color: Colors.white70),
                                 ),
                               ],
                             ],
                           ),
                         ),
                         const SizedBox(height: 24),
-
                         Row(
                           children: [
-                            Expanded(child: LsSectionHeader(title: 'Daftar Transaksi (${items.length})')),
+                            Expanded(
+                                child: LsSectionHeader(
+                                    title:
+                                        'Daftar Transaksi (${items.length})')),
                             const SizedBox(width: 8),
                             ElevatedButton.icon(
                               style: ElevatedButton.styleFrom(
@@ -442,19 +556,26 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                                 elevation: 0,
                                 shape: const StadiumBorder(),
                               ),
-                              onPressed: () => _showQuickAddItemDialog(note.id, note.date),
-                              icon: const Icon(Icons.add, color: Colors.white, size: 18),
-                              label: const Text('Tambah', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                              onPressed: () =>
+                                  _showQuickAddItemDialog(note.id, note.date),
+                              icon: const Icon(Icons.add,
+                                  color: Colors.white, size: 18),
+                              label: const Text('Tambah',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800)),
                             ),
                           ],
                         ),
                         const SizedBox(height: 12),
-
                         if (items.isEmpty)
                           LsCard(
                             padding: const EdgeInsets.all(32),
                             child: Center(
-                              child: Text('Belum ada item transaksi dalam catatan ini', style: TextStyle(color: LsColors.mute(context))),
+                              child: Text(
+                                  'Belum ada item transaksi dalam catatan ini',
+                                  style:
+                                      TextStyle(color: LsColors.mute(context))),
                             ),
                           )
                         else
@@ -462,54 +583,83 @@ class _FinancialNoteDetailPageState extends ConsumerState<FinancialNoteDetailPag
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             itemCount: items.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 8),
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 8),
                             itemBuilder: (ctx, idx) {
                               final item = items[idx];
                               final isIncome = item.type == 'income';
-                              final c = isIncome ? LsColors.income : LsColors.expense;
+                              final c =
+                                  isIncome ? LsColors.income : LsColors.expense;
                               return LsCard(
-                                padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
+                                padding:
+                                    const EdgeInsets.fromLTRB(12, 10, 4, 10),
                                 child: Row(
                                   children: [
                                     Container(
                                       width: 38,
                                       height: 38,
-                                      decoration: BoxDecoration(color: c.withValues(alpha: 0.14), shape: BoxShape.circle),
-                                      child: Icon(isIncome ? Icons.arrow_downward : Icons.arrow_upward, color: c, size: 18),
+                                      decoration: BoxDecoration(
+                                          color: c.withValues(alpha: 0.14),
+                                          shape: BoxShape.circle),
+                                      child: Icon(
+                                          isIncome
+                                              ? Icons.arrow_downward
+                                              : Icons.arrow_upward,
+                                          color: c,
+                                          size: 18),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             item.description,
-                                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: LsColors.ink(context)),
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 14,
+                                                color: LsColors.ink(context)),
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
-                                            DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(item.createdAt),
-                                            style: TextStyle(fontSize: 11, color: LsColors.mute(context)),
+                                            DateFormat('dd MMM yyyy, HH:mm',
+                                                    'id_ID')
+                                                .format(item.createdAt),
+                                            style: TextStyle(
+                                                fontSize: 11,
+                                                color: LsColors.mute(context)),
                                           ),
                                         ],
                                       ),
                                     ),
                                     Text(
                                       '${isIncome ? '+' : '-'} Rp ${currencyFmt.format(item.amount.toInt())}',
-                                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: c),
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 14,
+                                          color: c),
                                     ),
                                     IconButton(
-                                      icon: Icon(Icons.delete_outline, size: 18, color: LsColors.mute(context)),
+                                      icon: Icon(Icons.delete_outline,
+                                          size: 18,
+                                          color: LsColors.mute(context)),
                                       onPressed: () async {
-                                        final confirm = await showLsConfirmDialog(
+                                        final confirm =
+                                            await showLsConfirmDialog(
                                           context: context,
                                           title: 'Hapus Item Transaksi',
-                                          message: 'Apakah Anda yakin ingin menghapus item transaksi "${item.description}"?',
+                                          message:
+                                              'Apakah Anda yakin ingin menghapus item transaksi "${item.description}"?',
                                           confirmLabel: 'Hapus',
                                           isDanger: true,
                                         );
                                         if (confirm) {
-                                          await ref.read(financialNotesNotifierProvider.notifier).deleteItem(item.id);
+                                          await ref
+                                              .read(
+                                                  financialNotesNotifierProvider
+                                                      .notifier)
+                                              .deleteItem(item.id);
                                         }
                                       },
                                     ),

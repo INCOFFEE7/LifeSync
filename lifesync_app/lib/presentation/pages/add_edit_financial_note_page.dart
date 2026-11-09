@@ -184,15 +184,8 @@ class _AddEditFinancialNotePageState
     String calcExpr =
         itemToEdit != null ? itemToEdit.amount.toInt().toString() : '0';
     String type = itemToEdit?.type ?? 'expense';
-    DateTime itemTimestamp = itemToEdit != null
-        ? itemToEdit.createdAt
-        : DateTime(
-            _selectedDate.year,
-            _selectedDate.month,
-            _selectedDate.day,
-            DateTime.now().hour,
-            DateTime.now().minute,
-          );
+    DateTime itemTimestamp =
+        itemToEdit != null ? itemToEdit.createdAt : DateTime.now();
     bool showKeypad = false;
 
     showModalBottomSheet(
