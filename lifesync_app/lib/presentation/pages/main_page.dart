@@ -391,6 +391,7 @@ class _MainPageState extends ConsumerState<MainPage>
     final selected = _currentIndex == index;
     final activeColor = LsColors.brand;
     final inactiveColor = LsColors.mute(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Expanded(
       child: InkWell(
@@ -403,27 +404,38 @@ class _MainPageState extends ConsumerState<MainPage>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 240),
-                curve: Curves.easeOutCubic,
-                padding: EdgeInsets.symmetric(
-                  horizontal: selected ? 14 : 8,
-                  vertical: 2.5,
-                ),
-                decoration: BoxDecoration(
-                  color: selected
-                      ? LsColors.brand.withValues(alpha: 0.14)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: AnimatedScale(
-                  scale: selected ? 1.1 : 1.0,
+              AnimatedSlide(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOutBack,
+                offset: selected ? const Offset(0, -0.06) : Offset.zero,
+                child: AnimatedContainer(
                   duration: const Duration(milliseconds: 240),
-                  curve: Curves.easeOutBack,
-                  child: Icon(
-                    selected ? selectedIcon : icon,
-                    color: selected ? activeColor : inactiveColor,
-                    size: 21,
+                  curve: Curves.easeOutCubic,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: selected ? 16 : 8,
+                    vertical: 3.5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? activeColor.withValues(alpha: isDark ? 0.22 : 0.12)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: selected
+                          ? activeColor.withValues(alpha: isDark ? 0.35 : 0.20)
+                          : Colors.transparent,
+                      width: 1,
+                    ),
+                  ),
+                  child: AnimatedScale(
+                    scale: selected ? 1.12 : 1.0,
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOutBack,
+                    child: Icon(
+                      selected ? selectedIcon : icon,
+                      color: selected ? activeColor : inactiveColor,
+                      size: 21,
+                    ),
                   ),
                 ),
               ),
@@ -441,6 +453,26 @@ class _MainPageState extends ConsumerState<MainPage>
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(height: 2),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 240),
+                curve: Curves.easeOutCubic,
+                width: selected ? 12 : 0,
+                height: 2.5,
+                decoration: BoxDecoration(
+                  color: selected ? activeColor : Colors.transparent,
+                  borderRadius: BorderRadius.circular(2),
+                  boxShadow: selected
+                      ? [
+                          BoxShadow(
+                            color: activeColor.withValues(alpha: 0.4),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          )
+                        ]
+                      : null,
                 ),
               ),
             ],
