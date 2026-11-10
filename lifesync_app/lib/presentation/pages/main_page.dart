@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lifesync_app/presentation/pages/dashboard_page.dart';
 import 'package:lifesync_app/presentation/pages/targets_page.dart';
 import 'package:lifesync_app/presentation/pages/reminders_page.dart';
@@ -20,6 +21,7 @@ import 'package:lifesync_app/presentation/pages/add_edit_financial_note_page.dar
 import 'package:lifesync_app/presentation/providers/financial_note_providers.dart';
 
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:intl/intl.dart';
 
 class MainPage extends ConsumerStatefulWidget {
@@ -41,11 +43,21 @@ class _MainPageState extends ConsumerState<MainPage>
   final GlobalKey<State<RemindersPage>> _remindersPageKey = GlobalKey();
 
   late final List<Widget> _pages = [
-    const DashboardPage(),
+    DashboardPage(onNavigateToTab: _handleDashboardNavigation),
     FinancialRecordsHomePage(key: _financialPageKey),
     const TargetsPage(),
     RemindersPage(key: _remindersPageKey),
   ];
+
+  void _handleDashboardNavigation(int tabIndex, {int? reminderSubTab}) {
+    _onTabTapped(tabIndex);
+    if (tabIndex == 3 && reminderSubTab != null) {
+      final state = _remindersPageKey.currentState;
+      if (state != null) {
+        (state as dynamic).switchToTab(reminderSubTab);
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -281,52 +293,73 @@ class _MainPageState extends ConsumerState<MainPage>
       _AddAction(
           'transaksi',
           AppTranslations.get(lang, 'catat_transaksi'),
-          'Catat pemasukan atau pengeluaran harian',
+          AppTranslations.get(lang, 'catat_transaksi_sub'),
           Icons.account_balance_wallet_rounded,
           LsColors.brand,
           (_) => AddEditFinancialNotePage(initialDate: selectedFinDate)),
       _AddAction(
           'agenda',
           AppTranslations.get(lang, 'agenda'),
-          'Jadwal dan kegiatan penting',
+          AppTranslations.get(lang, 'agenda_sub'),
           Icons.event_rounded,
           LsColors.violet,
           (_) => const CreateReminderPage()),
       _AddAction(
           'tagihan',
           AppTranslations.get(lang, 'tagihan_bulanan'),
-          'Tagihan rutin bulanan',
+          AppTranslations.get(lang, 'tagihan_bulanan_sub'),
           Icons.receipt_long_rounded,
           LsColors.expense,
           (_) => const AddEditBillPage(initialBillType: 'monthly')),
       _AddAction(
           'piutang',
           AppTranslations.get(lang, 'tagihan_piutang'),
-          'Catatan penagihan piutang orang lain',
+          AppTranslations.get(lang, 'tagihan_piutang_sub'),
           Icons.handshake_rounded,
           LsColors.income,
           (_) => const AddEditBillPage(initialBillType: 'receivable')),
       _AddAction(
           'belanja',
           AppTranslations.get(lang, 'daftar_belanja'),
-          'Daftar kebutuhan belanjaan',
+          AppTranslations.get(lang, 'daftar_belanja_sub'),
           Icons.shopping_cart_rounded,
           LsColors.amber,
           (_) => const CreateShoppingPage()),
       _AddAction(
           'target',
           AppTranslations.get(lang, 'target'),
-          'Mulai menabung untuk tujuan baru',
+          AppTranslations.get(lang, 'target_sub'),
           Icons.savings_rounded,
           LsColors.income,
           (_) => const CreateTargetPage()),
     ];
-    final preferred = switch (_currentIndex) {
-      1 => 'transaksi',
-      2 => 'target',
-      3 => 'agenda',
-      _ => 'transaksi',
-    };
+
+    String preferred = 'transaksi';
+    if (_currentIndex == 1) {
+      preferred = 'transaksi';
+    } else if (_currentIndex == 2) {
+      preferred = 'target';
+    } else if (_currentIndex == 3) {
+      final remState = _remindersPageKey.currentState;
+      int subTab = 0;
+      if (remState != null) {
+        try {
+          subTab = (remState as dynamic).currentTabIndex as int;
+        } catch (_) {}
+      }
+      if (subTab == 1) {
+        preferred = 'agenda';
+      } else if (subTab == 2) {
+        preferred = 'tagihan';
+      } else if (subTab == 3) {
+        preferred = 'belanja';
+      } else {
+        preferred = 'agenda';
+      }
+    } else {
+      preferred = 'transaksi';
+    }
+
     actions.sort((a, b) =>
         (a.id == preferred ? 0 : 1).compareTo(b.id == preferred ? 0 : 1));
 
@@ -356,9 +389,9 @@ class _MainPageState extends ConsumerState<MainPage>
                   ),
                 ),
                 const SizedBox(height: 16),
-                const LsEyebrow('Buat'),
+                LsEyebrow(AppTranslations.get(lang, 'buat')),
                 const SizedBox(height: 4),
-                Text('Tambah Baru',
+                Text(AppTranslations.get(lang, 'tambah_baru'),
                     style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
@@ -380,102 +413,6 @@ class _MainPageState extends ConsumerState<MainPage>
                   ),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _navItem(
-      int index, IconData icon, IconData selectedIcon, String label) {
-    final selected = _currentIndex == index;
-    final activeColor = LsColors.brand;
-    final inactiveColor = LsColors.mute(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Expanded(
-      child: InkWell(
-        onTap: () => _onTabTapped(index),
-        splashColor: LsColors.brand.withValues(alpha: 0.1),
-        highlightColor: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
-        child: SizedBox(
-          height: 56,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              AnimatedSlide(
-                duration: const Duration(milliseconds: 250),
-                curve: Curves.easeOutBack,
-                offset: selected ? const Offset(0, -0.06) : Offset.zero,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 240),
-                  curve: Curves.easeOutCubic,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: selected ? 16 : 8,
-                    vertical: 3.5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: selected
-                        ? activeColor.withValues(alpha: isDark ? 0.22 : 0.12)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: selected
-                          ? activeColor.withValues(alpha: isDark ? 0.35 : 0.20)
-                          : Colors.transparent,
-                      width: 1,
-                    ),
-                  ),
-                  child: AnimatedScale(
-                    scale: selected ? 1.12 : 1.0,
-                    duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeOutBack,
-                    child: Icon(
-                      selected ? selectedIcon : icon,
-                      color: selected ? activeColor : inactiveColor,
-                      size: 21,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 2),
-              AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeInOut,
-                style: TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                  color: selected ? activeColor : inactiveColor,
-                  letterSpacing: selected ? -0.2 : 0.0,
-                ),
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(height: 2),
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 240),
-                curve: Curves.easeOutCubic,
-                width: selected ? 12 : 0,
-                height: 2.5,
-                decoration: BoxDecoration(
-                  color: selected ? activeColor : Colors.transparent,
-                  borderRadius: BorderRadius.circular(2),
-                  boxShadow: selected
-                      ? [
-                          BoxShadow(
-                            color: activeColor.withValues(alpha: 0.4),
-                            blurRadius: 4,
-                            offset: const Offset(0, 1),
-                          )
-                        ]
-                      : null,
-                ),
-              ),
-            ],
           ),
         ),
       ),
@@ -505,83 +442,11 @@ class _MainPageState extends ConsumerState<MainPage>
         ),
         child: SafeArea(
           top: false,
-          child: Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.topCenter,
-            children: [
-              Row(
-                children: [
-                  _navItem(0, Icons.home_outlined, Icons.home_rounded,
-                      AppTranslations.get(lang, 'beranda')),
-                  _navItem(
-                      1,
-                      Icons.account_balance_wallet_outlined,
-                      Icons.account_balance_wallet,
-                      AppTranslations.get(lang, 'keuangan')),
-                  const Expanded(child: SizedBox(height: 56)),
-                  _navItem(2, Icons.savings_outlined, Icons.savings,
-                      AppTranslations.get(lang, 'target')),
-                  _navItem(
-                      3,
-                      Icons.notifications_none_outlined,
-                      Icons.notifications,
-                      AppTranslations.get(lang, 'pengingat')),
-                ],
-              ),
-              Positioned(
-                top: -16,
-                child: Semantics(
-                  button: true,
-                  label: 'Tambah Baru',
-                  child: Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: LsColors.brand.withValues(alpha: 0.35),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      shape: const CircleBorder(),
-                      child: Ink(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Color(0xFF3B82F6),
-                              Color(0xFF1D4ED8),
-                            ],
-                          ),
-                          border: Border.all(
-                            color: LsColors.surface(context),
-                            width: 3.5,
-                          ),
-                        ),
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: _showAddSheet,
-                          child: const SizedBox(
-                            width: 52,
-                            height: 52,
-                            child: Icon(
-                              Icons.add_rounded,
-                              color: Colors.white,
-                              size: 28,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+          child: FluidBottomBar(
+            currentIndex: _currentIndex,
+            onTabSelected: _onTabTapped,
+            onFabTap: _showAddSheet,
+            lang: lang,
           ),
         ),
       ),
@@ -656,10 +521,507 @@ class _AddActionRow extends StatelessWidget {
                   ],
                 ),
               ),
-              if (highlighted) LsChip('Disarankan', color: action.color),
-              if (!highlighted)
-                Icon(Icons.chevron_right_rounded,
-                    color: LsColors.mute(context)),
+              Icon(Icons.chevron_right_rounded,
+                  color: highlighted ? action.color : LsColors.mute(context)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class FluidBottomBar extends StatefulWidget {
+  final int currentIndex;
+  final ValueChanged<int> onTabSelected;
+  final VoidCallback onFabTap;
+  final String lang;
+
+  const FluidBottomBar({
+    super.key,
+    required this.currentIndex,
+    required this.onTabSelected,
+    required this.onFabTap,
+    required this.lang,
+  });
+
+  @override
+  State<FluidBottomBar> createState() => _FluidBottomBarState();
+}
+
+class _FluidBottomBarState extends State<FluidBottomBar>
+    with TickerProviderStateMixin {
+  late AnimationController _navAnimController;
+  late AnimationController _reTapController;
+  late double _fromCol;
+  late double _toCol;
+
+  double _tabToCol(int tabIndex) {
+    switch (tabIndex) {
+      case 0:
+        return 0.0;
+      case 1:
+        return 1.0;
+      case 2:
+        return 3.0; // Target is after FAB (col 2 is FAB)
+      case 3:
+        return 4.0; // Pengingat
+      default:
+        return 0.0;
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fromCol = _tabToCol(widget.currentIndex);
+    _toCol = _fromCol;
+    _navAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 380),
+    )..addListener(() => setState(() {}));
+
+    _reTapController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+    )..addListener(() => setState(() {}));
+  }
+
+  @override
+  void didUpdateWidget(covariant FluidBottomBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.currentIndex != oldWidget.currentIndex) {
+      final currentProg =
+          Curves.easeInOutCubic.transform(_navAnimController.value);
+      _fromCol = _fromCol + (_toCol - _fromCol) * currentProg;
+      _toCol = _tabToCol(widget.currentIndex);
+      _navAnimController.forward(from: 0.0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _navAnimController.dispose();
+    _reTapController.dispose();
+    super.dispose();
+  }
+
+  void _handleTap(int tabIndex) {
+    HapticFeedback.selectionClick();
+    if (tabIndex == widget.currentIndex) {
+      _reTapController.forward(from: 0.0);
+    }
+    widget.onTabSelected(tabIndex);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final activeColor = LsColors.brand;
+    final inactiveColor = LsColors.mute(context);
+
+    return SizedBox(
+      height: 58,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final totalWidth = constraints.maxWidth;
+          final colWidth = totalWidth / 5.0;
+
+          final t = _navAnimController.value;
+          final travelProg = Curves.easeInOutCubic.transform(t);
+          final colPos = _fromCol + (_toCol - _fromCol) * travelProg;
+          final centerX = (colPos + 0.5) * colWidth;
+
+          final colDiff = _toCol - _fromCol;
+          final dist = colDiff.abs();
+          final dir = colDiff >= 0 ? 1.0 : -1.0;
+
+          // Transit factor: 0.0 at rest, 1.0 at midpoint
+          final transit = math.sin(t * math.pi);
+
+          // Arrival bloom overshoot: expands ("membesar") when reaching target tab
+          final arrivalProg = (t > 0.65) ? ((t - 0.65) / 0.35) : 0.0;
+          final arrivalBloom =
+              arrivalProg > 0 ? math.sin(arrivalProg * math.pi) * 0.18 : 0.0;
+
+          final reTapVal = math.sin(_reTapController.value * math.pi);
+
+          // Liquid droplet size:
+          // Rest: 44w x 30h
+          // Mid-transit: contracts down to ~26w x 22h ("mengecil")
+          // Arrival: blooms with overshoot to ~52w x 35h ("membesar"), settles to 44w x 30h
+          // Re-tap: jelly squish (+20% width, -15% height)
+          final dropletWidth =
+              (44.0 - (18.0 * transit) + (44.0 * arrivalBloom)) *
+                  (1.0 + 0.20 * reTapVal);
+          final dropletHeight =
+              (30.0 - (8.0 * transit) + (30.0 * arrivalBloom)) *
+                  (1.0 - 0.15 * reTapVal);
+
+          // Passing under center FAB (column 2): dip down slightly
+          final fabDistance = (colPos - 2.0).abs();
+          final fabDip =
+              (fabDistance < 0.75) ? (0.75 - fabDistance) * 4.0 : 0.0;
+          final centerY = 18.0 + fabDip;
+
+          final dropletLeft = (centerX - dropletWidth / 2)
+              .clamp(0.0, totalWidth - dropletWidth);
+          final dropletTop =
+              (centerY - dropletHeight / 2).clamp(0.0, 58.0 - dropletHeight);
+
+          final showTrails = transit > 0.12 && dist > 0.3;
+          final trailAlpha = ((transit - 0.12) / 0.88).clamp(0.0, 1.0);
+
+          final showRipple = t > 0.75 && dist > 0.3;
+          final rippleProg = showRipple ? (t - 0.75) / 0.25 : 0.0;
+          final targetCenterX = (_toCol + 0.5) * colWidth;
+          final rippleRadius = 14.0 + (rippleProg * 14.0);
+          final rippleOpacity = (1.0 - rippleProg).clamp(0.0, 1.0) * 0.35;
+
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // 1. Splash Ripple Ring on arrival
+              if (showRipple && rippleOpacity > 0.01)
+                Positioned(
+                  left: targetCenterX - rippleRadius,
+                  top: 18.0 - rippleRadius,
+                  child: Container(
+                    width: rippleRadius * 2,
+                    height: rippleRadius * 2,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: activeColor.withValues(alpha: rippleOpacity),
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                ),
+
+              // 2. Trailing Micro-Droplets (Comet tail of water beads)
+              if (showTrails) ...[
+                // Bead 1 (medium)
+                Positioned(
+                  left: (centerX -
+                          dir * (dropletWidth / 2 + 8.0 + 10.0 * transit))
+                      .clamp(0.0, totalWidth - 6.0),
+                  top: (centerY + math.sin(t * math.pi * 3) * 2.5)
+                      .clamp(2.0, 36.0),
+                  child: Opacity(
+                    opacity: trailAlpha * 0.85,
+                    child: Container(
+                      width: 5.5,
+                      height: 5.5,
+                      decoration: BoxDecoration(
+                        color: activeColor,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: activeColor.withValues(alpha: 0.3),
+                            blurRadius: 3,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                // Bead 2 (small)
+                Positioned(
+                  left: (centerX -
+                          dir * (dropletWidth / 2 + 18.0 + 16.0 * transit))
+                      .clamp(0.0, totalWidth - 4.5),
+                  top: (centerY - math.sin(t * math.pi * 3) * 2.0)
+                      .clamp(2.0, 36.0),
+                  child: Opacity(
+                    opacity: trailAlpha * 0.65,
+                    child: Container(
+                      width: 4.0,
+                      height: 4.0,
+                      decoration: BoxDecoration(
+                        color: activeColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                ),
+                // Bead 3 (tiny mist)
+                Positioned(
+                  left: (centerX -
+                          dir * (dropletWidth / 2 + 28.0 + 22.0 * transit))
+                      .clamp(0.0, totalWidth - 3.0),
+                  top: (centerY + math.sin(t * math.pi * 2) * 1.0)
+                      .clamp(2.0, 36.0),
+                  child: Opacity(
+                    opacity: trailAlpha * 0.45,
+                    child: Container(
+                      width: 2.5,
+                      height: 2.5,
+                      decoration: BoxDecoration(
+                        color: activeColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+
+              // 3. Main Gliding Liquid Droplet Bubble ("mengecil -> tetesan menjalar -> membesar")
+              Positioned(
+                left: dropletLeft,
+                top: dropletTop,
+                width: dropletWidth,
+                height: dropletHeight,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: activeColor.withValues(alpha: isDark ? 0.22 : 0.13),
+                    borderRadius: BorderRadius.circular(dropletHeight / 2),
+                    border: Border.all(
+                      color:
+                          activeColor.withValues(alpha: isDark ? 0.38 : 0.22),
+                      width: 1.2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color:
+                            activeColor.withValues(alpha: isDark ? 0.24 : 0.12),
+                        blurRadius: 10,
+                        spreadRadius: -1,
+                      ),
+                    ],
+                  ),
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 2.5),
+                      width: dropletWidth * 0.42,
+                      height: 2.0,
+                      decoration: BoxDecoration(
+                        color: Colors.white
+                            .withValues(alpha: isDark ? 0.28 : 0.45),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // 4. Tab Navigation Items (5 columns in finite bounded Row)
+              Positioned.fill(
+                child: Row(
+                  children: [
+                    _buildTab(
+                      0,
+                      Icons.home_outlined,
+                      Icons.home_rounded,
+                      AppTranslations.get(widget.lang, 'beranda'),
+                      activeColor,
+                      inactiveColor,
+                      t,
+                      arrivalBloom,
+                      reTapVal,
+                    ),
+                    _buildTab(
+                      1,
+                      Icons.account_balance_wallet_outlined,
+                      Icons.account_balance_wallet,
+                      AppTranslations.get(widget.lang, 'keuangan'),
+                      activeColor,
+                      inactiveColor,
+                      t,
+                      arrivalBloom,
+                      reTapVal,
+                    ),
+                    const Expanded(child: SizedBox(height: 58)),
+                    _buildTab(
+                      2,
+                      Icons.savings_outlined,
+                      Icons.savings,
+                      AppTranslations.get(widget.lang, 'target'),
+                      activeColor,
+                      inactiveColor,
+                      t,
+                      arrivalBloom,
+                      reTapVal,
+                    ),
+                    _buildTab(
+                      3,
+                      Icons.notifications_none_outlined,
+                      Icons.notifications,
+                      AppTranslations.get(widget.lang, 'pengingat'),
+                      activeColor,
+                      inactiveColor,
+                      t,
+                      arrivalBloom,
+                      reTapVal,
+                    ),
+                  ],
+                ),
+              ),
+
+              // 5. Center Floating Action Button (Elevated)
+              Positioned(
+                top: -16,
+                left: 2.0 * colWidth,
+                width: colWidth,
+                child: Center(
+                  child: Semantics(
+                    button: true,
+                    label: 'Tambah Baru',
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: LsColors.brand.withValues(alpha: 0.35),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        shape: const CircleBorder(),
+                        child: Ink(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Color(0xFF3B82F6),
+                                Color(0xFF1D4ED8),
+                              ],
+                            ),
+                            border: Border.all(
+                              color: LsColors.surface(context),
+                              width: 3.5,
+                            ),
+                          ),
+                          child: InkWell(
+                            customBorder: const CircleBorder(),
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              widget.onFabTap();
+                            },
+                            child: const SizedBox(
+                              width: 52,
+                              height: 52,
+                              child: Icon(
+                                Icons.add_rounded,
+                                color: Colors.white,
+                                size: 28,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTab(
+    int index,
+    IconData icon,
+    IconData selectedIcon,
+    String label,
+    Color activeColor,
+    Color inactiveColor,
+    double t,
+    double arrivalBloom,
+    double reTapVal,
+  ) {
+    final isSelected = widget.currentIndex == index;
+    final isTarget = _toCol == _tabToCol(index);
+
+    // Icon pop bounce on arrival or re-tap
+    double iconScale = 1.0;
+    if (isTarget && t > 0.65) {
+      iconScale = 1.0 + (arrivalBloom * 0.9);
+    } else if (isSelected && reTapVal > 0) {
+      iconScale = 1.0 + (reTapVal * 0.22);
+    }
+
+    return Expanded(
+      child: InkWell(
+        onTap: () => _handleTap(index),
+        splashColor: activeColor.withValues(alpha: 0.08),
+        highlightColor: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: SizedBox(
+          height: 58,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Navigation Icon
+              SizedBox(
+                height: 28,
+                child: Center(
+                  child: Transform.scale(
+                    scale: iconScale,
+                    child: Icon(
+                      isSelected ? selectedIcon : icon,
+                      color: isSelected ? activeColor : inactiveColor,
+                      size: 21,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 2),
+              // Label Text
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                    color: isSelected ? activeColor : inactiveColor,
+                    letterSpacing: isSelected ? -0.2 : 0.0,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 2),
+              // Micro Dewdrop Indicator Bead below label
+              SizedBox(
+                height: 4.5,
+                width: 4.5,
+                child: isSelected
+                    ? Container(
+                        decoration: BoxDecoration(
+                          color: activeColor,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: activeColor.withValues(alpha: 0.4),
+                              blurRadius: 3,
+                            ),
+                          ],
+                        ),
+                        child: Align(
+                          alignment: Alignment.topLeft,
+                          child: Container(
+                            width: 1.5,
+                            height: 1.5,
+                            margin: const EdgeInsets.only(left: 0.8, top: 0.8),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                      )
+                    : const SizedBox.shrink(),
+              ),
             ],
           ),
         ),

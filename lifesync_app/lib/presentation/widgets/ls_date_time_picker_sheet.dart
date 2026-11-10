@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:lifesync_app/core/utils/translations.dart';
 import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 
 Future<DateTime?> showLsDateTimePickerSheet({
@@ -142,6 +143,12 @@ class _LsDateTimePickerSheetState extends State<LsDateTimePickerSheet> {
       widget.enableTime ? _selectedTime.minute : 0,
     );
 
+    final lang = Localizations.localeOf(context).languageCode;
+    final dateLocale = lang == 'en' ? 'en_US' : 'id_ID';
+    final dayHeaders = lang == 'en'
+        ? const ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+        : const ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.only(
@@ -172,9 +179,9 @@ class _LsDateTimePickerSheetState extends State<LsDateTimePickerSheet> {
                       const SizedBox(height: 2),
                       Text(
                         widget.enableTime
-                            ? DateFormat('EEEE, d MMM yyyy • HH:mm', 'id_ID')
+                            ? DateFormat('EEEE, d MMM yyyy • HH:mm', dateLocale)
                                 .format(combinedResult)
-                            : DateFormat('EEEE, d MMMM yyyy', 'id_ID')
+                            : DateFormat('EEEE, d MMMM yyyy', dateLocale)
                                 .format(combinedResult),
                         style: const TextStyle(
                           fontSize: 12.5,
@@ -241,7 +248,7 @@ class _LsDateTimePickerSheetState extends State<LsDateTimePickerSheet> {
                           ),
                         ),
                         Text(
-                          DateFormat('MMMM yyyy', 'id_ID').format(_viewMonth),
+                          DateFormat('MMMM yyyy', dateLocale).format(_viewMonth),
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w800,
@@ -266,25 +273,17 @@ class _LsDateTimePickerSheetState extends State<LsDateTimePickerSheet> {
                     ),
                     const SizedBox(height: 10),
 
-                    // Day Headers (Min .. Sab)
+                    // Day Headers (Min .. Sab or Sun .. Sat)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: const [
-                        'Min',
-                        'Sen',
-                        'Sel',
-                        'Rab',
-                        'Kam',
-                        'Jum',
-                        'Sab'
-                      ]
+                      children: dayHeaders
                           .map(
                             (d) => SizedBox(
                               width: 36,
                               child: Text(
                                 d,
                                 textAlign: TextAlign.center,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
                                   color: Color(0xFF94A3B8),
@@ -724,6 +723,12 @@ class _LsDateRangePickerSheetState extends State<LsDateRangePickerSheet> {
         ? _endDate!.difference(_startDate!).inDays + 1
         : (_startDate != null ? 1 : 0);
 
+    final lang = Localizations.localeOf(context).languageCode;
+    final dateLocale = lang == 'en' ? 'en_US' : 'id_ID';
+    final dayHeaders = lang == 'en'
+        ? const ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+        : const ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.only(
@@ -759,10 +764,10 @@ class _LsDateRangePickerSheetState extends State<LsDateRangePickerSheet> {
                           children: [
                             Text(
                               _startDate != null && _endDate != null
-                                  ? '${DateFormat('d MMM yyyy', 'id_ID').format(_startDate!)} — ${DateFormat('d MMM yyyy', 'id_ID').format(_endDate!)}'
+                                  ? '${DateFormat('d MMM yyyy', dateLocale).format(_startDate!)} — ${DateFormat('d MMM yyyy', dateLocale).format(_endDate!)}'
                                   : (_startDate != null
-                                      ? '${DateFormat('d MMM yyyy', 'id_ID').format(_startDate!)} ➔ Pilih tanggal selesai'
-                                      : 'Pilih tanggal mulai & selesai'),
+                                      ? '${DateFormat('d MMM yyyy', dateLocale).format(_startDate!)} ➔ ${AppTranslations.get(lang, 'pilih_tanggal_selesai')}'
+                                      : AppTranslations.get(lang, 'pilih_tanggal_mulai_selesai')),
                               style: const TextStyle(
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w700,
@@ -852,7 +857,7 @@ class _LsDateRangePickerSheetState extends State<LsDateRangePickerSheet> {
                           ),
                         ),
                         Text(
-                          DateFormat('MMMM yyyy', 'id_ID').format(_viewMonth),
+                          DateFormat('MMMM yyyy', dateLocale).format(_viewMonth),
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w800,
@@ -877,25 +882,17 @@ class _LsDateRangePickerSheetState extends State<LsDateRangePickerSheet> {
                     ),
                     const SizedBox(height: 10),
 
-                    // Day Headers (Min .. Sab)
+                    // Day Headers (Min .. Sab or Sun .. Sat)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: const [
-                        'Min',
-                        'Sen',
-                        'Sel',
-                        'Rab',
-                        'Kam',
-                        'Jum',
-                        'Sab'
-                      ]
+                      children: dayHeaders
                           .map(
                             (d) => SizedBox(
                               width: 36,
                               child: Text(
                                 d,
                                 textAlign: TextAlign.center,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
                                   color: Color(0xFF94A3B8),

@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:lifesync_app/config/app_variant.dart';
 
 class LsColors {
   static const brand = Color(0xFF2563EB);
@@ -228,9 +229,10 @@ class LsStatTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return LsCard(
       onTap: onTap,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Container(
             width: 32,
@@ -240,20 +242,34 @@ class LsStatTile extends StatelessWidget {
             child: Icon(icon, size: 16, color: color),
           ),
           const SizedBox(height: 8),
-          Text(value,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
               style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
                   height: 1,
-                  color: LsColors.ink(context))),
+                  color: LsColors.ink(context)),
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(label,
-              style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  color: LsColors.ink(context))),
-          Text(unit,
-              style: TextStyle(fontSize: 10, color: LsColors.mute(context))),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w800,
+                color: LsColors.ink(context)),
+          ),
+          Text(
+            unit,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 10, color: LsColors.mute(context)),
+          ),
         ],
       ),
     );
@@ -374,8 +390,12 @@ class LsCapsuleDropdown<T> extends StatelessWidget {
       child: PopupMenuButton<T>(
         tooltip: current.label,
         onSelected: onSelected,
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        elevation: 6,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: LsColors.line(context)),
+        ),
         color: LsColors.surface(context),
         itemBuilder: (ctx) => options.map((opt) {
           final isSel = opt.value == value;
@@ -917,6 +937,608 @@ Future<T?> showLsOptionsSheet<T>({
             ),
           ),
         ),
+      );
+    },
+  );
+}
+
+enum LsLogoVariant {
+  full,
+  symbol,
+  splash,
+}
+
+class LsBrandLogo extends StatelessWidget {
+  final LsLogoVariant variant;
+  final double? height;
+  final double? width;
+  final BoxFit fit;
+  final AlignmentGeometry alignment;
+
+  const LsBrandLogo({
+    super.key,
+    this.variant = LsLogoVariant.full,
+    this.height,
+    this.width,
+    this.fit = BoxFit.contain,
+    this.alignment = Alignment.center,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final config = AppEnvironment.config;
+    final String assetPath;
+    switch (variant) {
+      case LsLogoVariant.full:
+        assetPath = config.getLogoFullPath(isDark);
+      case LsLogoVariant.symbol:
+        assetPath = config.getLogoPath(isDark);
+      case LsLogoVariant.splash:
+        assetPath = config.getSplashLogoPath(isDark);
+    }
+    return Image.asset(
+      assetPath,
+      height: height,
+      width: width,
+      fit: fit,
+      alignment: alignment,
+      filterQuality: FilterQuality.high,
+      errorBuilder: (ctx, err, stack) => Text(
+        config.appName,
+        style: TextStyle(
+          fontSize: height != null ? (height! * 0.58).clamp(14.0, 28.0) : 24,
+          fontWeight: FontWeight.w800,
+          color: LsColors.brand,
+          letterSpacing: -0.5,
+        ),
+      ),
+    );
+  }
+}
+
+class LsPopupMenuOption<T> {
+  final T value;
+  final String label;
+  final IconData icon;
+  final Color? color;
+  final bool isDanger;
+
+  const LsPopupMenuOption({
+    required this.value,
+    required this.label,
+    required this.icon,
+    this.color,
+    this.isDanger = false,
+  });
+}
+
+class LsPopupMenuButton<T> extends StatelessWidget {
+  final List<LsPopupMenuOption<T>> options;
+  final ValueChanged<T> onSelected;
+  final T? selectedValue;
+  final IconData icon;
+  final String? tooltip;
+  final Widget? child;
+  final Offset offset;
+
+  const LsPopupMenuButton({
+    super.key,
+    required this.options,
+    required this.onSelected,
+    this.selectedValue,
+    this.icon = Icons.more_vert_rounded,
+    this.tooltip,
+    this.child,
+    this.offset = const Offset(0, 38),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final mute = LsColors.mute(context);
+    final line = LsColors.line(context);
+    final surface = LsColors.surface(context);
+
+    return PopupMenuButton<T>(
+      tooltip: tooltip ?? 'Menu Opsi',
+      initialValue: selectedValue,
+      onSelected: onSelected,
+      offset: offset,
+      elevation: 6,
+      color: surface,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: line, width: 1.1),
+      ),
+      itemBuilder: (ctx) => options.map((opt) {
+        final isSel = selectedValue != null && opt.value == selectedValue;
+        final itemColor = opt.isDanger
+            ? LsColors.expense
+            : (opt.color ?? (isSel ? LsColors.brand : LsColors.ink(ctx)));
+        final badgeColor =
+            opt.isDanger ? LsColors.expense : (opt.color ?? LsColors.brand);
+        return PopupMenuItem<T>(
+          value: opt.value,
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: badgeColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: Icon(opt.icon, size: 16, color: badgeColor),
+              ),
+              const SizedBox(width: 10),
+              Flexible(
+                child: Text(
+                  opt.label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: isSel || opt.isDanger
+                        ? FontWeight.w800
+                        : FontWeight.w700,
+                    color: itemColor,
+                    letterSpacing: -0.1,
+                  ),
+                ),
+              ),
+              if (isSel) ...[
+                const SizedBox(width: 10),
+                Icon(Icons.check_rounded, size: 16, color: itemColor),
+              ],
+            ],
+          ),
+        );
+      }).toList(),
+      child: child ??
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: LsColors.paper(context),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: line),
+            ),
+            child: Icon(icon, size: 18, color: mute),
+          ),
+    );
+  }
+}
+
+enum LsBillDeleteScope {
+  thisMonthOnly,
+  thisAndFutureMonths,
+}
+
+Future<LsBillDeleteScope?> showLsBillDeleteDialog({
+  required BuildContext context,
+  required String billName,
+  required String monthLabel,
+}) {
+  return showModalBottomSheet<LsBillDeleteScope>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: LsColors.surface(context),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (ctx) {
+      final ink = LsColors.ink(ctx);
+      final mute = LsColors.mute(ctx);
+      final line = LsColors.line(ctx);
+
+      Widget optionCard({
+        required LsBillDeleteScope scope,
+        required IconData icon,
+        required Color color,
+        required String title,
+        required String subtitle,
+      }) {
+        return InkWell(
+          onTap: () => Navigator.of(ctx).pop(scope),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: LsColors.paper(ctx),
+              borderRadius: BorderRadius.circular(16),
+              border:
+                  Border.all(color: color.withValues(alpha: 0.35), width: 1.2),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: color, size: 22),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: ink,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: mute,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(Icons.chevron_right_rounded, color: color, size: 20),
+              ],
+            ),
+          ),
+        );
+      }
+
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: line,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: LsColors.expense.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: LsColors.expense.withValues(alpha: 0.25),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.delete_outline_rounded,
+                      color: LsColors.expense,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Hapus Tagihan "$billName"?',
+                          style: TextStyle(
+                            fontSize: 16.5,
+                            fontWeight: FontWeight.w800,
+                            color: ink,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Pilih cakupan penghapusan untuk periode $monthLabel',
+                          style: TextStyle(fontSize: 12, color: mute),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.close_rounded, size: 20, color: mute),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              optionCard(
+                scope: LsBillDeleteScope.thisMonthOnly,
+                icon: Icons.event_busy_rounded,
+                color: LsColors.amber,
+                title: 'Hapus Bulan Ini Saja',
+                subtitle:
+                    'Hanya menghapus tagihan di bulan $monthLabel. Tagihan bulan berikutnya tetap berjalan otomatis.',
+              ),
+              const SizedBox(height: 10),
+              optionCard(
+                scope: LsBillDeleteScope.thisAndFutureMonths,
+                icon: Icons.delete_sweep_rounded,
+                color: LsColors.expense,
+                title: 'Hapus Bulan Ini dan Seterusnya',
+                subtitle:
+                    'Menghapus tagihan di bulan $monthLabel beserta seluruh tagihan otomatis di bulan-bulan berikutnya.',
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                height: 44,
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: line, width: 1.2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: Text(
+                    'Batal',
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                      color: ink,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+Future<DateTime?> showLsMonthYearPickerSheet({
+  required BuildContext context,
+  required DateTime initialDate,
+  int firstYear = 2020,
+  int lastYear = 2035,
+  String title = 'Pilih Bulan & Tahun',
+}) {
+  const monthsList = [
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember',
+  ];
+
+  int selectedYear = initialDate.year.clamp(firstYear, lastYear);
+  int selectedMonth = initialDate.month;
+
+  return showModalBottomSheet<DateTime>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: LsColors.surface(context),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (ctx) {
+      return StatefulBuilder(
+        builder: (ctx, setModalState) {
+          final ink = LsColors.ink(ctx);
+          final mute = LsColors.mute(ctx);
+          final line = LsColors.line(ctx);
+          final paper = LsColors.paper(ctx);
+
+          return SafeArea(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                12,
+                20,
+                MediaQuery.of(ctx).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 14),
+                      decoration: BoxDecoration(
+                        color: line,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: LsColors.brand.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.calendar_month_rounded,
+                          color: LsColors.brand,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 16.5,
+                            fontWeight: FontWeight.w800,
+                            color: ink,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.close_rounded, size: 20, color: mute),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: paper,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: line),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.chevron_left_rounded, color: ink),
+                          onPressed: selectedYear > firstYear
+                              ? () => setModalState(() => selectedYear--)
+                              : null,
+                        ),
+                        Text(
+                          '$selectedYear',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: ink,
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.chevron_right_rounded, color: ink),
+                          onPressed: selectedYear < lastYear
+                              ? () => setModalState(() => selectedYear++)
+                              : null,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 8,
+                      crossAxisSpacing: 8,
+                      childAspectRatio: 2.4,
+                    ),
+                    itemCount: 12,
+                    itemBuilder: (ctx, i) {
+                      final m = i + 1;
+                      final isSel = m == selectedMonth;
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () => setModalState(() => selectedMonth = m),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 140),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: isSel ? LsColors.brand : paper,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSel ? LsColors.brand : line,
+                              width: isSel ? 1.5 : 1.0,
+                            ),
+                          ),
+                          child: Text(
+                            monthsList[i],
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight:
+                                  isSel ? FontWeight.w800 : FontWeight.w600,
+                              color: isSel ? Colors.white : ink,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 44,
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(color: line, width: 1.2),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            onPressed: () => Navigator.pop(ctx),
+                            child: Text(
+                              'Batal',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: ink,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: SizedBox(
+                          height: 44,
+                          child: FilledButton(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: LsColors.brand,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            onPressed: () => Navigator.pop(
+                              ctx,
+                              DateTime(selectedYear, selectedMonth, 1),
+                            ),
+                            child: const Text(
+                              'Pilih Bulan',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       );
     },
   );

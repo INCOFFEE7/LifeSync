@@ -16,8 +16,8 @@ import 'package:lifesync_app/presentation/pages/create_shopping_page.dart';
 import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 import 'package:lifesync_app/presentation/widgets/ls_date_time_picker_sheet.dart';
 import 'package:lifesync_app/presentation/widgets/calculator_input_dialog.dart';
-import 'package:lifesync_app/config/app_variant.dart';
 import 'package:intl/intl.dart';
+import 'dart:math' as math;
 
 class RemindersPage extends ConsumerStatefulWidget {
   final int initialIndex;
@@ -59,6 +59,16 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
       _tabController.animateTo(0);
     }
   }
+
+  void switchToTab(int index) {
+    if (index >= 0 && index < _tabController.length) {
+      _tabController.animateTo(index);
+    }
+  }
+
+  int get currentTabIndex => _tabController.index;
+  String get lang => ref.watch(localeProvider).languageCode;
+  String get dateLocale => lang == 'en' ? 'en_US' : 'id_ID';
 
   @override
   void dispose() {
@@ -126,7 +136,7 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                             ),
                             const SizedBox(width: 12),
                             Text(
-                              'Konfirmasi Dibeli',
+                              AppTranslations.get(lang, 'konfirmasi_dibeli'),
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -153,7 +163,8 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                     ),
                     if (item.notes != null && item.notes!.isNotEmpty) ...[
                       const SizedBox(height: 2),
-                      Text('Catatan: ${item.notes}',
+                      Text(
+                          '${AppTranslations.get(lang, 'catatan_label')} ${item.notes}',
                           style: const TextStyle(
                               fontSize: 12,
                               fontStyle: FontStyle.italic,
@@ -163,7 +174,8 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                     TextFormField(
                       controller: purchasedByController,
                       decoration: InputDecoration(
-                        labelText: 'Dibeli Oleh Siapa (Opsional)',
+                        labelText:
+                            AppTranslations.get(lang, 'dibeli_oleh_siapa'),
                         hintText: 'e.g. Ibu, Ayah, Siska',
                         filled: true,
                         fillColor: isDark
@@ -179,7 +191,7 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                     TextFormField(
                       controller: locationController,
                       decoration: InputDecoration(
-                        labelText: 'Tempat Membeli (Opsional)',
+                        labelText: AppTranslations.get(lang, 'tempat_membeli'),
                         hintText: 'e.g. Pasar Tradisional, Minimarket',
                         filled: true,
                         fillColor: isDark
@@ -202,7 +214,8 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                       onTap: () async {
                         final val = await showCalculatorInputDialog(
                           context: ctx,
-                          title: 'Input Harga Pembelian',
+                          title: AppTranslations.get(
+                              lang, 'input_harga_pembelian'),
                           initialValue: enteredPrice,
                         );
                         if (val != null) {
@@ -212,7 +225,7 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                         }
                       },
                       decoration: InputDecoration(
-                        labelText: 'Harga Pembelian (Opsional)',
+                        labelText: AppTranslations.get(lang, 'harga_pembelian'),
                         prefixText: 'Rp ',
                         suffixIcon: const Icon(Icons.calculate,
                             color: Color(0xFF10B981)),
@@ -238,10 +251,11 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                         borderRadius: BorderRadius.circular(12),
                         side: BorderSide(color: Colors.grey.shade300),
                       ),
-                      title: const Text('Waktu Pembelian',
-                          style: TextStyle(fontSize: 11, color: Colors.grey)),
+                      title: Text(AppTranslations.get(lang, 'waktu_pembelian'),
+                          style: const TextStyle(
+                              fontSize: 11, color: Colors.grey)),
                       subtitle: Text(
-                        DateFormat('dd MMMM yyyy, HH:mm', 'id_ID')
+                        DateFormat('dd MMMM yyyy, HH:mm', dateLocale)
                             .format(selectedDate),
                         style: TextStyle(
                             fontWeight: FontWeight.bold,
@@ -257,7 +271,8 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                           firstDate: DateTime(2020),
                           lastDate: DateTime(2035),
                           enableTime: true,
-                          title: 'Pilih Waktu Pembelian',
+                          title: AppTranslations.get(
+                              lang, 'pilih_waktu_pembelian'),
                         );
                         if (pDate != null) {
                           setModalState(() {
@@ -278,8 +293,8 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                               side: BorderSide(color: Colors.grey.shade300),
                             ),
                             onPressed: () => Navigator.pop(ctx),
-                            child: const Text('Batal',
-                                style: TextStyle(
+                            child: Text(AppTranslations.get(lang, 'batal'),
+                                style: const TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.grey)),
@@ -320,8 +335,9 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
 
                               if (ctx.mounted) Navigator.pop(ctx);
                             },
-                            child: const Text('Konfirmasi Selesai',
-                                style: TextStyle(
+                            child: Text(
+                                AppTranslations.get(lang, 'konfirmasi_selesai'),
+                                style: const TextStyle(
                                     fontSize: 15, fontWeight: FontWeight.bold)),
                           ),
                         ),
@@ -413,8 +429,8 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                               color: agendaColor, size: 24),
                         ),
                         const SizedBox(width: 12),
-                        const Text('Detail Agenda',
-                            style: TextStyle(
+                        Text(AppTranslations.get(lang, 'detail_agenda'),
+                            style: const TextStyle(
                                 fontSize: 18, fontWeight: FontWeight.bold)),
                       ],
                     ),
@@ -621,8 +637,10 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                           },
                           icon:
                               const Icon(Icons.check_circle_outline, size: 18),
-                          label: const Text('Agenda Selesai',
-                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          label: Text(
+                              AppTranslations.get(lang, 'agenda_selesai'),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold)),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -647,8 +665,9 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text(
-                                      'Status agenda "${r.title}" dikembalikan menjadi Belum Selesai.'),
+                                  content: Text(lang == 'en'
+                                      ? 'Schedule "${r.title}" status reverted to pending.'
+                                      : 'Status agenda "${r.title}" dikembalikan menjadi Belum Selesai.'),
                                   backgroundColor: LsColors.amber,
                                 ),
                               );
@@ -656,8 +675,9 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                           },
                           icon: const Icon(Icons.undo_rounded,
                               size: 18, color: LsColors.amber),
-                          label: const Text('Kembalikan Berjalan',
-                              style: TextStyle(
+                          label: Text(
+                              AppTranslations.get(lang, 'kembalikan_berjalan'),
+                              style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: LsColors.amber)),
                         ),
@@ -681,8 +701,9 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                                       CreateReminderPage(existingReminder: r)));
                         },
                         icon: const Icon(Icons.edit_outlined, size: 18),
-                        label: const Text('Edit Agenda',
-                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        label: Text(AppTranslations.get(lang, 'edit_agenda'),
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
@@ -779,7 +800,9 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('Nominal Rencana Tagihan:',
+                            Text(
+                                AppTranslations.get(
+                                    lang, 'nominal_rencana_tagihan_titik'),
                                 style: TextStyle(
                                     fontSize: 13,
                                     color: isDark
@@ -804,7 +827,8 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                         onTap: () async {
                           final val = await showCalculatorInputDialog(
                             context: ctx,
-                            title: 'Input Realisasi Pembayaran',
+                            title: AppTranslations.get(
+                                lang, 'input_realisasi_pembayaran'),
                             initialValue: enteredRealization,
                           );
                           if (val != null && val >= 0) {
@@ -814,7 +838,8 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                           }
                         },
                         decoration: InputDecoration(
-                          labelText: 'Nominal Realisasi Pembayaran (Rp)',
+                          labelText: AppTranslations.get(
+                              lang, 'nominal_realisasi_pembayaran_rp'),
                           prefixText: 'Rp ',
                           suffixIcon: const Icon(Icons.calculate,
                               color: Color(0xFF10B981)),
@@ -921,10 +946,12 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                           borderRadius: BorderRadius.circular(14),
                           side: BorderSide(color: Colors.grey.shade300),
                         ),
-                        title: const Text('Tanggal Pembayaran',
-                            style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        title: Text(
+                            AppTranslations.get(lang, 'tanggal_pembayaran'),
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.grey)),
                         subtitle: Text(
-                          DateFormat('dd MMMM yyyy, HH:mm', 'id_ID')
+                          DateFormat('dd MMMM yyyy, HH:mm', dateLocale)
                               .format(selectedPaymentDate),
                           style: TextStyle(
                               fontWeight: FontWeight.bold,
@@ -940,7 +967,8 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                             firstDate: DateTime(2020),
                             lastDate: DateTime(2035),
                             enableTime: true,
-                            title: 'Pilih Waktu Pembayaran',
+                            title: AppTranslations.get(
+                                lang, 'pilih_waktu_pembayaran'),
                           );
                           if (pDate != null) {
                             setDialogState(() {
@@ -953,8 +981,10 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                       TextFormField(
                         controller: notesController,
                         decoration: InputDecoration(
-                          labelText: 'Catatan Realisasi (Opsional)',
-                          hintText: 'e.g. Termasuk denda / diskon',
+                          labelText: AppTranslations.get(
+                              lang, 'catatan_realisasi_opsional'),
+                          hintText: AppTranslations.get(
+                              lang, 'contoh_catatan_realisasi'),
                           filled: true,
                           fillColor:
                               isDark ? const Color(0xFF0F172A) : Colors.white,
@@ -980,8 +1010,8 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                                 side: BorderSide(color: Colors.grey.shade300),
                               ),
                               onPressed: () => Navigator.pop(ctx, false),
-                              child: const Text('Batal',
-                                  style: TextStyle(
+                              child: Text(AppTranslations.get(lang, 'batal'),
+                                  style: const TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.grey)),
@@ -998,8 +1028,9 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                                     borderRadius: BorderRadius.circular(12)),
                               ),
                               onPressed: () => Navigator.pop(ctx, true),
-                              child: const Text('Konfirmasi Bayar',
-                                  style: TextStyle(
+                              child: Text(
+                                  AppTranslations.get(lang, 'konfirmasi_bayar'),
+                                  style: const TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.white)),
@@ -1034,7 +1065,9 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Tagihan "${bill.name}" berhasil dibayar!'),
+              content: Text(lang == 'en'
+                  ? 'Bill "${bill.name}" marked as paid!'
+                  : 'Tagihan "${bill.name}" berhasil dibayar!'),
               backgroundColor: Colors.green,
             ),
           );
@@ -1045,8 +1078,9 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
       final confirm = await showLsConfirmDialog(
         context: context,
         title: AppTranslations.get(lang, 'batalkan_pembayaran'),
-        message:
-            'Status tagihan "${bill.name}" akan dikembalikan menjadi Belum Dibayar.',
+        message: lang == 'en'
+            ? 'Bill "${bill.name}" will be reverted to Unpaid.'
+            : 'Status tagihan "${bill.name}" akan dikembalikan menjadi Belum Dibayar.',
         confirmLabel: AppTranslations.get(lang, 'batal_bayar'),
         cancelLabel: AppTranslations.get(lang, 'batal'),
         isDanger: true,
@@ -1064,8 +1098,9 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                  'Status tagihan "${bill.name}" dikembalikan ke Belum Dibayar.'),
+              content: Text(lang == 'en'
+                  ? 'Bill "${bill.name}" reverted to Unpaid.'
+                  : 'Status tagihan "${bill.name}" dikembalikan ke Belum Dibayar.'),
               backgroundColor: Colors.orange,
             ),
           );
@@ -1129,7 +1164,7 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
       firstDate: DateTime(2020),
       lastDate: DateTime(2035),
       enableTime: false,
-      title: 'Pilih Bulan & Tanggal',
+      title: AppTranslations.get(lang, 'pilih_bulan_tanggal'),
     );
     if (picked != null && mounted) {
       setState(() {
@@ -1149,7 +1184,7 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
             start: DateTime(_selectedDate.year, _selectedDate.month, 1),
             end: DateTime(_selectedDate.year, _selectedDate.month + 1, 0),
           ),
-      title: 'Pilih Rentang Tanggal Agenda',
+      title: AppTranslations.get(lang, 'pilih_rentang_tanggal_agenda'),
     );
     if (picked != null && mounted) {
       setState(() {
@@ -1389,13 +1424,21 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
   }
 
   Widget _pillTabBar(List<int> counts) {
-    const labels = ['Ringkasan', 'Agenda', 'Tagihan', 'Belanja'];
+    final lang = ref.watch(localeProvider).languageCode;
+    final labels = [
+      AppTranslations.get(lang, 'ringkasan'),
+      AppTranslations.get(lang, 'agenda'),
+      AppTranslations.get(lang, 'tagihan'),
+      AppTranslations.get(lang, 'belanja'),
+    ];
     final badge = [
       null,
       counts[0] - counts[1],
       counts[2] - counts[3],
       counts[4] - counts[5]
     ];
+    final anim = _tabController.animation ?? _tabController;
+
     return Container(
       color: LsColors.surface(context),
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
@@ -1406,61 +1449,220 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: LsColors.line(context)),
         ),
-        child: Row(
-          children: List.generate(4, (i) {
-            final sel = _tabController.index == i;
-            final n = badge[i];
-            return Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => _tabController.animateTo(i),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(vertical: 9),
-                  decoration: BoxDecoration(
-                    color: sel ? LsColors.brand : Colors.transparent,
-                    borderRadius: BorderRadius.circular(20),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final itemWidth = constraints.maxWidth / 4;
+
+            return Stack(
+              children: [
+                // Gliding fluid droplet indicator ("mengecil -> tetesan menjalar -> membesar")
+                Positioned.fill(
+                  child: AnimatedBuilder(
+                    animation: anim,
+                    builder: (context, _) {
+                      final animVal = _tabController.animation?.value ??
+                          _tabController.index.toDouble();
+
+                      // Liquid droplet shrink & stretch factor (0.0 at rest, 1.0 at midpoint between tabs)
+                      final distFromInt = (animVal - animVal.round()).abs();
+                      final transit = math.sin(distFromInt *
+                          math.pi); // 0.0 at rest, 1.0 at midpoint
+
+                      // Direction of travel (positive if moving right, negative if moving left)
+                      final targetInt = animVal.round();
+                      final movingDiff = animVal - targetInt;
+                      final moveSign = movingDiff >= 0 ? 1.0 : -1.0;
+
+                      // When moving, the fluid droplet contracts ("mengecil") from itemWidth down to a tight bead
+                      final currentWidth =
+                          itemWidth - (itemWidth * 0.42 * transit);
+                      final center = (animVal + 0.5) * itemWidth;
+                      final left = (center - currentWidth / 2).clamp(
+                        0.0,
+                        constraints.maxWidth - currentWidth,
+                      );
+
+                      final verticalInset = 3.5 * transit;
+                      final dropletRadius = 20.0 - (4.0 * transit);
+
+                      return Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          // Trailing micro-droplet 2 (tetesan kecil kedua)
+                          if (transit > 0.25)
+                            Positioned(
+                              left: (center -
+                                      (moveSign *
+                                          (currentWidth * 0.5 +
+                                              16.0 * transit)))
+                                  .clamp(
+                                0.0,
+                                constraints.maxWidth - 5.0,
+                              ),
+                              top: 13.0,
+                              child: Opacity(
+                                opacity:
+                                    ((transit - 0.25) / 0.75).clamp(0.0, 1.0),
+                                child: Container(
+                                  width: 4.5,
+                                  height: 4.5,
+                                  decoration: const BoxDecoration(
+                                    color: LsColors.brand,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                          // Trailing micro-droplet 1 (tetesan kecil pertama)
+                          if (transit > 0.15)
+                            Positioned(
+                              left: (center -
+                                      (moveSign *
+                                          (currentWidth * 0.5 + 8.5 * transit)))
+                                  .clamp(
+                                0.0,
+                                constraints.maxWidth - 7.0,
+                              ),
+                              top: 12.0,
+                              child: Opacity(
+                                opacity:
+                                    ((transit - 0.15) / 0.85).clamp(0.0, 1.0),
+                                child: Container(
+                                  width: 6.5,
+                                  height: 6.5,
+                                  decoration: const BoxDecoration(
+                                    color: LsColors.brand,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                          // Main fluid droplet (lingkaran utama yang mengecil saat jalan, membesar di tujuan)
+                          Positioned(
+                            left: left,
+                            top: verticalInset,
+                            bottom: verticalInset,
+                            width: currentWidth,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                // Solid clean brand color, NO AI neon gradient!
+                                color: LsColors.brand,
+                                borderRadius:
+                                    BorderRadius.circular(dropletRadius),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: LsColors.brand.withValues(
+                                        alpha: 0.28 + (0.08 * transit)),
+                                    blurRadius: 6 + (4 * transit),
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          labels[i],
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            color: sel ? Colors.white : LsColors.mute(context),
+                ),
+                // Tab items
+                Row(
+                  children: List.generate(4, (i) {
+                    final n = badge[i];
+                    return Expanded(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          _tabController.animateTo(
+                            i,
+                            duration: const Duration(milliseconds: 320),
+                            curve: Curves
+                                .easeOutBack, // snappy elastic liquid rebound
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 9),
+                          color: Colors.transparent,
+                          child: AnimatedBuilder(
+                            animation: anim,
+                            builder: (context, _) {
+                              final animVal = _tabController.animation?.value ??
+                                  _tabController.index.toDouble();
+                              final dist = (animVal - i).abs().clamp(0.0, 1.0);
+                              final activeFactor = 1.0 - dist;
+
+                              final textColor = Color.lerp(
+                                LsColors.mute(context),
+                                Colors.white,
+                                activeFactor,
+                              )!;
+                              final isSelected = activeFactor > 0.5;
+
+                              return Transform.scale(
+                                scale: 1.0 + (0.05 * activeFactor),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        labels[i],
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: isSelected
+                                              ? FontWeight.w800
+                                              : FontWeight.w600,
+                                          color: textColor,
+                                          letterSpacing:
+                                              isSelected ? -0.2 : 0.0,
+                                        ),
+                                      ),
+                                    ),
+                                    if (n != null && n > 0) ...[
+                                      const SizedBox(width: 4),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 5, vertical: 1),
+                                        decoration: BoxDecoration(
+                                          color: Color.lerp(
+                                            LsColors.brand
+                                                .withValues(alpha: 0.14),
+                                            Colors.white
+                                                .withValues(alpha: 0.25),
+                                            activeFactor,
+                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                        child: Text(
+                                          '$n',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w800,
+                                            color: Color.lerp(
+                                              LsColors.brand,
+                                              Colors.white,
+                                              activeFactor,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              );
+                            },
                           ),
                         ),
                       ),
-                      if (n != null && n > 0) ...[
-                        const SizedBox(width: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 5, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: sel
-                                ? Colors.white.withValues(alpha: 0.25)
-                                : LsColors.brand.withValues(alpha: 0.14),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            '$n',
-                            style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                                color: sel ? Colors.white : LsColors.brand),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
+                    );
+                  }),
                 ),
-              ),
+              ],
             );
-          }),
+          },
         ),
       ),
     );
@@ -1473,7 +1675,6 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
     final monthKey = DateFormat('yyyy-MM').format(_selectedDate);
     final billsAsync = ref.watch(billsStreamProvider(monthKey));
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final currencyFmt = NumberFormat('#,###', 'id_ID');
     final counts = _computeStats(remindersAsync, billsAsync, shoppingAsync);
 
@@ -1485,21 +1686,13 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
         scrolledUnderElevation: 0,
         automaticallyImplyLeading: false,
         titleSpacing: 20,
-        title: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6.0),
-          child: Image.asset(
-            AppEnvironment.config.getLogoFullPath(isDark),
+        title: const Padding(
+          padding: EdgeInsets.symmetric(vertical: 6.0),
+          child: LsBrandLogo(
+            variant: LsLogoVariant.full,
             width: 175,
             height: 42,
-            cacheWidth: 525,
-            fit: BoxFit.contain,
-            errorBuilder: (c, e, s) => Text(
-              AppEnvironment.config.appName,
-              style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: LsColors.brand),
-            ),
+            alignment: Alignment.centerLeft,
           ),
         ),
         bottom: PreferredSize(
@@ -1691,11 +1884,12 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
     if (isDup && mounted) {
       final confirm = await showLsConfirmDialog(
         context: context,
-        title: 'Duplikasi Tagihan',
-        message:
-            'Tagihan "${bill.name}" untuk bulan ${DateFormat('MMMM yyyy', 'id_ID').format(nextMonthDate)} sudah tersedia.\n\nApakah Anda ingin membuat salinan baru?',
-        confirmLabel: 'Ya, Salin',
-        cancelLabel: 'Batal',
+        title: AppTranslations.get(lang, 'duplikasi_tagihan'),
+        message: lang == 'en'
+            ? 'Bill "${bill.name}" for ${DateFormat('MMMM yyyy', dateLocale).format(nextMonthDate)} already exists.\n\nDo you want to create a new copy?'
+            : 'Tagihan "${bill.name}" untuk bulan ${DateFormat('MMMM yyyy', dateLocale).format(nextMonthDate)} sudah tersedia.\n\nApakah Anda ingin membuat salinan baru?',
+        confirmLabel: AppTranslations.get(lang, 'ya_salin'),
+        cancelLabel: AppTranslations.get(lang, 'batal'),
       );
 
       if (confirm != true) return;
@@ -1706,8 +1900,9 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-              'Tagihan "${bill.name}" berhasil disalin ke ${DateFormat('MMMM yyyy', 'id_ID').format(nextMonthDate)}'),
+          content: Text(lang == 'en'
+              ? 'Bill "${bill.name}" copied to ${DateFormat('MMMM yyyy', dateLocale).format(nextMonthDate)}'
+              : 'Tagihan "${bill.name}" berhasil disalin ke ${DateFormat('MMMM yyyy', dateLocale).format(nextMonthDate)}'),
           backgroundColor: Colors.green,
         ),
       );
@@ -1715,16 +1910,56 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
   }
 
   Future<void> _confirmDeleteBill(Bill bill) async {
-    final confirm = await showLsConfirmDialog(
+    final repo = ref.read(billRepositoryProvider);
+    if (bill.billType == 'receivable') {
+      final confirm = await showLsConfirmDialog(
+        context: context,
+        title: AppTranslations.get(lang, 'hapus_piutang_tanya'),
+        message: lang == 'en'
+            ? 'Are you sure you want to delete receivable "${bill.name}"?'
+            : 'Apakah Anda yakin ingin menghapus piutang "${bill.name}"?',
+        confirmLabel: AppTranslations.get(lang, 'hapus'),
+        cancelLabel: AppTranslations.get(lang, 'batal'),
+        isDanger: true,
+      );
+      if (confirm == true) {
+        await repo.deleteBill(bill.id);
+      }
+      return;
+    }
+
+    final monthLabel = DateFormat('MMMM yyyy', dateLocale).format(bill.dueDate);
+    final scope = await showLsBillDeleteDialog(
       context: context,
-      title: 'Hapus Tagihan?',
-      message: 'Apakah Anda yakin ingin menghapus tagihan "${bill.name}"?',
-      confirmLabel: 'Hapus',
-      cancelLabel: 'Batal',
-      isDanger: true,
+      billName: bill.name,
+      monthLabel: monthLabel,
     );
-    if (confirm == true) {
-      await ref.read(billRepositoryProvider).deleteBill(bill.id);
+    if (scope == null || !mounted) return;
+
+    if (scope == LsBillDeleteScope.thisMonthOnly) {
+      await repo.deleteBillThisMonthOnly(bill);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(lang == 'en'
+                ? 'Bill "${bill.name}" deleted for $monthLabel only.'
+                : 'Tagihan "${bill.name}" dihapus untuk bulan $monthLabel saja.'),
+            backgroundColor: LsColors.amber,
+          ),
+        );
+      }
+    } else if (scope == LsBillDeleteScope.thisAndFutureMonths) {
+      await repo.deleteBillThisAndFutureMonths(bill);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(lang == 'en'
+                ? 'Bill "${bill.name}" deleted for $monthLabel and future months.'
+                : 'Tagihan "${bill.name}" dihapus untuk $monthLabel dan bulan-bulan berikutnya.'),
+            backgroundColor: LsColors.expense,
+          ),
+        );
+      }
     }
   }
 
@@ -2002,11 +2237,29 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                   fontSize: 13.5,
                   color: LsColors.brand),
             ),
-            PopupMenuButton<String>(
-              icon: Icon(Icons.more_vert,
-                  size: 20, color: LsColors.mute(context)),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
+            const SizedBox(width: 8),
+            LsPopupMenuButton<String>(
+              tooltip: 'Menu Tagihan',
+              options: const [
+                LsPopupMenuOption(
+                  value: 'copy',
+                  label: 'Copy ke Bulan Berikutnya',
+                  icon: Icons.copy_rounded,
+                  color: LsColors.brand,
+                ),
+                LsPopupMenuOption(
+                  value: 'edit',
+                  label: 'Edit Tagihan',
+                  icon: Icons.edit_outlined,
+                  color: LsColors.violet,
+                ),
+                LsPopupMenuOption(
+                  value: 'delete',
+                  label: 'Hapus Tagihan',
+                  icon: Icons.delete_outline_rounded,
+                  isDanger: true,
+                ),
+              ],
               onSelected: (val) async {
                 if (val == 'copy') {
                   await _copyBillToNextMonth(bill);
@@ -2019,35 +2272,8 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                   await _confirmDeleteBill(bill);
                 }
               },
-              itemBuilder: (ctx) => const [
-                PopupMenuItem(
-                  value: 'copy',
-                  child: Row(children: [
-                    Icon(Icons.copy_rounded, size: 18, color: LsColors.brand),
-                    SizedBox(width: 8),
-                    Text('Copy ke Bulan Berikutnya'),
-                  ]),
-                ),
-                PopupMenuItem(
-                  value: 'edit',
-                  child: Row(children: [
-                    Icon(Icons.edit_outlined, size: 18, color: Colors.blueGrey),
-                    SizedBox(width: 8),
-                    Text('Edit Tagihan'),
-                  ]),
-                ),
-                PopupMenuItem(
-                  value: 'delete',
-                  child: Row(children: [
-                    Icon(Icons.delete_outline,
-                        size: 18, color: LsColors.expense),
-                    SizedBox(width: 8),
-                    Text('Hapus Tagihan',
-                        style: TextStyle(color: LsColors.expense)),
-                  ]),
-                ),
-              ],
             ),
+            const SizedBox(width: 6),
           ],
         ),
       ),
@@ -2182,7 +2408,8 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                                   color: LsColors.amber,
                                   shape: BoxShape.circle)),
                           const SizedBox(width: 8),
-                          Text('Belum Dibeli (${pending.length} barang)',
+                          Text(
+                              '${AppTranslations.get(lang, 'belum_dibeli_count')} (${pending.length} ${AppTranslations.get(lang, 'barang_unit')})',
                               style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w800,
@@ -2200,7 +2427,8 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                               size: 16, color: LsColors.brand),
                           const SizedBox(width: 6),
                           Expanded(child: LsEyebrow(entry.key)),
-                          LsChip('${entry.value.length} barang',
+                          LsChip(
+                              '${entry.value.length} ${AppTranslations.get(lang, 'barang_unit')}',
                               color: LsColors.brand),
                         ],
                       ),
@@ -2213,7 +2441,9 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       child: Center(
-                          child: Text('Semua barang sudah dibeli.',
+                          child: Text(
+                              AppTranslations.get(
+                                  lang, 'semua_barang_sudah_dibeli'),
                               style: TextStyle(
                                   color: LsColors.mute(context),
                                   fontWeight: FontWeight.w600))),
@@ -2320,28 +2550,33 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                       ),
                     ),
                     if (item.category != null && item.category!.isNotEmpty)
-                      Text('Kategori: ${item.category}',
+                      Text(
+                          '${AppTranslations.get(lang, 'kategori_titik')} ${item.category}',
                           style: const TextStyle(
                               fontSize: 11,
                               color: LsColors.brand,
                               fontWeight: FontWeight.bold)),
                     if (item.notes != null && item.notes!.isNotEmpty)
-                      Text('Catatan: ${item.notes}',
+                      Text(
+                          '${AppTranslations.get(lang, 'catatan_titik')} ${item.notes}',
                           style: const TextStyle(
                               fontSize: 11,
                               color: LsColors.brand,
                               fontStyle: FontStyle.italic)),
                     if (item.purchasedBy != null &&
                         item.purchasedBy!.isNotEmpty)
-                      Text('Dibeli Oleh: ${item.purchasedBy}',
+                      Text(
+                          '${AppTranslations.get(lang, 'dibeli_oleh_titik')} ${item.purchasedBy}',
                           style: TextStyle(fontSize: 11, color: mute)),
                     if (item.location != null && item.location!.isNotEmpty)
-                      Text('Tempat: ${item.location}',
+                      Text(
+                          '${AppTranslations.get(lang, 'tempat_titik')} ${item.location}',
                           style: TextStyle(fontSize: 11, color: mute)),
                     if (item.price > 0 &&
                         (item.realizationPrice == null ||
                             item.realizationPrice == 0))
-                      Text('Estimasi: Rp ${fmt.format(item.price.toInt())}',
+                      Text(
+                          '${AppTranslations.get(lang, 'estimasi_titik')} Rp ${fmt.format(item.price.toInt())}',
                           style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
@@ -2350,7 +2585,7 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                         item.realizationPrice != null &&
                         item.realizationPrice! > 0)
                       Text(
-                          'Estimasi: Rp ${fmt.format(item.price.toInt())} • Realisasi: Rp ${fmt.format(item.realizationPrice!.toInt())}',
+                          '${AppTranslations.get(lang, 'estimasi_titik')} Rp ${fmt.format(item.price.toInt())} • ${AppTranslations.get(lang, 'realisasi_titik')} Rp ${fmt.format(item.realizationPrice!.toInt())}',
                           style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
@@ -2359,14 +2594,14 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                         item.realizationPrice != null &&
                         item.realizationPrice! > 0)
                       Text(
-                          'Realisasi: Rp ${fmt.format(item.realizationPrice!.toInt())}',
+                          '${AppTranslations.get(lang, 'realisasi_titik')} Rp ${fmt.format(item.realizationPrice!.toInt())}',
                           style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
                               color: LsColors.income)),
                     if (item.isChecked && item.purchaseDate != null)
                       Text(
-                          'Dibeli: ${DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(item.purchaseDate!)}',
+                          '${lang == 'en' ? 'Purchased:' : 'Dibeli:'} ${DateFormat('dd MMM yyyy, HH:mm', dateLocale).format(item.purchaseDate!)}',
                           style: const TextStyle(
                               fontSize: 11,
                               color: LsColors.income,
@@ -2395,11 +2630,13 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
               onPressed: () async {
                 final confirm = await showLsConfirmDialog(
                   context: context,
-                  title: 'Hapus Barang Belanja?',
-                  message:
-                      'Apakah Anda yakin ingin menghapus "${item.name}" dari daftar belanja?',
-                  confirmLabel: 'Hapus',
-                  cancelLabel: 'Batal',
+                  title:
+                      AppTranslations.get(lang, 'hapus_barang_belanja_tanya'),
+                  message: lang == 'en'
+                      ? 'Are you sure you want to delete "${item.name}" from shopping list?'
+                      : 'Apakah Anda yakin ingin menghapus "${item.name}" dari daftar belanja?',
+                  confirmLabel: AppTranslations.get(lang, 'hapus'),
+                  cancelLabel: AppTranslations.get(lang, 'batal'),
                   isDanger: true,
                 );
                 if (confirm != true) return;
@@ -2498,7 +2735,10 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const LsEyebrow('Pengingat Tersisa',
+                          LsEyebrow(
+                              lang == 'en'
+                                  ? 'Remaining Reminders'
+                                  : 'Pengingat Tersisa',
                               color: Colors.white70),
                           const SizedBox(height: 4),
                           Text('${totalAll - doneAll}',
@@ -2508,7 +2748,10 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                                   color: Colors.white,
                                   height: 1.1,
                                   letterSpacing: -0.5)),
-                          Text('$doneAll dari $totalAll selesai',
+                          Text(
+                              lang == 'en'
+                                  ? '$doneAll of $totalAll completed'
+                                  : '$doneAll dari $totalAll selesai',
                               style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -2523,9 +2766,9 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                   children: [
                     heroPill('Agenda', s[1], s[0]),
                     const SizedBox(width: 8),
-                    heroPill('Tagihan', s[3], s[2]),
+                    heroPill(lang == 'en' ? 'Bills' : 'Tagihan', s[3], s[2]),
                     const SizedBox(width: 8),
-                    heroPill('Belanja', s[5], s[4]),
+                    heroPill(lang == 'en' ? 'Shopping' : 'Belanja', s[5], s[4]),
                   ],
                 ),
               ],
@@ -2549,15 +2792,19 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                 children: [
                   Row(
                     children: [
-                      const Expanded(
-                          child: LsSectionHeader(title: 'Agenda Terdekat')),
-                      LsChip('Total: ${active.length} Agenda',
+                      Expanded(
+                          child: LsSectionHeader(
+                              title: AppTranslations.get(
+                                  lang, 'agenda_terdekat'))),
+                      LsChip(
+                          '${AppTranslations.get(lang, 'total_agenda_prefix')} ${active.length} ${AppTranslations.get(lang, 'agenda_unit')}',
                           color: LsColors.brand),
                     ],
                   ),
                   const SizedBox(height: 12),
                   if (top10.isEmpty)
-                    Text('Tidak ada agenda mendatang.',
+                    Text(
+                        AppTranslations.get(lang, 'tidak_ada_agenda_mendatang'),
                         style: TextStyle(
                             color: LsColors.mute(context), fontSize: 13))
                   else
@@ -2572,7 +2819,8 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
             error: (e, st) => Text('Error: $e'),
           ),
           const SizedBox(height: 24),
-          const LsSectionHeader(title: 'Daftar Belanja Belum Dibeli'),
+          LsSectionHeader(
+              title: AppTranslations.get(lang, 'daftar_belanja_belum_dibeli')),
           const SizedBox(height: 12),
           shoppingAsync.when(
             data: (items) {
@@ -2582,7 +2830,8 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                   .toList();
 
               if (activeShopping.isEmpty) {
-                return Text('Tidak ada daftar belanjaan yang belum dibeli.',
+                return Text(
+                    AppTranslations.get(lang, 'tidak_ada_belanja_pending'),
                     style:
                         TextStyle(color: LsColors.mute(context), fontSize: 13));
               }
@@ -2649,7 +2898,9 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const LsSectionHeader(title: '3 Tagihan Terdekat Jatuh Tempo'),
+            LsSectionHeader(
+                title: AppTranslations.get(
+                    lang, 'tiga_tagihan_terdekat_jatuh_tempo')),
             const SizedBox(height: 12),
             if (top3.isEmpty)
               LsCard(
@@ -2658,7 +2909,7 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                     const Icon(Icons.check_circle_rounded,
                         color: LsColors.income),
                     const SizedBox(width: 10),
-                    Text('Tidak ada tagihan yang belum dibayar.',
+                    Text(AppTranslations.get(lang, 'tidak_ada_tagihan_unpaid'),
                         style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -2813,9 +3064,10 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
       children: [
         Row(
           children: [
-            const Expanded(
-                child:
-                    LsSectionHeader(title: 'Statistik & Ringkasan Pengingat')),
+            Expanded(
+                child: LsSectionHeader(
+                    title: AppTranslations.get(
+                        lang, 'statistik_ringkasan_pengingat'))),
             LsChip('Total: ${s[0] + s[2] + s[4]}', color: LsColors.brand),
           ],
         ),
@@ -2825,13 +3077,25 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
           child: Column(
             children: [
               row(1, Icons.event_note_rounded, LsColors.brand, 'Agenda', s[0],
-                  s[1], 'Selesai'),
+                  s[1], AppTranslations.get(lang, 'selesai')),
               Divider(height: 1, color: LsColors.line(context)),
-              row(2, Icons.receipt_long_rounded, LsColors.income, 'Tagihan',
-                  s[2], s[3], 'Lunas'),
+              row(
+                  2,
+                  Icons.receipt_long_rounded,
+                  LsColors.income,
+                  lang == 'en' ? 'Bills' : 'Tagihan',
+                  s[2],
+                  s[3],
+                  AppTranslations.get(lang, 'lunas')),
               Divider(height: 1, color: LsColors.line(context)),
-              row(3, Icons.shopping_basket_rounded, LsColors.amber, 'Belanjaan',
-                  s[4], s[5], 'Dibeli'),
+              row(
+                  3,
+                  Icons.shopping_basket_rounded,
+                  LsColors.amber,
+                  lang == 'en' ? 'Shopping' : 'Belanjaan',
+                  s[4],
+                  s[5],
+                  AppTranslations.get(lang, 'dibeli')),
             ],
           ),
         ),
@@ -2942,7 +3206,7 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                       if (r.completedAt != null) ...[
                         const SizedBox(height: 3),
                         Text(
-                          'Selesai: ${DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(r.completedAt!)}',
+                          '${AppTranslations.get(lang, 'selesai')}: ${DateFormat('dd MMM yyyy, HH:mm', dateLocale).format(r.completedAt!)}',
                           style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
@@ -2970,11 +3234,12 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                   onPressed: () async {
                     final confirm = await showLsConfirmDialog(
                       context: context,
-                      title: 'Hapus Agenda?',
-                      message:
-                          'Apakah Anda yakin ingin menghapus agenda "${r.title}"?',
-                      confirmLabel: 'Hapus',
-                      cancelLabel: 'Batal',
+                      title: AppTranslations.get(lang, 'hapus_agenda_tanya'),
+                      message: lang == 'en'
+                          ? 'Are you sure you want to delete agenda "${r.title}"?'
+                          : 'Apakah Anda yakin ingin menghapus agenda "${r.title}"?',
+                      confirmLabel: AppTranslations.get(lang, 'hapus'),
+                      cancelLabel: AppTranslations.get(lang, 'batal'),
                       isDanger: true,
                     );
                     if (confirm == true) {

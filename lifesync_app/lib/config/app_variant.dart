@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum AppVariant {
-  lifesync,
-  beebee
-}
+enum AppVariant { lifesync, beebee }
 
 class AppConfig {
   final AppVariant variant;
@@ -12,6 +9,8 @@ class AppConfig {
   final String logoFullPath;
   final String logoDarkPath;
   final String logoDarkFullPath;
+  final String? splashLogoPath;
+  final String? splashLogoDarkPath;
   final ThemeData lightTheme;
   final ThemeData darkTheme;
   final List<String> enabledModules;
@@ -23,13 +22,19 @@ class AppConfig {
     required this.logoFullPath,
     required this.logoDarkPath,
     required this.logoDarkFullPath,
+    this.splashLogoPath,
+    this.splashLogoDarkPath,
     required this.lightTheme,
     required this.darkTheme,
     required this.enabledModules,
   });
 
   String getLogoPath(bool isDark) => isDark ? logoDarkPath : logoPath;
-  String getLogoFullPath(bool isDark) => isDark ? logoDarkFullPath : logoFullPath;
+  String getLogoFullPath(bool isDark) =>
+      isDark ? logoDarkFullPath : logoFullPath;
+  String getSplashLogoPath(bool isDark) => isDark
+      ? (splashLogoDarkPath ?? logoDarkFullPath)
+      : (splashLogoPath ?? logoFullPath);
 
   bool hasModule(String moduleName) {
     return enabledModules.contains(moduleName);

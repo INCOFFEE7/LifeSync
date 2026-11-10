@@ -145,15 +145,13 @@ class NotificationService {
     if (androidImpl != null) {
       final bool? notifGranted =
           await androidImpl.requestNotificationsPermission();
-      debugPrint(
-          '[NotifService] Notification permission: $notifGranted');
+      debugPrint('[NotifService] Notification permission: $notifGranted');
 
       // Request exact alarm permission (Android 12+)
       try {
         final bool? exactAlarmGranted =
             await androidImpl.requestExactAlarmsPermission();
-        debugPrint(
-            '[NotifService] Exact alarm permission: $exactAlarmGranted');
+        debugPrint('[NotifService] Exact alarm permission: $exactAlarmGranted');
       } catch (e) {
         debugPrint('[NotifService] Exact alarm permission error: $e');
       }
@@ -174,28 +172,28 @@ class NotificationService {
         combined.contains('tabungan')) {
       return {
         'channelId': 'wattodo_target_v1',
-        'channelName': 'WATTODO Target Nabung',
+        'channelName': 'WhatToDo Target Nabung',
         'channelDesc': 'Notifikasi pengingat target menabung',
         'summaryText': 'Target Nabung',
       };
     } else if (combined.contains('belanja')) {
       return {
         'channelId': 'wattodo_shopping_v1',
-        'channelName': 'WATTODO Belanja',
+        'channelName': 'WhatToDo Belanja',
         'channelDesc': 'Notifikasi catatan belanjaan',
         'summaryText': 'Belanja',
       };
     } else if (combined.contains('tagihan') || sound == 'silent') {
       return {
         'channelId': 'wattodo_bill_v1',
-        'channelName': 'WATTODO Tagihan',
+        'channelName': 'WhatToDo Tagihan',
         'channelDesc': 'Notifikasi jatuh tempo tagihan',
         'summaryText': 'Tagihan',
       };
     } else {
       return {
         'channelId': 'wattodo_agenda_v1',
-        'channelName': 'WATTODO Pengingat Agenda',
+        'channelName': 'WhatToDo Pengingat Agenda',
         'channelDesc': 'Notifikasi pengingat agenda dan kegiatan',
         'summaryText': 'Pengingat Agenda',
       };
@@ -220,7 +218,8 @@ class NotificationService {
 
     // Jika waktu yang dijadwalkan sudah lewat, abaikan
     if (scheduledTime.isBefore(now) || scheduledTime.isAtSameMomentAs(now)) {
-      debugPrint('[NotifService] Skipped past/expired notification: $title at $scheduledTime');
+      debugPrint(
+          '[NotifService] Skipped past/expired notification: $title at $scheduledTime');
       return false;
     }
 
@@ -244,14 +243,15 @@ class NotificationService {
         notifSound = null;
         playSound = false;
         channelId = 'wattodo_silent_v1';
-        channelName = 'WATTODO Tagihan (Tanpa Suara)';
+        channelName = 'WhatToDo Tagihan (Tanpa Suara)';
         summaryText = 'Tagihan';
       } else {
         playSound = true;
         String activeSound = sound ?? '';
         if (activeSound.isEmpty) {
           final prefs = await SharedPreferences.getInstance();
-          activeSound = prefs.getString('default_reminder_sound') ?? 'notif.mp3';
+          activeSound =
+              prefs.getString('default_reminder_sound') ?? 'notif.mp3';
         }
 
         if (activeSound.contains('/')) {
@@ -273,8 +273,12 @@ class NotificationService {
         priority: Priority.max,
         sound: notifSound,
         playSound: playSound,
-        audioAttributesUsage: playSound ? AudioAttributesUsage.alarm : AudioAttributesUsage.notification,
-        category: playSound ? AndroidNotificationCategory.alarm : AndroidNotificationCategory.reminder,
+        audioAttributesUsage: playSound
+            ? AudioAttributesUsage.alarm
+            : AudioAttributesUsage.notification,
+        category: playSound
+            ? AndroidNotificationCategory.alarm
+            : AndroidNotificationCategory.reminder,
         channelAction: AndroidNotificationChannelAction.update,
         fullScreenIntent: true,
         visibility: NotificationVisibility.public,
@@ -303,10 +307,12 @@ class NotificationService {
               UILocalNotificationDateInterpretation.absoluteTime,
           payload: payload ?? id.toString(),
         );
-        debugPrint('[NotifService] Scheduled (alarmClock): "$title" at $scheduledTz ($summaryText)');
+        debugPrint(
+            '[NotifService] Scheduled (alarmClock): "$title" at $scheduledTz ($summaryText)');
         return true;
       } catch (e) {
-        debugPrint('[NotifService] alarmClock failed: $e, mencoba exactAllowWhileIdle...');
+        debugPrint(
+            '[NotifService] alarmClock failed: $e, mencoba exactAllowWhileIdle...');
         try {
           await _plugin.zonedSchedule(
             id,
@@ -319,10 +325,12 @@ class NotificationService {
                 UILocalNotificationDateInterpretation.absoluteTime,
             payload: payload ?? id.toString(),
           );
-          debugPrint('[NotifService] Scheduled (exactAllowWhileIdle): "$title" at $scheduledTz ($summaryText)');
+          debugPrint(
+              '[NotifService] Scheduled (exactAllowWhileIdle): "$title" at $scheduledTz ($summaryText)');
           return true;
         } catch (e2) {
-          debugPrint('[NotifService] exactAllowWhileIdle failed: $e2, fallback ke inexact...');
+          debugPrint(
+              '[NotifService] exactAllowWhileIdle failed: $e2, fallback ke inexact...');
           await _plugin.zonedSchedule(
             id,
             title,
@@ -334,7 +342,8 @@ class NotificationService {
                 UILocalNotificationDateInterpretation.absoluteTime,
             payload: payload ?? id.toString(),
           );
-          debugPrint('[NotifService] Scheduled (inexact): "$title" at $scheduledTz ($summaryText)');
+          debugPrint(
+              '[NotifService] Scheduled (inexact): "$title" at $scheduledTz ($summaryText)');
           return true;
         }
       }
@@ -395,7 +404,8 @@ class NotificationService {
       NotificationDetails(android: androidDetails),
       payload: payload ?? id.toString(),
     );
-    debugPrint('[NotifService] Posted system notification: $title (${feature['summaryText']})');
+    debugPrint(
+        '[NotifService] Posted system notification: $title (${feature['summaryText']})');
   }
 
   /// Tampilkan notifikasi langsung sekarang
@@ -455,7 +465,8 @@ class NotificationService {
       body,
       NotificationDetails(android: androidDetails),
     );
-    debugPrint('[NotifService] Showed immediate notification: $title (${feature['summaryText']})');
+    debugPrint(
+        '[NotifService] Showed immediate notification: $title (${feature['summaryText']})');
   }
 
   /// Ambil semua notifikasi yang masih dijadwalkan

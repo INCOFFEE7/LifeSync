@@ -20,12 +20,13 @@ import 'package:lifesync_app/presentation/pages/target_detail_page.dart';
 import 'package:lifesync_app/presentation/widgets/calculator_input_dialog.dart';
 import 'package:lifesync_app/core/utils/translations.dart';
 import 'package:lifesync_app/presentation/providers/localization_provider.dart';
-import 'package:lifesync_app/config/app_variant.dart';
 import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 import 'package:lifesync_app/presentation/widgets/ls_date_time_picker_sheet.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
-  const DashboardPage({super.key});
+  final void Function(int tabIndex, {int? reminderSubTab})? onNavigateToTab;
+
+  const DashboardPage({super.key, this.onNavigateToTab});
 
   @override
   ConsumerState<DashboardPage> createState() => _DashboardPageState();
@@ -188,108 +189,174 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   Widget _buildHeroBalance(FinancialSummary s, NumberFormat fmt,
       List<int> availableYears, String lang) {
     final positive = s.netBalance >= 0;
-    return LsHeroCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: () => widget.onNavigateToTab?.call(1),
+        child: LsHeroCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              LsEyebrow(
-                '${AppTranslations.get(lang, 'saldo_bersih')} (${_selectedYear == null ? AppTranslations.get(lang, 'semua_tahun') : '${AppTranslations.get(lang, 'year_label')} $_selectedYear'})',
-                color: const Color(0xA6FFFFFF),
-              ),
-              PopupMenuButton<int?>(
-                initialValue: _selectedYear,
-                tooltip: AppTranslations.get(lang, 'year_label'),
-                onSelected: (year) {
-                  setState(() => _selectedYear = year);
-                },
-                color: LsColors.surface(context),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  LsEyebrow(
+                    '${AppTranslations.get(lang, 'saldo_bersih')} (${_selectedYear == null ? AppTranslations.get(lang, 'semua_tahun') : '${AppTranslations.get(lang, 'year_label')} $_selectedYear'})',
+                    color: const Color(0xA6FFFFFF),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.calendar_today,
-                          size: 12, color: Colors.white),
-                      const SizedBox(width: 4),
-                      Text(
-                        _selectedYear == null
-                            ? AppTranslations.get(lang, 'semua')
-                            : '$_selectedYear',
-                        style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white),
+                  PopupMenuButton<int?>(
+                    initialValue: _selectedYear,
+                    tooltip: AppTranslations.get(lang, 'year_label'),
+                    onSelected: (year) {
+                      setState(() => _selectedYear = year);
+                    },
+                    elevation: 6,
+                    color: LsColors.surface(context),
+                    surfaceTintColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(color: LsColors.line(context)),
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      const SizedBox(width: 2),
-                      const Icon(Icons.arrow_drop_down,
-                          size: 16, color: Colors.white),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.calendar_today,
+                              size: 12, color: Colors.white),
+                          const SizedBox(width: 4),
+                          Text(
+                            _selectedYear == null
+                                ? AppTranslations.get(lang, 'semua')
+                                : '$_selectedYear',
+                            style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white),
+                          ),
+                          const SizedBox(width: 2),
+                          const Icon(Icons.arrow_drop_down,
+                              size: 16, color: Colors.white),
+                        ],
+                      ),
+                    ),
+                    itemBuilder: (ctx) => [
+                      PopupMenuItem<int?>(
+                        value: null,
+                        height: 40,
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.all_inclusive_rounded,
+                              size: 16,
+                              color: _selectedYear == null
+                                  ? LsColors.brand
+                                  : LsColors.mute(ctx),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                AppTranslations.get(lang, 'semua_tahun'),
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: _selectedYear == null
+                                      ? FontWeight.w800
+                                      : FontWeight.w600,
+                                  color: _selectedYear == null
+                                      ? LsColors.brand
+                                      : LsColors.ink(ctx),
+                                ),
+                              ),
+                            ),
+                            if (_selectedYear == null)
+                              const Icon(Icons.check_rounded,
+                                  size: 16, color: LsColors.brand),
+                          ],
+                        ),
+                      ),
+                      ...availableYears.map(
+                        (y) {
+                          final isSel = _selectedYear == y;
+                          return PopupMenuItem<int?>(
+                            value: y,
+                            height: 40,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.calendar_today_rounded,
+                                  size: 15,
+                                  color: isSel
+                                      ? LsColors.brand
+                                      : LsColors.mute(ctx),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '$y',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: isSel
+                                          ? FontWeight.w800
+                                          : FontWeight.w600,
+                                      color: isSel
+                                          ? LsColors.brand
+                                          : LsColors.ink(ctx),
+                                    ),
+                                  ),
+                                ),
+                                if (isSel)
+                                  const Icon(Icons.check_rounded,
+                                      size: 16, color: LsColors.brand),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
                     ],
                   ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '${positive ? '' : '-'}Rp ${fmt.format(s.netBalance.abs().toInt())}',
+                  style: const TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      height: 1.1,
+                      letterSpacing: -0.5,
+                      color: Colors.white),
                 ),
-                itemBuilder: (ctx) => [
-                  PopupMenuItem<int?>(
-                    value: null,
-                    child: Text(AppTranslations.get(lang, 'semua_tahun'),
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
-                  ),
-                  ...availableYears.map(
-                    (y) => PopupMenuItem<int?>(
-                      value: y,
-                      child: Text('$y',
-                          style: const TextStyle(fontWeight: FontWeight.w600)),
-                    ),
-                  ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                      child: _heroFlow(
+                          AppTranslations.get(lang, 'pemasukan'),
+                          s.totalIncome,
+                          const Color(0xFF6EE7B7),
+                          Icons.south_west,
+                          fmt)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                      child: _heroFlow(
+                          AppTranslations.get(lang, 'pengeluaran'),
+                          s.totalExpense,
+                          const Color(0xFFFCA5A5),
+                          Icons.north_east,
+                          fmt)),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              '${positive ? '' : '-'}Rp ${fmt.format(s.netBalance.abs().toInt())}',
-              style: const TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                  height: 1.1,
-                  letterSpacing: -0.5,
-                  color: Colors.white),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                  child: _heroFlow(
-                      AppTranslations.get(lang, 'pemasukan'),
-                      s.totalIncome,
-                      const Color(0xFF6EE7B7),
-                      Icons.south_west,
-                      fmt)),
-              const SizedBox(width: 8),
-              Expanded(
-                  child: _heroFlow(
-                      AppTranslations.get(lang, 'pengeluaran'),
-                      s.totalExpense,
-                      const Color(0xFFFCA5A5),
-                      Icons.north_east,
-                      fmt)),
-            ],
-          ),
-        ],
-      ),
-    );
+        ));
   }
 
   Widget _heroFlow(
@@ -343,59 +410,74 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           return d >= -1 && d <= 7;
         }).length ??
         0;
-    return Row(
-      children: [
-        Expanded(
-          child: LsStatTile(
-            icon: Icons.event_outlined,
-            color: LsColors.violet,
-            value: '${data.todayRemindersCount}',
-            label: AppTranslations.get(lang, 'agenda_hari_ini'),
-            unit: AppTranslations.get(lang, 'hari_ini_unit'),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => const RemindersPage(initialIndex: 1)),
-              );
-            },
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: LsStatTile(
+              icon: Icons.event_outlined,
+              color: LsColors.violet,
+              value: '${data.todayRemindersCount}',
+              label: AppTranslations.get(lang, 'agenda_hari_ini'),
+              unit: AppTranslations.get(lang, 'hari_ini_unit'),
+              onTap: () {
+                if (widget.onNavigateToTab != null) {
+                  widget.onNavigateToTab!(3, reminderSubTab: 1);
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const RemindersPage(initialIndex: 1)),
+                  );
+                }
+              },
+            ),
           ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: LsStatTile(
-            icon: Icons.receipt_long_outlined,
-            color: urgent > 0 ? LsColors.expense : LsColors.income,
-            value: '$urgent',
-            label: AppTranslations.get(lang, 'tagihan'),
-            unit: '≤ 7 hari',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => const RemindersPage(initialIndex: 2)),
-              );
-            },
+          const SizedBox(width: 8),
+          Expanded(
+            child: LsStatTile(
+              icon: Icons.receipt_long_outlined,
+              color: urgent > 0 ? LsColors.expense : LsColors.income,
+              value: '$urgent',
+              label: AppTranslations.get(lang, 'tagihan'),
+              unit: AppTranslations.get(lang, 'lewat_tempo'),
+              onTap: () {
+                if (widget.onNavigateToTab != null) {
+                  widget.onNavigateToTab!(3, reminderSubTab: 2);
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const RemindersPage(initialIndex: 2)),
+                  );
+                }
+              },
+            ),
           ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: LsStatTile(
-            icon: Icons.shopping_bag_outlined,
-            color: LsColors.amber,
-            value: '$unbought',
-            label: AppTranslations.get(lang, 'belanja'),
-            unit: 'belum dibeli',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => const RemindersPage(initialIndex: 3)),
-              );
-            },
+          const SizedBox(width: 8),
+          Expanded(
+            child: LsStatTile(
+              icon: Icons.shopping_bag_outlined,
+              color: LsColors.amber,
+              value: '$unbought',
+              label: AppTranslations.get(lang, 'belanja'),
+              unit: AppTranslations.get(lang, 'belum_dibeli_unit'),
+              onTap: () {
+                if (widget.onNavigateToTab != null) {
+                  widget.onNavigateToTab!(3, reminderSubTab: 3);
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const RemindersPage(initialIndex: 3)),
+                  );
+                }
+              },
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -410,10 +492,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       children: upcomingBills.map((b) {
         final daysLeft = b.dueDate.difference(DateTime.now()).inDays;
         final timeText = daysLeft == 0
-            ? 'Hari ini'
+            ? AppTranslations.get(lang, 'hari_ini')
             : (daysLeft < 0
-                ? 'Terlambat ${daysLeft.abs()} hari'
-                : '$daysLeft hari lagi');
+                ? '${AppTranslations.get(lang, 'terlambat_hari')} ${daysLeft.abs()} ${lang == 'en' ? 'd' : 'hari'}'
+                : '$daysLeft ${AppTranslations.get(lang, 'hari_lagi_unit')}');
         final isOverdue = daysLeft < 0;
 
         return Padding(
@@ -421,11 +503,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           child: LsCard(
             padding: const EdgeInsets.all(12),
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => const RemindersPage(initialIndex: 2)),
-              );
+              if (widget.onNavigateToTab != null) {
+                widget.onNavigateToTab!(3, reminderSubTab: 2);
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const RemindersPage(initialIndex: 2)),
+                );
+              }
             },
             child: Row(
               children: [
@@ -460,7 +546,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Jatuh tempo: ${DateFormat('d MMM yyyy, HH:mm', 'id_ID').format(b.dueDate)}',
+                        '${AppTranslations.get(lang, 'jatuh_tempo_titik')} ${DateFormat('d MMM yyyy, HH:mm', lang == 'en' ? 'en_US' : 'id_ID').format(b.dueDate)}',
                         style: TextStyle(
                             fontSize: 11, color: LsColors.mute(context)),
                       ),
@@ -500,10 +586,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
     return _buildFlatCard(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const TargetsPage()),
-        );
+        if (widget.onNavigateToTab != null) {
+          widget.onNavigateToTab!(2);
+        } else {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const TargetsPage()),
+          );
+        }
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -576,14 +666,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       children: reminders
           .map((r) => Padding(
                 padding: const EdgeInsets.only(bottom: 12.0),
-                child: _buildReminderCard(r),
+                child: _buildReminderCard(r, lang),
               ))
           .toList(),
     );
   }
 
   Widget _buildShoppingItemSecondaryDetails(
-      ShoppingItem item, NumberFormat currencyFmt, bool isDark) {
+      ShoppingItem item, NumberFormat currencyFmt, bool isDark, String lang) {
     final List<Widget> details = [];
     final mutedStyle = TextStyle(
       fontSize: 11,
@@ -591,12 +681,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
 
     if (item.purchasedBy != null && item.purchasedBy!.trim().isNotEmpty) {
-      details.add(
-          Text('Dibeli Oleh: ${item.purchasedBy!.trim()}', style: mutedStyle));
+      details.add(Text(
+          '${AppTranslations.get(lang, 'dibeli_oleh')} ${item.purchasedBy!.trim()}',
+          style: mutedStyle));
     }
     if (item.price > 0) {
       details.add(Text(
-        'Harga: Rp ${currencyFmt.format(item.price.toInt())}',
+        '${AppTranslations.get(lang, 'harga_label')} Rp ${currencyFmt.format(item.price.toInt())}',
         style: const TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.bold,
@@ -604,11 +695,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       ));
     }
     if (item.location != null && item.location!.trim().isNotEmpty) {
-      details.add(Text('Tempat: ${item.location!.trim()}', style: mutedStyle));
+      details.add(Text(
+          '${AppTranslations.get(lang, 'tempat_label')} ${item.location!.trim()}',
+          style: mutedStyle));
     }
     if (item.notes != null && item.notes!.trim().isNotEmpty) {
       details.add(Text(
-        'Catatan: ${item.notes!.trim()}',
+        '${AppTranslations.get(lang, 'catatan_label')} ${item.notes!.trim()}',
         style: const TextStyle(
             fontSize: 11,
             color: Color(0xFF2563EB),
@@ -702,7 +795,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                     ),
                     if (item.notes != null && item.notes!.isNotEmpty) ...[
                       const SizedBox(height: 2),
-                      Text('Catatan: ${item.notes}',
+                      Text(
+                          '${AppTranslations.get(lang, 'catatan_label')} ${item.notes}',
                           style: TextStyle(
                               fontSize: 12,
                               fontStyle: FontStyle.italic,
@@ -715,7 +809,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       controller: purchasedByController,
                       style: TextStyle(color: LsColors.ink(ctx)),
                       decoration: InputDecoration(
-                        labelText: 'Dibeli Oleh Siapa (Opsional)',
+                        labelText:
+                            AppTranslations.get(lang, 'dibeli_oleh_siapa'),
                         hintText: 'e.g. Ibu, Ayah, Siska',
                         hintStyle: TextStyle(color: LsColors.mute(ctx)),
                         labelStyle: TextStyle(color: LsColors.mute(ctx)),
@@ -738,7 +833,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       controller: locationController,
                       style: TextStyle(color: LsColors.ink(ctx)),
                       decoration: InputDecoration(
-                        labelText: 'Tempat Membeli (Opsional)',
+                        labelText: AppTranslations.get(lang, 'tempat_membeli'),
                         hintText: 'e.g. Pasar Tradisional, Minimarket',
                         hintStyle: TextStyle(color: LsColors.mute(ctx)),
                         labelStyle: TextStyle(color: LsColors.mute(ctx)),
@@ -767,7 +862,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       onTap: () async {
                         final val = await showCalculatorInputDialog(
                           context: ctx,
-                          title: 'Input Harga Pembelian',
+                          title: AppTranslations.get(
+                              lang, 'input_harga_pembelian'),
                           initialValue: enteredPrice,
                         );
                         if (val != null) {
@@ -777,7 +873,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                         }
                       },
                       decoration: InputDecoration(
-                        labelText: 'Harga Pembelian (Opsional)',
+                        labelText: AppTranslations.get(lang, 'harga_pembelian'),
                         labelStyle: TextStyle(color: LsColors.mute(ctx)),
                         prefixText: 'Rp ',
                         prefixStyle: TextStyle(
@@ -961,7 +1057,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                                   : LsColors.ink(context),
                             ),
                           ),
-                          _buildShoppingItemSecondaryDetails(item, fmt, isDark),
+                          _buildShoppingItemSecondaryDetails(
+                              item, fmt, isDark, lang),
                         ],
                       ),
                     ),
@@ -995,7 +1092,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   }
 
   PreferredSizeWidget _buildHeader() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return AppBar(
       backgroundColor: LsColors.surface(context),
       elevation: 0,
@@ -1003,24 +1099,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       shape: Border(bottom: BorderSide(color: LsColors.line(context))),
       automaticallyImplyLeading: false,
       titleSpacing: 20,
-      title: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6.0),
-        child: Image.asset(
-          AppEnvironment.config.getLogoFullPath(isDark),
+      title: const Padding(
+        padding: EdgeInsets.symmetric(vertical: 6.0),
+        child: LsBrandLogo(
+          variant: LsLogoVariant.full,
           width: 175,
           height: 42,
-          cacheWidth: 525,
-          fit: BoxFit.contain,
-          filterQuality: FilterQuality.high,
-          errorBuilder: (c, e, s) => Text(
-            AppEnvironment.config.appName,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF2563EB),
-              letterSpacing: -0.5,
-            ),
-          ),
+          alignment: Alignment.centerLeft,
         ),
       ),
       actions: [
@@ -1161,14 +1246,17 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildReminderCard(Reminder r) {
+  Widget _buildReminderCard(Reminder r, String lang) {
     final isPinned = _pinnedReminderIds.contains(r.id);
-    final status = r.realtimeStatus;
-    final isRunning = status == 'Sedang Berjalan';
-    final isDone = status == 'Selesai';
+    final rawStatus = r.realtimeStatus;
+    final isRunning = rawStatus == 'Sedang Berjalan';
+    final isDone = rawStatus == 'Selesai';
     final statusColor = isRunning
         ? LsColors.amber
         : (isDone ? LsColors.income : LsColors.brand);
+    final statusText = isRunning
+        ? AppTranslations.get(lang, 'sedang_berjalan')
+        : (isDone ? AppTranslations.get(lang, 'selesai') : rawStatus);
 
     final timeStr =
         '${DateFormat('HH:mm', 'id_ID').format(r.targetDateTime)} - ${DateFormat('HH:mm', 'id_ID').format(r.effectiveEndTime)}';
@@ -1208,12 +1296,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       ),
                     ),
                     const SizedBox(width: 6),
-                    LsChip(status, color: statusColor),
+                    LsChip(statusText, color: statusColor),
                   ],
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  '${DateFormat('d MMM yyyy', 'id_ID').format(r.targetDateTime)} ($timeStr)',
+                  '${DateFormat('d MMM yyyy', lang == 'en' ? 'en_US' : 'id_ID').format(r.targetDateTime)} ($timeStr)',
                   style:
                       TextStyle(fontSize: 11.5, color: LsColors.mute(context)),
                 ),
@@ -1241,9 +1329,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               if (result == null) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
+                    SnackBar(
                         content: Text(
-                            'Maksimal 3 pengingat yang bisa di-pin ke Widget!'),
+                            AppTranslations.get(lang, 'maksimal_3_pin_widget')),
                         backgroundColor: Colors.orange),
                   );
                 }

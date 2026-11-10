@@ -26,12 +26,14 @@ android {
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
-        versionName = "2026.11.06.01.01"
+        versionName = "2026.11.06.01.02"
     }
 
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 
@@ -55,7 +57,9 @@ android {
             if (output != null) {
                 val appTitle = if (variant.flavorName == "beebee") "BeeHappy" else "WhatToDo"
                 val fixedVersion = variant.versionName
-                output.outputFileName = "${appTitle}_v${fixedVersion}.apk"
+                val abi = output.getFilter("ABI")
+                val abiSuffix = if (abi != null) "-${abi}" else ""
+                output.outputFileName = "${appTitle}_v${fixedVersion}${abiSuffix}.apk"
             }
         }
     }

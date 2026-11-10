@@ -738,98 +738,50 @@ class _CreateReminderPageState extends ConsumerState<CreateReminderPage> {
     );
   }
 
-  void _showReminderModal() {
-    showModalBottomSheet(
+  Future<void> _showReminderModal() async {
+    const customOptionKey = -999;
+    final currentVal =
+        _customReminderTime != null ? customOptionKey : _notificationMinutes;
+
+    final selected = await showLsOptionsSheet<int>(
       context: context,
-      backgroundColor: LsColors.surface(context),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                  child: Text(
-                    'Waktu Pengingat',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: LsColors.ink(ctx),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Flexible(
-                  child: ListView(
-                    shrinkWrap: true,
-                    children: [
-                      ..._presetOptions.entries.map((e) {
-                        final isSelected = _customReminderTime == null &&
-                            _notificationMinutes == e.key;
-                        return ListTile(
-                          title: Text(
-                            e.value,
-                            style: TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: isSelected
-                                  ? FontWeight.w800
-                                  : FontWeight.w500,
-                              color: isSelected
-                                  ? LsColors.brand
-                                  : LsColors.ink(ctx),
-                            ),
-                          ),
-                          trailing: isSelected
-                              ? const Icon(Icons.check_rounded,
-                                  color: LsColors.brand, size: 20)
-                              : null,
-                          onTap: () {
-                            setState(() {
-                              _customReminderTime = null;
-                              _notificationMinutes = e.key;
-                            });
-                            Navigator.pop(ctx);
-                          },
-                        );
-                      }),
-                      ListTile(
-                        title: Text(
-                          'Pilih Kalender & Waktu Kustom...',
-                          style: TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: _customReminderTime != null
-                                ? FontWeight.w800
-                                : FontWeight.w500,
-                            color: _customReminderTime != null
-                                ? LsColors.brand
-                                : LsColors.ink(ctx),
-                          ),
-                        ),
-                        trailing: _customReminderTime != null
-                            ? const Icon(Icons.check_rounded,
-                                color: LsColors.brand, size: 20)
-                            : null,
-                        onTap: () async {
-                          Navigator.pop(ctx);
-                          await _pickCustomReminderDateTime();
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+      title: 'Waktu Pengingat',
+      subtitle: 'Pilih kapan notifikasi pengingat agenda dikirimkan',
+      headerIcon: Icons.notifications_active_outlined,
+      selectedValue: currentVal,
+      options: [
+        ..._presetOptions.entries.map(
+          (e) => LsOptionItem<int>(
+            value: e.key,
+            title: e.value,
+            icon: e.key < 0
+                ? Icons.notifications_off_outlined
+                : Icons.alarm_rounded,
+            iconColor: e.key < 0 ? LsColors.mute(context) : LsColors.brand,
           ),
-        );
-      },
+        ),
+        LsOptionItem<int>(
+          value: customOptionKey,
+          title: 'Pilih Kalender & Waktu Kustom...',
+          subtitle: _customReminderTime != null
+              ? DateFormat('d MMM yyyy, HH:mm', 'id_ID')
+                  .format(_customReminderTime!)
+              : 'Atur tanggal dan jam pengingat secara spesifik',
+          icon: Icons.edit_calendar_rounded,
+          iconColor: LsColors.violet,
+        ),
+      ],
     );
+
+    if (selected == null || !mounted) return;
+    if (selected == customOptionKey) {
+      await _pickCustomReminderDateTime();
+    } else {
+      setState(() {
+        _customReminderTime = null;
+        _notificationMinutes = selected;
+      });
+    }
   }
 
   @override

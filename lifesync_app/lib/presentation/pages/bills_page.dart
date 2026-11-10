@@ -7,7 +7,6 @@ import 'package:lifesync_app/domain/entities/bill.dart';
 import 'package:lifesync_app/presentation/providers/repository_providers.dart';
 import 'package:lifesync_app/presentation/pages/add_edit_bill_page.dart';
 import 'package:lifesync_app/presentation/widgets/calculator_input_dialog.dart';
-import 'package:lifesync_app/config/app_variant.dart';
 import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 import 'package:lifesync_app/presentation/widgets/ls_date_time_picker_sheet.dart';
 
@@ -44,6 +43,80 @@ class _BillsPageState extends ConsumerState<BillsPage> {
       _selectedMonthDate =
           DateTime(_selectedMonthDate.year, _selectedMonthDate.month - 1);
     });
+  }
+
+  Future<void> _pickMonthYear() async {
+    final picked = await showLsMonthYearPickerSheet(
+      context: context,
+      initialDate: _selectedMonthDate,
+      title: 'Pilih Periode Bulan Tagihan',
+    );
+    if (picked != null && mounted) {
+      setState(() {
+        _selectedMonthDate = DateTime(picked.year, picked.month, 1);
+      });
+    }
+  }
+
+  Future<void> _handleDeleteBill(Bill bill) async {
+    final repo = ref.read(billRepositoryProvider);
+    final isReceivable = bill.billType == 'receivable';
+
+    if (isReceivable) {
+      final confirm = await showLsConfirmDialog(
+        context: context,
+        title: 'Hapus Piutang?',
+        message: 'Apakah Anda yakin ingin menghapus piutang "${bill.name}"?',
+        confirmLabel: 'Hapus',
+        cancelLabel: 'Batal',
+        isDanger: true,
+      );
+      if (confirm == true) {
+        await repo.deleteBill(bill.id);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Piutang "${bill.name}" berhasil dihapus.'),
+              backgroundColor: LsColors.expense,
+            ),
+          );
+        }
+      }
+      return;
+    }
+
+    final monthLabel =
+        DateFormat('MMMM yyyy', 'id_ID').format(_selectedMonthDate);
+    final scope = await showLsBillDeleteDialog(
+      context: context,
+      billName: bill.name,
+      monthLabel: monthLabel,
+    );
+    if (scope == null || !mounted) return;
+
+    if (scope == LsBillDeleteScope.thisMonthOnly) {
+      await repo.deleteBillThisMonthOnly(bill);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Tagihan "${bill.name}" dihapus untuk bulan $monthLabel saja.'),
+            backgroundColor: LsColors.amber,
+          ),
+        );
+      }
+    } else if (scope == LsBillDeleteScope.thisAndFutureMonths) {
+      await repo.deleteBillThisAndFutureMonths(bill);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Tagihan "${bill.name}" dihapus untuk $monthLabel dan bulan-bulan berikutnya.'),
+            backgroundColor: LsColors.expense,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _copyBillToNextMonth(Bill bill) async {
@@ -550,13 +623,30 @@ class _BillsPageState extends ConsumerState<BillsPage> {
                   size: 26, color: LsColors.ink(context)),
               onPressed: _prevMonth,
             ),
-            Text(
-              DateFormat('MMMM yyyy', 'id_ID').format(_selectedMonthDate),
-              style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.3,
-                  color: LsColors.ink(context)),
+            InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: _pickMonthYear,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      DateFormat('MMMM yyyy', 'id_ID')
+                          .format(_selectedMonthDate),
+                      style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
+                          color: LsColors.ink(context)),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(Icons.arrow_drop_down_rounded,
+                        size: 20, color: LsColors.mute(context)),
+                  ],
+                ),
+              ),
             ),
             IconButton(
               icon: Icon(Icons.chevron_right,
@@ -916,10 +1006,29 @@ class _BillsPageState extends ConsumerState<BillsPage> {
                     ],
                   ),
                 ),
-                PopupMenuButton<String>(
-                  icon: Icon(Icons.more_vert, size: 20, color: mute),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
+                LsPopupMenuButton<String>(
+                  tooltip: 'Menu Tagihan',
+                  options: [
+                    LsPopupMenuOption(
+                      value: 'copy',
+                      label:
+                          AppTranslations.get(lang, 'copy_ke_bulan_berikutnya'),
+                      icon: Icons.copy_rounded,
+                      color: LsColors.brand,
+                    ),
+                    LsPopupMenuOption(
+                      value: 'edit',
+                      label: AppTranslations.get(lang, 'edit_tagihan'),
+                      icon: Icons.edit_outlined,
+                      color: LsColors.violet,
+                    ),
+                    LsPopupMenuOption(
+                      value: 'delete',
+                      label: AppTranslations.get(lang, 'hapus_tagihan'),
+                      icon: Icons.delete_outline_rounded,
+                      isDanger: true,
+                    ),
+                  ],
                   onSelected: (val) async {
                     if (val == 'copy') {
                       await _copyBillToNextMonth(bill);
@@ -931,61 +1040,9 @@ class _BillsPageState extends ConsumerState<BillsPage> {
                         ),
                       );
                     } else if (val == 'delete') {
-                      final confirm = await showLsConfirmDialog(
-                        context: context,
-                        title: bill.billType == 'receivable'
-                            ? 'Hapus Piutang?'
-                            : 'Hapus Tagihan?',
-                        message:
-                            'Apakah Anda yakin ingin menghapus "${bill.name}"?',
-                        confirmLabel: 'Hapus',
-                        cancelLabel: 'Batal',
-                        isDanger: true,
-                      );
-                      if (confirm == true) {
-                        await ref
-                            .read(billRepositoryProvider)
-                            .deleteBill(bill.id);
-                      }
+                      await _handleDeleteBill(bill);
                     }
                   },
-                  itemBuilder: (ctx) => [
-                    PopupMenuItem(
-                      value: 'copy',
-                      child: Row(
-                        children: [
-                          const Icon(Icons.copy_rounded,
-                              size: 18, color: LsColors.brand),
-                          const SizedBox(width: 8),
-                          Text(AppTranslations.get(
-                              lang, 'copy_ke_bulan_berikutnya')),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          const Icon(Icons.edit_outlined,
-                              size: 18, color: Colors.blueGrey),
-                          const SizedBox(width: 8),
-                          Text(AppTranslations.get(lang, 'edit_tagihan')),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          const Icon(Icons.delete_outline,
-                              size: 18, color: Colors.red),
-                          const SizedBox(width: 8),
-                          Text(AppTranslations.get(lang, 'hapus_tagihan'),
-                              style: const TextStyle(color: Colors.red)),
-                        ],
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),
@@ -1043,7 +1100,6 @@ class _BillsPageState extends ConsumerState<BillsPage> {
   Widget build(BuildContext context) {
     final billsAsync = ref.watch(billsStreamProvider(_currentMonthKey));
     final currencyFmt = NumberFormat('#,###', 'id_ID');
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: LsColors.paper(context),
@@ -1055,23 +1111,13 @@ class _BillsPageState extends ConsumerState<BillsPage> {
         shape: Border(bottom: BorderSide(color: LsColors.line(context))),
         automaticallyImplyLeading: false,
         titleSpacing: 20,
-        title: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6.0),
-          child: Image.asset(
-            AppEnvironment.config.getLogoFullPath(isDark),
+        title: const Padding(
+          padding: EdgeInsets.symmetric(vertical: 6.0),
+          child: LsBrandLogo(
+            variant: LsLogoVariant.full,
             width: 175,
             height: 42,
-            cacheWidth: 525,
-            fit: BoxFit.contain,
-            filterQuality: FilterQuality.high,
-            errorBuilder: (_, __, ___) => Text(
-              AppEnvironment.config.appName,
-              style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: LsColors.brand,
-                  letterSpacing: -0.5),
-            ),
+            alignment: Alignment.centerLeft,
           ),
         ),
       ),

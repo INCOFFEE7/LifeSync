@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:lifesync_app/presentation/providers/financial_note_providers.dart';
 import 'package:lifesync_app/presentation/pages/financial_note_detail_page.dart';
-import 'package:lifesync_app/config/app_variant.dart';
 import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 import 'package:lifesync_app/presentation/widgets/ls_date_time_picker_sheet.dart';
 
@@ -26,6 +25,9 @@ class _FinancialRecordsHomePageState
   String _periodScope = 'month'; // 'month', 'all', 'range'
   DateTimeRange? _selectedDateRange;
   String _searchQuery = '';
+
+  String get lang => ref.watch(localeProvider).languageCode;
+  String get dateLocale => lang == 'en' ? 'en_US' : 'id_ID';
 
   @override
   void initState() {
@@ -249,14 +251,14 @@ class _FinancialRecordsHomePageState
   Widget _filterHeader(List<NoteWithItems> allNotes) {
     String label;
     if (_periodScope == 'all') {
-      label = 'Semua Data';
+      label = AppTranslations.get(lang, 'semua_data');
     } else if (_periodScope == 'range' && _selectedDateRange != null) {
       final s = _selectedDateRange!.start;
       final e = _selectedDateRange!.end;
       label =
-          '${DateFormat('d MMM', 'id_ID').format(s)} – ${DateFormat('d MMM yyyy', 'id_ID').format(e)}';
+          '${DateFormat('d MMM', dateLocale).format(s)} – ${DateFormat('d MMM yyyy', dateLocale).format(e)}';
     } else {
-      label = DateFormat('MMMM yyyy', 'id_ID').format(_selectedDate);
+      label = DateFormat('MMMM yyyy', dateLocale).format(_selectedDate);
     }
 
     final isMonth = _periodScope == 'month';
@@ -302,19 +304,19 @@ class _FinancialRecordsHomePageState
                           : Icons.calendar_today_rounded),
                   color: LsColors.brand,
                   isHighlighted: _periodScope != 'month',
-                  tooltip: 'Filter Periode',
-                  options: const [
+                  tooltip: AppTranslations.get(lang, 'filter_periode_tooltip'),
+                  options: [
                     LsDropdownOption(
                         value: 'month',
-                        label: 'Bulan Ini',
+                        label: AppTranslations.get(lang, 'bulan_ini'),
                         icon: Icons.calendar_today_outlined),
                     LsDropdownOption(
                         value: 'all',
-                        label: 'Semua Data',
+                        label: AppTranslations.get(lang, 'semua_data'),
                         icon: Icons.all_inclusive_outlined),
                     LsDropdownOption(
                         value: 'range',
-                        label: 'Pilih Rentang',
+                        label: AppTranslations.get(lang, 'pilih_rentang'),
                         icon: Icons.date_range_outlined),
                   ],
                   onSelected: (val) {
@@ -400,7 +402,7 @@ class _FinancialRecordsHomePageState
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Tgl ${_selectedDay!.day}',
+                            '${AppTranslations.get(lang, 'tanggal_singkat')} ${_selectedDay!.day}',
                             style: const TextStyle(
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.bold,
@@ -456,7 +458,7 @@ class _FinancialRecordsHomePageState
               DateTime.now().month == date.month &&
               DateTime.now().day == date.day;
           final hasNotes = activeDays.contains(day);
-          final dayName = DateFormat('E', 'id_ID').format(date);
+          final dayName = DateFormat('E', dateLocale).format(date);
 
           return GestureDetector(
             onTap: () {
@@ -555,23 +557,13 @@ class _FinancialRecordsHomePageState
         shape: Border(bottom: BorderSide(color: LsColors.line(context))),
         automaticallyImplyLeading: false,
         titleSpacing: 20,
-        title: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6.0),
-          child: Image.asset(
-            AppEnvironment.config.getLogoFullPath(isDark),
+        title: const Padding(
+          padding: EdgeInsets.symmetric(vertical: 6.0),
+          child: LsBrandLogo(
+            variant: LsLogoVariant.full,
             width: 175,
             height: 42,
-            cacheWidth: 525,
-            fit: BoxFit.contain,
-            filterQuality: FilterQuality.high,
-            errorBuilder: (_, __, ___) => Text(
-              AppEnvironment.config.appName,
-              style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF2563EB),
-                  letterSpacing: -0.5),
-            ),
+            alignment: Alignment.centerLeft,
           ),
         ),
       ),
@@ -706,7 +698,8 @@ class _FinancialRecordsHomePageState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const LsEyebrow('Selisih', color: Colors.white70),
+            LsEyebrow(AppTranslations.get(lang, 'selisih'),
+                color: Colors.white70),
             const SizedBox(height: 6),
             FittedBox(
               fit: BoxFit.scaleDown,
@@ -740,11 +733,11 @@ class _FinancialRecordsHomePageState
             ),
             const SizedBox(height: 14),
             Row(children: [
-              sub('Pemasukan', income, LsColors.income,
-                  Icons.arrow_downward_rounded),
+              sub(AppTranslations.get(lang, 'pemasukan'), income,
+                  LsColors.income, Icons.arrow_downward_rounded),
               const SizedBox(width: 10),
-              sub('Pengeluaran', expense, const Color(0xFFFCA5A5),
-                  Icons.arrow_upward_rounded),
+              sub(AppTranslations.get(lang, 'pengeluaran'), expense,
+                  const Color(0xFFFCA5A5), Icons.arrow_upward_rounded),
             ]),
           ],
         ),
@@ -770,7 +763,7 @@ class _FinancialRecordsHomePageState
             ),
             const SizedBox(height: 16),
             Text(
-              'Belum ada catatan keuangan.',
+              AppTranslations.get(lang, 'belum_ada_catatan_keuangan'),
               style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
@@ -778,7 +771,7 @@ class _FinancialRecordsHomePageState
             ),
             const SizedBox(height: 8),
             Text(
-              'Klik "+ Catatan Baru" untuk mulai mencatat pemasukan atau pengeluaran.',
+              AppTranslations.get(lang, 'klik_tambah_catatan_sub'),
               style: TextStyle(fontSize: 12, color: LsColors.mute(context)),
               textAlign: TextAlign.center,
             ),
@@ -789,8 +782,8 @@ class _FinancialRecordsHomePageState
   }
 
   Widget _buildNoteCard(NoteWithItems noteItem, bool isDark) {
-    final dateStr =
-        DateFormat('dd MMMM yyyy, HH:mm', 'id_ID').format(noteItem.note.date);
+    final dateStr = DateFormat('dd MMMM yyyy, HH:mm', dateLocale)
+        .format(noteItem.note.date);
     final net = noteItem.totalIncome - noteItem.totalExpense;
 
     Widget col(String label, double v, Color c, {String prefix = ''}) =>
@@ -875,11 +868,13 @@ class _FinancialRecordsHomePageState
               ),
               child: Row(
                 children: [
-                  col('Pemasukan', noteItem.totalIncome, LsColors.income,
+                  col(AppTranslations.get(lang, 'pemasukan'),
+                      noteItem.totalIncome, LsColors.income,
                       prefix: '+'),
-                  col('Pengeluaran', noteItem.totalExpense, LsColors.expense,
+                  col(AppTranslations.get(lang, 'pengeluaran'),
+                      noteItem.totalExpense, LsColors.expense,
                       prefix: '-'),
-                  col('Selisih', net,
+                  col(AppTranslations.get(lang, 'selisih'), net,
                       net >= 0 ? LsColors.brand : LsColors.expense,
                       prefix: net < 0 ? '-' : ''),
                 ],

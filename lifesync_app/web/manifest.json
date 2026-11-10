@@ -1,6 +1,6 @@
 {
-    "name": "lifesync_app",
-    "short_name": "lifesync_app",
+    "name": "WhatToDo",
+    "short_name": "WhatToDo",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

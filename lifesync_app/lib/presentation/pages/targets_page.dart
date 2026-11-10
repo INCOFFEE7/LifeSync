@@ -8,7 +8,6 @@ import 'package:lifesync_app/presentation/providers/repository_providers.dart';
 import 'package:lifesync_app/presentation/providers/dashboard_provider.dart';
 import 'package:lifesync_app/presentation/pages/target_detail_page.dart';
 import 'package:lifesync_app/core/services/home_widget_service.dart';
-import 'package:lifesync_app/config/app_variant.dart';
 import 'package:intl/intl.dart';
 import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 
@@ -91,7 +90,6 @@ class TargetsPage extends ConsumerWidget {
   }
 
   PreferredSizeWidget _buildHeader(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return AppBar(
       backgroundColor: LsColors.surface(context),
       elevation: 0,
@@ -99,24 +97,13 @@ class TargetsPage extends ConsumerWidget {
       shape: Border(bottom: BorderSide(color: LsColors.line(context))),
       automaticallyImplyLeading: false,
       titleSpacing: 20,
-      title: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6.0),
-        child: Image.asset(
-          AppEnvironment.config.getLogoFullPath(isDark),
+      title: const Padding(
+        padding: EdgeInsets.symmetric(vertical: 6.0),
+        child: LsBrandLogo(
+          variant: LsLogoVariant.full,
           width: 175,
           height: 42,
-          cacheWidth: 525,
-          fit: BoxFit.contain,
-          filterQuality: FilterQuality.high,
-          errorBuilder: (c, e, s) => Text(
-            AppEnvironment.config.appName,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF2563EB),
-              letterSpacing: -0.5,
-            ),
-          ),
+          alignment: Alignment.centerLeft,
         ),
       ),
     );

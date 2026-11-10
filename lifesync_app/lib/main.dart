@@ -27,11 +27,13 @@ void main() async {
   } else {
     AppEnvironment.setup(AppConfig(
       variant: AppVariant.lifesync,
-      appName: 'What To Do',
-      logoPath: 'assets/images/WhatToDoAppLogo.png',
-      logoFullPath: 'assets/images/WhatToDoHorizontalLockup.png',
-      logoDarkPath: 'assets/images/WhatToDoAppLogo.png',
-      logoDarkFullPath: 'assets/images/WhatToDoHorizontalLockupDarkmode.png',
+      appName: 'WhatToDo',
+      logoPath: 'assets/images/logo/whatToDo_symbol_light.png',
+      logoFullPath: 'assets/images/logo/whatToDo_logo_light.png',
+      logoDarkPath: 'assets/images/logo/whatToDo_symbol_dark.png',
+      logoDarkFullPath: 'assets/images/logo/whatToDo_logo_dark.png',
+      splashLogoPath: 'assets/images/logo/whatToDo_splash_light.png',
+      splashLogoDarkPath: 'assets/images/logo/whatToDo_splash_dark.png',
       lightTheme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       enabledModules: ['finance_tracker', 'goals_tracker', 'reminders'],
@@ -112,6 +114,7 @@ class LifeSyncApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final locale = ref.watch(localeProvider);
     final themeMode = ref.watch(themeModeProvider);
+    final fontScale = ref.watch(fontScaleProvider);
 
     return MaterialApp(
       title: AppEnvironment.config.appName,
@@ -119,6 +122,14 @@ class LifeSyncApp extends ConsumerWidget {
       darkTheme: AppEnvironment.config.darkTheme,
       themeMode: themeMode,
       locale: locale,
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(fontScale),
+          ),
+          child: child ?? const SizedBox(),
+        );
+      },
       supportedLocales: const [
         Locale('en'),
         Locale('id'),

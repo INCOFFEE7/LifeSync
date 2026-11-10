@@ -273,22 +273,56 @@ class _CreateShoppingPageState extends ConsumerState<CreateShoppingPage> {
                   },
                 ),
                 const SizedBox(height: 10),
-                DropdownButtonFormField<String>(
-                  initialValue: _selectedCategory,
-                  decoration: _deco(context, 'Kategori Kebutuhan'),
-                  items: _categories
-                      .map((c) => DropdownMenuItem(
-                          value: c,
-                          child: Text(c,
-                              style: const TextStyle(
-                                  fontSize: 14, fontWeight: FontWeight.w600))))
-                      .toList(),
-                  onChanged: _isReadOnly
+                InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: _isReadOnly
                       ? null
-                      : (val) {
-                          if (val != null)
-                            setState(() => _selectedCategory = val);
+                      : () async {
+                          final picked = await showLsOptionsSheet<String>(
+                            context: context,
+                            title: 'Kategori Kebutuhan',
+                            subtitle: 'Pilih kategori barang belanjaan',
+                            headerIcon: Icons.category_outlined,
+                            selectedValue: _selectedCategory,
+                            options: _categories
+                                .map(
+                                  (c) => LsOptionItem<String>(
+                                    value: c,
+                                    title: c,
+                                    icon: Icons.shopping_bag_outlined,
+                                    iconColor: LsColors.brand,
+                                  ),
+                                )
+                                .toList(),
+                          );
+                          if (picked != null && mounted) {
+                            setState(() => _selectedCategory = picked);
+                          }
                         },
+                  child: InputDecorator(
+                    decoration: _deco(context, 'Kategori Kebutuhan'),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _selectedCategory,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: LsColors.ink(context),
+                            ),
+                          ),
+                        ),
+                        Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: _isReadOnly
+                              ? LsColors.mute(context)
+                              : LsColors.brand,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ]),
               const SizedBox(height: 10),

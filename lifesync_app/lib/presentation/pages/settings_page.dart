@@ -1,4 +1,5 @@
 import 'package:lifesync_app/core/services/csv_export_service.dart';
+import 'package:lifesync_app/core/services/database_backup_service.dart';
 import 'package:lifesync_app/domain/entities/shopping_item.dart';
 import 'package:lifesync_app/presentation/providers/shopping_providers.dart';
 import 'package:lifesync_app/presentation/providers/financial_note_providers.dart';
@@ -12,7 +13,6 @@ import 'package:lifesync_app/presentation/providers/settings_provider.dart';
 import 'package:lifesync_app/core/utils/translations.dart';
 import 'package:lifesync_app/presentation/screens/cloud_backup_settings_screen.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:lifesync_app/core/services/home_widget_service.dart';
 import 'package:lifesync_app/config/app_variant.dart';
 import 'package:lifesync_app/core/providers/core_providers.dart';
 import 'package:lifesync_app/core/notifications/notification_service.dart';
@@ -122,7 +122,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          const _ProfileHeader(name: 'LifeSync'),
+          _ProfileHeader(name: AppEnvironment.config.appName),
           const SizedBox(height: 22),
           if (AppEnvironment.config.variant != AppVariant.beebee)
             _group('Cloud & Cadangan', [
@@ -147,6 +147,45 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 subtitle: AppTranslations.get(lang, 'ekspor_csv_sub'),
                 trailing: const _Chevron(),
                 onTap: () => CsvExportService.showExportDialog(context, ref),
+              ),
+              _SettingsRow(
+                icon: Icons.security_rounded,
+                color: LsColors.violet,
+                title: AppTranslations.get(lang, 'cadangan_database'),
+                subtitle: AppTranslations.get(lang, 'cadangan_database_sub'),
+                trailing: const _Chevron(),
+                onTap: () async {
+                  final action = await showLsOptionsSheet<String>(
+                    context: context,
+                    title: AppTranslations.get(lang, 'cadangan_database'),
+                    headerIcon: Icons.security_rounded,
+                    options: [
+                      LsOptionItem(
+                        value: 'create',
+                        title: AppTranslations.get(lang, 'buat_cadangan'),
+                        subtitle:
+                            'Simpan snapshot data terenkripsi (.wtdbackup)',
+                        icon: Icons.shield_rounded,
+                        iconColor: LsColors.brand,
+                      ),
+                      LsOptionItem(
+                        value: 'restore',
+                        title: AppTranslations.get(lang, 'pulihkan_cadangan'),
+                        subtitle: 'Impor & pulihkan data dari file .wtdbackup',
+                        icon: Icons.restore_page_rounded,
+                        iconColor: LsColors.amber,
+                      ),
+                    ],
+                  );
+                  if (!context.mounted || action == null) return;
+                  if (action == 'create') {
+                    await DatabaseBackupService.performCreateBackup(
+                        context, ref);
+                  } else if (action == 'restore') {
+                    await DatabaseBackupService.performRestoreBackup(
+                        context, ref);
+                  }
+                },
               ),
             ]),
           _group(AppTranslations.get(lang, 'tampilan'), [
@@ -235,6 +274,52 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 }
               },
             ),
+            _SettingsRow(
+              icon: Icons.format_size_rounded,
+              color: LsColors.income,
+              title: AppTranslations.get(lang, 'ukuran_font'),
+              subtitle: switch (ref.watch(fontScaleProvider)) {
+                >= 1.25 => AppTranslations.get(lang, 'font_sangat_besar'),
+                >= 1.10 => AppTranslations.get(lang, 'font_besar'),
+                _ => AppTranslations.get(lang, 'font_normal'),
+              },
+              trailing: const _Chevron(),
+              onTap: () async {
+                final currentScale = ref.read(fontScaleProvider);
+                final selected = await showLsOptionsSheet<double>(
+                  context: context,
+                  title: AppTranslations.get(lang, 'ukuran_font'),
+                  headerIcon: Icons.format_size_rounded,
+                  selectedValue: currentScale,
+                  options: [
+                    LsOptionItem(
+                      value: 1.0,
+                      title: AppTranslations.get(lang, 'font_normal'),
+                      subtitle: '100% - Ukuran standar',
+                      icon: Icons.text_fields_rounded,
+                      iconColor: LsColors.mute(context),
+                    ),
+                    LsOptionItem(
+                      value: 1.18,
+                      title: AppTranslations.get(lang, 'font_besar'),
+                      subtitle: '118% - Nyaman & ramah lansia',
+                      icon: Icons.elderly_rounded,
+                      iconColor: LsColors.brand,
+                    ),
+                    LsOptionItem(
+                      value: 1.30,
+                      title: AppTranslations.get(lang, 'font_sangat_besar'),
+                      subtitle: '130% - Tulisan ekstra besar',
+                      icon: Icons.zoom_in_rounded,
+                      iconColor: LsColors.income,
+                    ),
+                  ],
+                );
+                if (selected != null) {
+                  await ref.read(fontScaleProvider.notifier).setScale(selected);
+                }
+              },
+            ),
           ]),
           _group(AppTranslations.get(lang, 'nada_dering_default'), [
             _SettingsRow(
@@ -299,35 +384,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               },
             ),
           ]),
-          _group('Troubleshooting', [
-            _SettingsRow(
-              icon: Icons.widgets,
-              color: LsColors.amber,
-              title: 'Perbaiki Widget (Samsung)',
-              subtitle: 'Gunakan jika widget tidak muncul di layar utama',
-              trailing: const _Chevron(),
-              onTap: () async {
-                try {
-                  await HomeWidgetService.requestPinTargetWidget();
-                  await Future.delayed(const Duration(milliseconds: 500));
-                  await HomeWidgetService.requestPinReminderWidget();
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text(
-                              'Permintaan widget telah dikirim ke layar utama')),
-                    );
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Gagal: $e')),
-                    );
-                  }
-                }
-              },
-            ),
-          ]),
           _group(
               AppTranslations.get(lang, 'zona_berbahaya'),
               eyebrowColor: LsColors.expense,
@@ -342,11 +398,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   onTap: () async {
                     final firstConfirm = await showLsConfirmDialog(
                       context: context,
-                      title: 'Hapus Seluruh Data?',
+                      title:
+                          AppTranslations.get(lang, 'hapus_seluruh_data_tanya'),
                       message:
-                          'Semua Catatan Keuangan, Belanja, Tagihan, Target Nabung, dan Agenda akan dihapus.',
-                      confirmLabel: 'Lanjutkan',
-                      cancelLabel: 'Batal',
+                          AppTranslations.get(lang, 'hapus_seluruh_data_pesan'),
+                      confirmLabel: AppTranslations.get(lang, 'lanjutkan'),
+                      cancelLabel: AppTranslations.get(lang, 'batal'),
                       isDanger: true,
                     );
                     if (firstConfirm != true) return;
@@ -530,6 +587,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         await prefs.setBool('has_deleted_all', true);
                         await prefs.setBool(
                             'is_first_installation_complete', true);
+                        await ref
+                            .read(billRepositoryProvider)
+                            .clearRecurrenceRules();
 
                         // Invalidate Riverpod states
                         ref.invalidate(dashboardDataProvider);
@@ -537,6 +597,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         ref.invalidate(shoppingItemsProvider);
                         ref.invalidate(targetsStreamProvider);
                         ref.invalidate(remindersStreamProvider);
+                        ref.invalidate(billsStreamProvider);
 
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -581,25 +642,43 @@ class _ProfileHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final initial = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
+    final isBeebee = AppEnvironment.config.variant == AppVariant.beebee;
     return LsCard(
       padding: const EdgeInsets.all(18),
       child: Row(
         children: [
-          Container(
-            width: 56,
-            height: 56,
-            alignment: Alignment.center,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                  colors: [LsColors.heroTop, LsColors.heroBottom]),
+          if (isBeebee)
+            Container(
+              width: 56,
+              height: 56,
+              alignment: Alignment.center,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                    colors: [LsColors.heroTop, LsColors.heroBottom]),
+              ),
+              child: Text(initial,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800)),
+            )
+          else
+            Container(
+              width: 56,
+              height: 56,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: LsColors.paper(context),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: LsColors.line(context)),
+              ),
+              child: const LsBrandLogo(
+                variant: LsLogoVariant.symbol,
+                width: 38,
+                height: 38,
+              ),
             ),
-            child: Text(initial,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800)),
-          ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(

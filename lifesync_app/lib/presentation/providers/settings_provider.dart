@@ -67,3 +67,27 @@ final defaultSoundProvider =
     StateNotifierProvider<DefaultSoundNotifier, String>((ref) {
   return DefaultSoundNotifier();
 });
+
+class FontSizeNotifier extends StateNotifier<double> {
+  static const _prefKey = 'app_font_scale';
+
+  FontSizeNotifier() : super(1.0) {
+    _loadFromPrefs();
+  }
+
+  Future<void> _loadFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getDouble(_prefKey) ?? 1.0;
+  }
+
+  Future<void> setScale(double scale) async {
+    state = scale;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_prefKey, scale);
+  }
+}
+
+final fontScaleProvider =
+    StateNotifierProvider<FontSizeNotifier, double>((ref) {
+  return FontSizeNotifier();
+});

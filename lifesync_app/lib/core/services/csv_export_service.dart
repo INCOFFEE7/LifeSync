@@ -14,6 +14,8 @@ import 'package:lifesync_app/domain/entities/bill.dart';
 import 'package:lifesync_app/domain/entities/shopping_item.dart';
 import 'package:lifesync_app/domain/entities/reminder.dart';
 import 'package:lifesync_app/domain/entities/income_target.dart';
+import 'package:lifesync_app/core/utils/translations.dart';
+import 'package:lifesync_app/presentation/providers/localization_provider.dart';
 
 class CsvExportService {
   static Future<String> generateCsv(Isar db) async {
@@ -123,7 +125,7 @@ class CsvExportService {
     }
 
     final dateStr = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-    final fileName = 'LifeSync_Export_$dateStr.csv';
+    final fileName = 'WhatToDo_Export_$dateStr.csv';
     final filePath = '${dir.path}/$fileName';
     final file = File(filePath);
     await file.writeAsString(csvContent, encoding: utf8);
@@ -151,6 +153,8 @@ class CsvExportService {
     }
 
     if (!context.mounted) return;
+
+    final lang = ref.read(localeProvider).languageCode;
 
     await showDialog<void>(
       context: context,
@@ -191,7 +195,7 @@ class CsvExportService {
                   ),
                   const SizedBox(height: 14),
                   Text(
-                    'Ekspor Data CSV',
+                    AppTranslations.get(lang, 'preview_ekspor_csv'),
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
@@ -205,7 +209,9 @@ class CsvExportService {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Data Keuangan, Tagihan, Belanja, Tabungan, dan Agenda telah dikompilasi ke format CSV.',
+                    lang == 'en'
+                        ? 'Financial records, bills, shopping, targets, and agenda have been compiled to CSV format.'
+                        : 'Data Keuangan, Tagihan, Belanja, Tabungan, dan Agenda telah dikompilasi ke format CSV.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         fontSize: 13.5,
@@ -228,7 +234,7 @@ class CsvExportService {
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            'LifeSync_Export_${DateFormat('yyyyMMdd').format(DateTime.now())}.csv',
+                            'WhatToDo_Export_${DateFormat('yyyyMMdd').format(DateTime.now())}.csv',
                             style: TextStyle(
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w700,
@@ -287,11 +293,13 @@ class CsvExportService {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    SizedBox(
-                      height: 44,
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(minHeight: 46),
                       child: FilledButton.icon(
                         style: FilledButton.styleFrom(
                           backgroundColor: LsColors.brand,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 11),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14)),
                         ),
@@ -306,13 +314,13 @@ class CsvExportService {
                                   final path = await saveCsvToFile(csvContent!);
                                   setDialogState(() {
                                     feedbackMessage =
-                                        'File CSV berhasil disimpan ke:\n$path';
+                                        '${AppTranslations.get(lang, 'file_csv_tersimpan')}\n$path';
                                     isErrorFeedback = false;
                                   });
                                 } catch (e) {
                                   setDialogState(() {
                                     feedbackMessage =
-                                        'Gagal menyimpan file: $e';
+                                        '${AppTranslations.get(lang, 'gagal_simpan_file')} $e';
                                     isErrorFeedback = true;
                                   });
                                 } finally {
@@ -326,22 +334,28 @@ class CsvExportService {
                                 child: CircularProgressIndicator(
                                     strokeWidth: 2, color: Colors.white))
                             : const Icon(Icons.save_alt_rounded, size: 18),
-                        label: Text(
-                          isSavingFile
-                              ? 'Menyimpan...'
-                              : 'Simpan ke File Storage',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              fontSize: 13.5),
+                        label: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            isSavingFile
+                                ? AppTranslations.get(lang, 'menyimpan_titik')
+                                : AppTranslations.get(
+                                    lang, 'simpan_ke_file_storage'),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                fontSize: 13.5),
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(height: 8),
-                    SizedBox(
-                      height: 44,
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(minHeight: 46),
                       child: OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 11),
                           side:
                               BorderSide(color: LsColors.line(ctx), width: 1.2),
                           shape: RoundedRectangleBorder(
@@ -352,24 +366,27 @@ class CsvExportService {
                               ClipboardData(text: csvContent!));
                           setDialogState(() {
                             feedbackMessage =
-                                'Teks CSV berhasil disalin ke clipboard!';
+                                AppTranslations.get(lang, 'csv_tersalin');
                             isErrorFeedback = false;
                           });
                         },
                         icon: const Icon(Icons.copy_rounded, size: 18),
-                        label: Text(
-                          'Salin Teks ke Clipboard',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: LsColors.ink(ctx),
-                              fontSize: 13.5),
+                        label: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            AppTranslations.get(lang, 'salin_ke_clipboard'),
+                            style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: LsColors.ink(ctx),
+                                fontSize: 13.5),
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(height: 6),
                     TextButton(
                       onPressed: () => Navigator.pop(ctx),
-                      child: Text('Tutup',
+                      child: Text(AppTranslations.get(lang, 'tutup'),
                           style: TextStyle(
                               color: LsColors.mute(ctx),
                               fontWeight: FontWeight.w600)),
