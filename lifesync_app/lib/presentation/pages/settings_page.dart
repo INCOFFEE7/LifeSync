@@ -18,6 +18,7 @@ import 'package:lifesync_app/core/providers/core_providers.dart';
 import 'package:lifesync_app/core/notifications/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:home_widget/home_widget.dart';
+import 'package:lifesync_app/core/services/home_widget_service.dart';
 import 'package:lifesync_app/domain/entities/reminder.dart';
 import 'package:lifesync_app/domain/entities/income_target.dart';
 import 'package:lifesync_app/domain/entities/daily_income_record.dart';
@@ -318,6 +319,41 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 if (selected != null) {
                   await ref.read(fontScaleProvider.notifier).setScale(selected);
                 }
+              },
+            ),
+          ]),
+          _group('WIDGET LAYAR UTAMA WHATTODO', [
+            _SettingsRow(
+              icon: Icons.dashboard_customize_rounded,
+              color: const Color(0xFF2563EB),
+              title: 'Pasang Widget Bento Hub',
+              subtitle: 'Ringkasan all-in-one: Pengeluaran, Target, & Agenda',
+              trailing: const Icon(Icons.add_to_home_screen_rounded,
+                  color: Color(0xFF2563EB)),
+              onTap: () async {
+                await HomeWidgetService.requestPinBentoWidget();
+              },
+            ),
+            _SettingsRow(
+              icon: Icons.savings_outlined,
+              color: const Color(0xFF10B981),
+              title: 'Pasang Widget Target Nabung',
+              subtitle: 'Monitor progress tabungan dan sisa hari',
+              trailing: const Icon(Icons.add_to_home_screen_rounded,
+                  color: Color(0xFF10B981)),
+              onTap: () async {
+                await HomeWidgetService.requestPinTargetWidget();
+              },
+            ),
+            _SettingsRow(
+              icon: Icons.alarm_rounded,
+              color: const Color(0xFF8B5CF6),
+              title: 'Pasang Widget Pengingat',
+              subtitle: 'Pantau hitung mundur agenda kegiatan mendatang',
+              trailing: const Icon(Icons.add_to_home_screen_rounded,
+                  color: Color(0xFF8B5CF6)),
+              onTap: () async {
+                await HomeWidgetService.requestPinReminderWidget();
               },
             ),
           ]),

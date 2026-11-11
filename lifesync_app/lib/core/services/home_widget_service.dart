@@ -9,7 +9,8 @@ class HomeWidgetService {
   static const String appGroupId = 'group.lifesync';
   static const int maxPinned = 999; // increased limit
 
-  static final NumberFormat _fmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
+  static final NumberFormat _fmt =
+      NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
 
   static Future<void> init() async {
     if (kIsWeb) return;
@@ -25,19 +26,33 @@ class HomeWidgetService {
   static Future<List<int>> getPinnedTargetIds() async {
     if (kIsWeb) return [];
     try {
-      final raw = await HomeWidget.getWidgetData<String>('pinned_target_ids', defaultValue: '');
+      final raw = await HomeWidget.getWidgetData<String>('pinned_target_ids',
+          defaultValue: '');
       if (raw == null || raw.isEmpty) return [];
-      return raw.split(',').map((e) => int.tryParse(e) ?? -1).where((e) => e != -1).toList();
-    } catch (_) { return []; }
+      return raw
+          .split(',')
+          .map((e) => int.tryParse(e) ?? -1)
+          .where((e) => e != -1)
+          .toList();
+    } catch (_) {
+      return [];
+    }
   }
 
   static Future<List<int>> getPinnedReminderIds() async {
     if (kIsWeb) return [];
     try {
-      final raw = await HomeWidget.getWidgetData<String>('pinned_reminder_ids', defaultValue: '');
+      final raw = await HomeWidget.getWidgetData<String>('pinned_reminder_ids',
+          defaultValue: '');
       if (raw == null || raw.isEmpty) return [];
-      return raw.split(',').map((e) => int.tryParse(e) ?? -1).where((e) => e != -1).toList();
-    } catch (_) { return []; }
+      return raw
+          .split(',')
+          .map((e) => int.tryParse(e) ?? -1)
+          .where((e) => e != -1)
+          .toList();
+    } catch (_) {
+      return [];
+    }
   }
 
   /// Toggle pin for a target. Returns null if max reached (not added), else returns updated list.
@@ -71,7 +86,8 @@ class HomeWidgetService {
       ids.add(id);
       added = true;
     }
-    await HomeWidget.saveWidgetData<String>('pinned_reminder_ids', ids.join(','));
+    await HomeWidget.saveWidgetData<String>(
+        'pinned_reminder_ids', ids.join(','));
     if (added) {
       await requestPinReminderWidget();
     }
@@ -82,7 +98,8 @@ class HomeWidgetService {
     if (kIsWeb) return;
     final ids = await getPinnedTargetIds();
     if (ids.remove(id)) {
-      await HomeWidget.saveWidgetData<String>('pinned_target_ids', ids.join(','));
+      await HomeWidget.saveWidgetData<String>(
+          'pinned_target_ids', ids.join(','));
     }
   }
 
@@ -90,7 +107,8 @@ class HomeWidgetService {
     if (kIsWeb) return;
     final ids = await getPinnedReminderIds();
     if (ids.remove(id)) {
-      await HomeWidget.saveWidgetData<String>('pinned_reminder_ids', ids.join(','));
+      await HomeWidget.saveWidgetData<String>(
+          'pinned_reminder_ids', ids.join(','));
     }
   }
 
@@ -108,12 +126,15 @@ class HomeWidgetService {
           final savings = info.savings as double;
           final recommendedDaily = info.recommendedDailySaving as double;
           final savedToday = info.savedToday as double;
-          double progress = target.targetAmount > 0 ? (savings / target.targetAmount) : 0.0;
+          double progress =
+              target.targetAmount > 0 ? (savings / target.targetAmount) : 0.0;
           if (progress.isNaN || progress.isInfinite) progress = 0.0;
           if (progress > 1.0) progress = 1.0;
           final pct = '${(progress * 100).round()}%';
-          final int daysLeft = target.endDate.difference(now).inDays.clamp(0, 9999);
-          final double remaining = (recommendedDaily - savedToday).clamp(0.0, double.infinity);
+          final int daysLeft =
+              target.endDate.difference(now).inDays.clamp(0, 9999);
+          final double remaining =
+              (recommendedDaily - savedToday).clamp(0.0, double.infinity);
           final todayStr = remaining > 0
               ? 'Setor hari ini: ${_fmt.format(remaining)}'
               : '✓ Target hari ini tercapai!';
@@ -122,8 +143,10 @@ class HomeWidgetService {
           await HomeWidget.saveWidgetData<String>('t${i}_pct', pct);
           await HomeWidget.saveWidgetData<String>('t${i}_progress_text',
               '${_fmt.format(savings)} / ${_fmt.format(target.targetAmount)}');
-          await HomeWidget.saveWidgetData<int>('t${i}_progress', (progress * 100).round());
-          await HomeWidget.saveWidgetData<String>('t${i}_days', '$daysLeft hari lagi');
+          await HomeWidget.saveWidgetData<int>(
+              't${i}_progress', (progress * 100).round());
+          await HomeWidget.saveWidgetData<String>(
+              't${i}_days', '$daysLeft hari lagi');
           await HomeWidget.saveWidgetData<String>('t${i}_today', todayStr);
           await HomeWidget.saveWidgetData<bool>('t${i}_visible', true);
         } else {
@@ -139,7 +162,8 @@ class HomeWidgetService {
     }
   }
 
-  static Future<void> updateMultiReminderWidgetData(List<Reminder> reminders) async {
+  static Future<void> updateMultiReminderWidgetData(
+      List<Reminder> reminders) async {
     if (kIsWeb) return;
     try {
       final dateFmt = DateFormat('dd MMM, HH.mm', 'id_ID');
@@ -147,13 +171,15 @@ class HomeWidgetService {
         final hasData = i < reminders.length;
         if (hasData) {
           final r = reminders[i];
-          final countdown = CountdownUseCase.calculateCountdown(DateTime.now(), r.targetDateTime);
+          final countdown = CountdownUseCase.calculateCountdown(
+              DateTime.now(), r.targetDateTime);
           final dateStr = dateFmt.format(r.targetDateTime);
           await HomeWidget.saveWidgetData<String>('r${i}_title', r.title);
           await HomeWidget.saveWidgetData<String>('r${i}_date', dateStr);
           await HomeWidget.saveWidgetData<String>('r${i}_time', countdown);
           // Save epoch so widget can compute countdown natively without Flutter
-          await HomeWidget.saveWidgetData<int>('r${i}_target_epoch', r.targetDateTime.millisecondsSinceEpoch);
+          await HomeWidget.saveWidgetData<int>(
+              'r${i}_target_epoch', r.targetDateTime.millisecondsSinceEpoch);
           await HomeWidget.saveWidgetData<bool>('r${i}_visible', true);
         } else {
           await HomeWidget.saveWidgetData<bool>('r${i}_visible', false);
@@ -192,6 +218,75 @@ class HomeWidgetService {
       );
     } catch (e) {
       debugPrint('Error pinning reminder widget: $e');
+    }
+  }
+
+  // ── Bento Hub Widget ──────────────────────────────────────────────────────
+
+  static Future<void> updateBentoWidgetData({
+    required double todayExpense,
+    required double todayIncome,
+    String? targetTitle,
+    String? targetPct,
+    int? targetProgress,
+    String? targetDays,
+    String? reminderTitle,
+    String? reminderTime,
+    String? reminderDate,
+  }) async {
+    if (kIsWeb) return;
+    try {
+      final now = DateTime.now();
+      final dateFmt = DateFormat('EEEE, d MMM', 'id_ID');
+      await HomeWidget.saveWidgetData<String>(
+          'bento_date', dateFmt.format(now));
+      await HomeWidget.saveWidgetData<String>(
+          'bento_expense', _fmt.format(todayExpense));
+      await HomeWidget.saveWidgetData<String>(
+          'bento_income', '+ Masuk ${_fmt.format(todayIncome)}');
+
+      await HomeWidget.saveWidgetData<bool>(
+          'bento_has_target', targetTitle != null);
+      if (targetTitle != null) {
+        await HomeWidget.saveWidgetData<String>(
+            'bento_target_title', targetTitle);
+        await HomeWidget.saveWidgetData<String>(
+            'bento_target_pct', targetPct ?? '0%');
+        await HomeWidget.saveWidgetData<int>(
+            'bento_target_progress', targetProgress ?? 0);
+        await HomeWidget.saveWidgetData<String>(
+            'bento_target_days', targetDays ?? '');
+      }
+
+      await HomeWidget.saveWidgetData<bool>(
+          'bento_has_reminder', reminderTitle != null);
+      if (reminderTitle != null) {
+        await HomeWidget.saveWidgetData<String>(
+            'bento_reminder_title', reminderTitle);
+        await HomeWidget.saveWidgetData<String>(
+            'bento_reminder_time', reminderTime ?? '');
+        await HomeWidget.saveWidgetData<String>(
+            'bento_reminder_date', reminderDate ?? '');
+      }
+
+      await HomeWidget.updateWidget(
+        name: 'BentoWidgetProvider',
+        androidName: 'BentoWidgetProvider',
+      );
+    } catch (e) {
+      debugPrint('Error updating bento widget: $e');
+    }
+  }
+
+  static Future<void> requestPinBentoWidget() async {
+    if (kIsWeb) return;
+    try {
+      await HomeWidget.requestPinWidget(
+        name: 'BentoWidgetProvider',
+        androidName: 'BentoWidgetProvider',
+      );
+    } catch (e) {
+      debugPrint('Error pinning bento widget: $e');
     }
   }
 }

@@ -116,6 +116,8 @@ class _FinancialNoteDetailPageState
     String type = 'expense';
     DateTime itemTimestamp = DateTime.now();
     bool showKeypad = false;
+    String? descError;
+    String? nominalError;
 
     showModalBottomSheet(
       context: context,
@@ -131,6 +133,7 @@ class _FinancialNoteDetailPageState
 
             void onKeyPress(String k) {
               setModalState(() {
+                if (nominalError != null) nominalError = null;
                 if (k == 'C') {
                   calcExpr = '0';
                   return;
@@ -157,6 +160,7 @@ class _FinancialNoteDetailPageState
 
             void onDelete() {
               setModalState(() {
+                if (nominalError != null) nominalError = null;
                 if (calcExpr.length > 1) {
                   calcExpr = calcExpr.substring(0, calcExpr.length - 1);
                 } else {
@@ -244,8 +248,13 @@ class _FinancialNoteDetailPageState
                       onTap: () {
                         if (showKeypad) setModalState(() => showKeypad = false);
                       },
+                      onChanged: (val) {
+                        if (descError != null)
+                          setModalState(() => descError = null);
+                      },
                       decoration: InputDecoration(
                         labelText: 'Nama Item Transaksi *',
+                        errorText: descError,
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14)),
                       ),
@@ -282,7 +291,10 @@ class _FinancialNoteDetailPageState
                     GestureDetector(
                       onTap: () {
                         FocusScope.of(context).unfocus();
-                        setModalState(() => showKeypad = true);
+                        setModalState(() {
+                          showKeypad = true;
+                          if (nominalError != null) nominalError = null;
+                        });
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -293,11 +305,13 @@ class _FinancialNoteDetailPageState
                               : const Color(0xFFF1F5F9),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                              color: showKeypad
-                                  ? (type == 'income'
-                                      ? const Color(0xFF10B981)
-                                      : const Color(0xFFEF4444))
-                                  : Colors.transparent,
+                              color: nominalError != null
+                                  ? const Color(0xFFEF4444)
+                                  : (showKeypad
+                                      ? (type == 'income'
+                                          ? const Color(0xFF10B981)
+                                          : const Color(0xFFEF4444))
+                                      : Colors.transparent),
                               width: 1.5),
                         ),
                         child: Column(
@@ -332,6 +346,20 @@ class _FinancialNoteDetailPageState
                         ),
                       ),
                     ),
+                    if (nominalError != null) ...[
+                      const SizedBox(height: 6),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Text(
+                          nominalError!,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFFEF4444),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
                     if (showKeypad) ...[
                       const SizedBox(height: 12),
                       CustomNumericKeypad(
@@ -355,20 +383,18 @@ class _FinancialNoteDetailPageState
                       onPressed: () async {
                         final desc = descController.text.trim();
                         final finalVal = _evaluateExpr(calcExpr);
+                        bool hasError = false;
                         if (desc.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content:
-                                    Text('Nama item transaksi wajib diisi!')),
-                          );
-                          return;
+                          descError = 'Nama item transaksi wajib diisi!';
+                          hasError = true;
                         }
                         if (finalVal <= 0) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text(
-                                    'Nominal transaksi harus lebih dari 0!')),
-                          );
+                          nominalError =
+                              'Nominal transaksi harus lebih dari 0!';
+                          hasError = true;
+                        }
+                        if (hasError) {
+                          setModalState(() {});
                           return;
                         }
 

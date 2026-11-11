@@ -23,6 +23,7 @@ import 'package:lifesync_app/presentation/providers/financial_note_providers.dar
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:intl/intl.dart';
+import 'package:home_widget/home_widget.dart';
 
 class MainPage extends ConsumerStatefulWidget {
   const MainPage({super.key});
@@ -59,6 +60,8 @@ class _MainPageState extends ConsumerState<MainPage>
     }
   }
 
+  StreamSubscription? _widgetClickSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -72,12 +75,29 @@ class _MainPageState extends ConsumerState<MainPage>
       }
     });
     _startDueCheckTimer();
+
+    HomeWidget.initiallyLaunchedFromHomeWidget().then((uri) {
+      if (uri != null && mounted) _handleWidgetLaunch(uri);
+    });
+    _widgetClickSubscription = HomeWidget.widgetClicked.listen((uri) {
+      if (uri != null && mounted) _handleWidgetLaunch(uri);
+    });
+  }
+
+  void _handleWidgetLaunch(Uri uri) {
+    if (uri.host == 'add_note' || uri.path.contains('add_note')) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AddEditFinancialNotePage()),
+      );
+    }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _popupSubscription?.cancel();
+    _widgetClickSubscription?.cancel();
     _dueCheckTimer?.cancel();
     super.dispose();
   }

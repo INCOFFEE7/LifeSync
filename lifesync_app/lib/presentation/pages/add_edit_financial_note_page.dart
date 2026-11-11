@@ -188,6 +188,8 @@ class _AddEditFinancialNotePageState
         itemToEdit != null ? itemToEdit.createdAt : DateTime.now();
     bool showKeypad = false;
     bool isFirstEditPress = itemToEdit != null;
+    String? descError;
+    String? nominalError;
 
     showModalBottomSheet(
       context: context,
@@ -203,6 +205,7 @@ class _AddEditFinancialNotePageState
 
             void onKeyPress(String k) {
               setModalState(() {
+                if (nominalError != null) nominalError = null;
                 if (k == 'C') {
                   calcExpr = '0';
                   isFirstEditPress = false;
@@ -240,6 +243,7 @@ class _AddEditFinancialNotePageState
 
             void onDelete() {
               setModalState(() {
+                if (nominalError != null) nominalError = null;
                 isFirstEditPress = false;
                 if (calcExpr.length > 1) {
                   calcExpr = calcExpr.substring(0, calcExpr.length - 1);
@@ -333,8 +337,13 @@ class _AddEditFinancialNotePageState
                       onTap: () {
                         if (showKeypad) setModalState(() => showKeypad = false);
                       },
+                      onChanged: (val) {
+                        if (descError != null)
+                          setModalState(() => descError = null);
+                      },
                       decoration: InputDecoration(
                         labelText: 'Nama Item * (Contoh: Gojek, Shopee, Sayur)',
+                        errorText: descError,
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14)),
                       ),
@@ -343,7 +352,10 @@ class _AddEditFinancialNotePageState
                     GestureDetector(
                       onTap: () {
                         FocusScope.of(context).unfocus();
-                        setModalState(() => showKeypad = true);
+                        setModalState(() {
+                          showKeypad = true;
+                          if (nominalError != null) nominalError = null;
+                        });
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -354,11 +366,13 @@ class _AddEditFinancialNotePageState
                               : const Color(0xFFF1F5F9),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                              color: showKeypad
-                                  ? (type == 'income'
-                                      ? const Color(0xFF10B981)
-                                      : const Color(0xFFEF4444))
-                                  : Colors.transparent,
+                              color: nominalError != null
+                                  ? const Color(0xFFEF4444)
+                                  : (showKeypad
+                                      ? (type == 'income'
+                                          ? const Color(0xFF10B981)
+                                          : const Color(0xFFEF4444))
+                                      : Colors.transparent),
                               width: 1.5),
                         ),
                         child: Column(
@@ -394,6 +408,20 @@ class _AddEditFinancialNotePageState
                         ),
                       ),
                     ),
+                    if (nominalError != null) ...[
+                      const SizedBox(height: 6),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Text(
+                          nominalError!,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFFEF4444),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     // Item Timestamp selector
                     ListTile(
@@ -469,20 +497,18 @@ class _AddEditFinancialNotePageState
                       onPressed: () {
                         final desc = descController.text.trim();
                         final evaluatedVal = _evaluateExpr(calcExpr);
+                        bool hasError = false;
                         if (desc.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content:
-                                    Text('Nama item transaksi wajib diisi!')),
-                          );
-                          return;
+                          descError = 'Nama item transaksi wajib diisi!';
+                          hasError = true;
                         }
-                        if (evaluatedVal == 0) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text(
-                                    'Nominal transaksi harus lebih dari 0!')),
-                          );
+                        if (evaluatedVal <= 0) {
+                          nominalError =
+                              'Nominal transaksi harus lebih dari 0!';
+                          hasError = true;
+                        }
+                        if (hasError) {
+                          setModalState(() {});
                           return;
                         }
 
@@ -497,7 +523,9 @@ class _AddEditFinancialNotePageState
                           if (itemToEdit != null && editIndex != null) {
                             _draftItems[editIndex] = FinancialItem()
                               ..id = itemToEdit.id
-                              ..noteId = itemToEdit.noteId
+                              ..noteId = (widget.existingNote != null
+                                  ? itemToEdit.noteId
+                                  : 0)
                               ..description = desc
                               ..amount = finalVal
                               ..type = finalType

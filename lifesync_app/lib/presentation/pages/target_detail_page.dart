@@ -11,6 +11,8 @@ import 'package:lifesync_app/presentation/providers/repository_providers.dart';
 import 'package:lifesync_app/presentation/pages/create_target_page.dart';
 import 'package:lifesync_app/presentation/widgets/calculator_input_dialog.dart';
 import 'package:lifesync_app/presentation/widgets/ls_design.dart';
+import 'package:lifesync_app/core/services/home_widget_service.dart';
+import 'package:lifesync_app/presentation/providers/dashboard_provider.dart';
 
 class TargetDetailPage extends ConsumerStatefulWidget {
   final IncomeTarget target;
@@ -24,6 +26,7 @@ class TargetDetailPage extends ConsumerStatefulWidget {
 class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
+  bool _isPinned = false;
 
   @override
   void initState() {
@@ -37,13 +40,41 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
       _focusedDay = now;
     }
     _selectedDay = _focusedDay;
+    _checkPinStatus();
+  }
+
+  Future<void> _checkPinStatus() async {
+    final ids = await HomeWidgetService.getPinnedTargetIds();
+    if (mounted) {
+      setState(() => _isPinned = ids.contains(widget.target.id));
+    }
+  }
+
+  Future<void> _togglePin() async {
+    final result = await HomeWidgetService.togglePinTarget(widget.target.id);
+    if (result == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Maksimal 3 target yang bisa di-pin ke Widget!'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        setState(() => _isPinned = result.contains(widget.target.id));
+        ref.invalidate(dashboardDataProvider);
+      }
+    }
   }
 
   Future<void> _deleteTarget(BuildContext context, WidgetRef ref) async {
     final confirmed = await showLsConfirmDialog(
       context: context,
       title: 'Hapus Target?',
-      message: 'Tindakan ini akan menghapus target beserta seluruh riwayat nabungnya secara permanen. Yakin?',
+      message:
+          'Tindakan ini akan menghapus target beserta seluruh riwayat nabungnya secara permanen. Yakin?',
       confirmLabel: 'Hapus',
       cancelLabel: 'Batal',
       isDanger: true,
@@ -55,20 +86,26 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
     }
   }
 
-  void _onDaySelected(DateTime selectedDay, DateTime focusedDay, List<DailyIncomeRecord> records) {
+  void _onDaySelected(DateTime selectedDay, DateTime focusedDay,
+      List<DailyIncomeRecord> records) {
     setState(() {
       _selectedDay = selectedDay;
       _focusedDay = focusedDay;
     });
 
     // Pastikan tanggal berada dalam periode target
-    final normalizedSelected = DateTime(selectedDay.year, selectedDay.month, selectedDay.day);
-    final normalizedStart = DateTime(widget.target.startDate.year, widget.target.startDate.month, widget.target.startDate.day);
-    final normalizedEnd = DateTime(widget.target.endDate.year, widget.target.endDate.month, widget.target.endDate.day);
+    final normalizedSelected =
+        DateTime(selectedDay.year, selectedDay.month, selectedDay.day);
+    final normalizedStart = DateTime(widget.target.startDate.year,
+        widget.target.startDate.month, widget.target.startDate.day);
+    final normalizedEnd = DateTime(widget.target.endDate.year,
+        widget.target.endDate.month, widget.target.endDate.day);
 
-    if (normalizedSelected.isBefore(normalizedStart) || normalizedSelected.isAfter(normalizedEnd)) {
+    if (normalizedSelected.isBefore(normalizedStart) ||
+        normalizedSelected.isAfter(normalizedEnd)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tanggal di luar periode menabung target ini')),
+        const SnackBar(
+            content: Text('Tanggal di luar periode menabung target ini')),
       );
       return;
     }
@@ -76,7 +113,9 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
     // Cek apakah sudah ada transaksi pada tanggal ini
     DailyIncomeRecord? existingRecord;
     for (var r in records) {
-      if (r.date.year == selectedDay.year && r.date.month == selectedDay.month && r.date.day == selectedDay.day) {
+      if (r.date.year == selectedDay.year &&
+          r.date.month == selectedDay.month &&
+          r.date.day == selectedDay.day) {
         existingRecord = r;
         break;
       }
@@ -89,7 +128,8 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
     }
   }
 
-  void _showFixedModeDialog(BuildContext context, WidgetRef ref, DateTime day, DailyIncomeRecord? existingRecord) {
+  void _showFixedModeDialog(BuildContext context, WidgetRef ref, DateTime day,
+      DailyIncomeRecord? existingRecord) {
     final lang = ref.read(localeProvider).languageCode;
     final currencyFmt = NumberFormat('#,###', 'id_ID');
     final dateStr = DateFormat('dd MMMM yyyy', 'id_ID').format(day);
@@ -98,7 +138,8 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
     showModalBottomSheet(
       context: context,
       backgroundColor: LsColors.surface(context),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
       builder: (ctx) {
         return Container(
           padding: const EdgeInsets.all(24),
@@ -109,29 +150,54 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Tanggal $dateStr', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: LsColors.ink(ctx))),
-                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                  Text('Tanggal $dateStr',
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: LsColors.ink(ctx))),
+                  IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(ctx)),
                 ],
               ),
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: (isDone ? LsColors.income : LsColors.brand).withValues(alpha: 0.12),
+                  color: (isDone ? LsColors.income : LsColors.brand)
+                      .withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: (isDone ? LsColors.income : LsColors.brand).withValues(alpha: 0.35)),
+                  border: Border.all(
+                      color: (isDone ? LsColors.income : LsColors.brand)
+                          .withValues(alpha: 0.35)),
                 ),
                 child: Row(
                   children: [
-                    Icon(isDone ? Icons.check_circle : Icons.info_outline, color: isDone ? LsColors.income : LsColors.brand),
+                    Icon(isDone ? Icons.check_circle : Icons.info_outline,
+                        color: isDone ? LsColors.income : LsColors.brand),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(isDone ? AppTranslations.get(lang, 'status_sudah_menabung') : AppTranslations.get(lang, 'status_belum_menabung'), style: TextStyle(fontWeight: FontWeight.bold, color: isDone ? LsColors.income : LsColors.brand)),
+                          Text(
+                              isDone
+                                  ? AppTranslations.get(
+                                      lang, 'status_sudah_menabung')
+                                  : AppTranslations.get(
+                                      lang, 'status_belum_menabung'),
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: isDone
+                                      ? LsColors.income
+                                      : LsColors.brand)),
                           const SizedBox(height: 4),
-                          Text('${AppTranslations.get(lang, 'nominal_harian')}: Rp ${currencyFmt.format(widget.target.fixedDailyAmount.toInt())}', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: LsColors.ink(ctx))),
+                          Text(
+                              '${AppTranslations.get(lang, 'nominal_harian')}: Rp ${currencyFmt.format(widget.target.fixedDailyAmount.toInt())}',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                  color: LsColors.ink(ctx))),
                         ],
                       ),
                     ),
@@ -144,8 +210,10 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
                 height: 50,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isDone ? LsColors.expense : LsColors.income,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    backgroundColor:
+                        isDone ? LsColors.expense : LsColors.income,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
                   ),
                   onPressed: () async {
                     Navigator.pop(ctx);
@@ -161,10 +229,16 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
                       await repo.saveRecord(newRecord);
                     }
                   },
-                  icon: Icon(isDone ? Icons.cancel_outlined : Icons.check, color: Colors.white),
+                  icon: Icon(isDone ? Icons.cancel_outlined : Icons.check,
+                      color: Colors.white),
                   label: Text(
-                    isDone ? AppTranslations.get(lang, 'batalkan_nabung') : AppTranslations.get(lang, 'checklist_sudah_menabung'),
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 15),
+                    isDone
+                        ? AppTranslations.get(lang, 'batalkan_nabung')
+                        : AppTranslations.get(lang, 'checklist_sudah_menabung'),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: 15),
                   ),
                 ),
               ),
@@ -175,127 +249,184 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
     );
   }
 
-  void _showFlexibleModeDialog(BuildContext context, WidgetRef ref, DateTime day, DailyIncomeRecord? existingRecord) {
+  void _showFlexibleModeDialog(BuildContext context, WidgetRef ref,
+      DateTime day, DailyIncomeRecord? existingRecord) {
     final currencyFmt = NumberFormat('#,###', 'id_ID');
     final dateStr = DateFormat('dd MMMM yyyy', 'id_ID').format(day);
     final amountController = TextEditingController(
-      text: existingRecord != null ? currencyFmt.format(existingRecord.incomeAmount.toInt()) : '',
+      text: existingRecord != null
+          ? currencyFmt.format(existingRecord.incomeAmount.toInt())
+          : '',
     );
-    final notesController = TextEditingController(text: existingRecord?.notes ?? '');
+    final notesController =
+        TextEditingController(text: existingRecord?.notes ?? '');
     double inputAmount = existingRecord?.incomeAmount ?? 0.0;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: LsColors.surface(context),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
       builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, left: 24, right: 24, top: 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        String? amountError;
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(ctx).viewInsets.bottom,
+                  left: 24,
+                  right: 24,
+                  top: 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(existingRecord == null ? 'Catat Nabung - $dateStr' : 'Edit Nabung - $dateStr', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: LsColors.ink(ctx))),
-                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: amountController,
-                readOnly: true,
-                onTap: () async {
-                  final val = await showCalculatorInputDialog(
-                    context: context,
-                    title: 'Input Nominal Nabung',
-                    initialValue: inputAmount > 0 ? inputAmount : 0.0,
-                  );
-                  if (val != null && ctx.mounted) {
-                    inputAmount = val;
-                    amountController.text = currencyFmt.format(val.toInt());
-                  }
-                },
-                decoration: InputDecoration(
-                  labelText: 'Nominal Tabungan (Rp)',
-                  prefixText: 'Rp ',
-                  suffixIcon: const Icon(Icons.calculate, color: Color(0xFF2563EB)),
-                  filled: true,
-                  fillColor: LsColors.paper(context),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: LsColors.line(context))),
-                ),
-                style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2563EB), fontSize: 16),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: notesController,
-                decoration: InputDecoration(
-                  labelText: 'Catatan (Opsional)',
-                  filled: true,
-                  fillColor: LsColors.paper(context),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: LsColors.line(context))),
-                ),
-                maxLines: 2,
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  if (existingRecord != null) ...[
-                    Expanded(
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: LsColors.expense,
-                          side: const BorderSide(color: LsColors.expense, width: 1.5),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        ),
-                        onPressed: () async {
-                          Navigator.pop(ctx);
-                          await ref.read(targetRepositoryProvider).deleteRecord(existingRecord.id);
-                        },
-                        child: const Text('Hapus', style: TextStyle(fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                  ],
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: LsColors.brand,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                      onPressed: () async {
-                        if (inputAmount <= 0) {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nominal harus lebih besar dari 0')));
-                          return;
-                        }
-                        Navigator.pop(ctx);
-                        final repo = ref.read(targetRepositoryProvider);
-                        if (existingRecord != null) {
-                          existingRecord
-                            ..incomeAmount = inputAmount
-                            ..notes = notesController.text.trim().isEmpty ? null : notesController.text.trim();
-                          await repo.saveRecord(existingRecord);
-                        } else {
-                          final newRecord = DailyIncomeRecord()
-                            ..targetId = widget.target.id
-                            ..incomeAmount = inputAmount
-                            ..date = DateTime(day.year, day.month, day.day)
-                            ..notes = notesController.text.trim().isEmpty ? null : notesController.text.trim();
-                          await repo.saveRecord(newRecord);
-                        }
-                      },
-                      child: const Text('Simpan', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 15)),
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                          existingRecord == null
+                              ? 'Catat Nabung - $dateStr'
+                              : 'Edit Nabung - $dateStr',
+                          style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: LsColors.ink(ctx))),
+                      IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(ctx)),
+                    ],
                   ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: amountController,
+                    readOnly: true,
+                    onTap: () async {
+                      if (amountError != null)
+                        setDialogState(() => amountError = null);
+                      final val = await showCalculatorInputDialog(
+                        context: context,
+                        title: 'Input Nominal Nabung',
+                        initialValue: inputAmount > 0 ? inputAmount : 0.0,
+                      );
+                      if (val != null && ctx.mounted) {
+                        setDialogState(() {
+                          inputAmount = val;
+                          amountController.text =
+                              currencyFmt.format(val.toInt());
+                          if (amountError != null) amountError = null;
+                        });
+                      }
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'Nominal Tabungan (Rp)',
+                      errorText: amountError,
+                      prefixText: 'Rp ',
+                      suffixIcon:
+                          const Icon(Icons.calculate, color: Color(0xFF2563EB)),
+                      filled: true,
+                      fillColor: LsColors.paper(context),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide:
+                              BorderSide(color: LsColors.line(context))),
+                    ),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2563EB),
+                        fontSize: 16),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: notesController,
+                    decoration: InputDecoration(
+                      labelText: 'Catatan (Opsional)',
+                      filled: true,
+                      fillColor: LsColors.paper(context),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide:
+                              BorderSide(color: LsColors.line(context))),
+                    ),
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      if (existingRecord != null) ...[
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: LsColors.expense,
+                              side: const BorderSide(
+                                  color: LsColors.expense, width: 1.5),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16)),
+                            ),
+                            onPressed: () async {
+                              Navigator.pop(ctx);
+                              await ref
+                                  .read(targetRepositoryProvider)
+                                  .deleteRecord(existingRecord.id);
+                            },
+                            child: const Text('Hapus',
+                                style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                      ],
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: LsColors.brand,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16)),
+                          ),
+                          onPressed: () async {
+                            if (inputAmount <= 0) {
+                              setDialogState(() {
+                                amountError =
+                                    'Nominal harus lebih besar dari 0';
+                              });
+                              return;
+                            }
+                            Navigator.pop(ctx);
+                            final repo = ref.read(targetRepositoryProvider);
+                            if (existingRecord != null) {
+                              existingRecord
+                                ..incomeAmount = inputAmount
+                                ..notes = notesController.text.trim().isEmpty
+                                    ? null
+                                    : notesController.text.trim();
+                              await repo.saveRecord(existingRecord);
+                            } else {
+                              final newRecord = DailyIncomeRecord()
+                                ..targetId = widget.target.id
+                                ..incomeAmount = inputAmount
+                                ..date = DateTime(day.year, day.month, day.day)
+                                ..notes = notesController.text.trim().isEmpty
+                                    ? null
+                                    : notesController.text.trim();
+                              await repo.saveRecord(newRecord);
+                            }
+                          },
+                          child: const Text('Simpan',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  fontSize: 15)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                 ],
               ),
-              const SizedBox(height: 16),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -322,7 +453,8 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final recordsAsync = ref.watch(targetRecordsStreamProvider(widget.target.id));
+    final recordsAsync =
+        ref.watch(targetRecordsStreamProvider(widget.target.id));
     final lang = ref.watch(localeProvider).languageCode;
     final currencyFmt = NumberFormat('#,###', 'id_ID');
     final ink = LsColors.ink(context);
@@ -336,12 +468,24 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
         iconTheme: IconThemeData(color: ink),
-        title: Text(widget.target.name, style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.3, color: ink)),
+        title: Text(widget.target.name,
+            style: TextStyle(
+                fontWeight: FontWeight.w800, letterSpacing: -0.3, color: ink)),
         actions: [
+          IconButton(
+            icon: Icon(_isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                color: _isPinned ? LsColors.brand : LsColors.mute(context)),
+            tooltip: _isPinned ? 'Lepas Pin Widget' : 'Pin ke Widget',
+            onPressed: _togglePin,
+          ),
           IconButton(
             icon: const Icon(Icons.edit_outlined, color: LsColors.brand),
             onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => CreateTargetPage(existingTarget: widget.target)));
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) =>
+                          CreateTargetPage(existingTarget: widget.target)));
             },
           ),
           IconButton(
@@ -352,12 +496,14 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
       ),
       body: recordsAsync.when(
         data: (records) {
-          double totalCollected = records.fold(0.0, (sum, record) => sum + record.incomeAmount);
+          double totalCollected =
+              records.fold(0.0, (sum, record) => sum + record.incomeAmount);
           double progress = widget.target.targetAmount > 0
               ? (totalCollected / widget.target.targetAmount).clamp(0.0, 1.0)
               : 0.0;
           if (progress.isNaN || progress.isInfinite) progress = 0.0;
-          double remaining = (widget.target.targetAmount - totalCollected).clamp(0.0, double.infinity);
+          double remaining = (widget.target.targetAmount - totalCollected)
+              .clamp(0.0, double.infinity);
 
           final now = DateTime.now();
           TargetStatus status = TargetCalculationUseCase.determineTargetStatus(
@@ -417,7 +563,8 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
           final bool isFinished = today.isAfter(endDate);
 
           // Hari sampai target dimulai
-          final int daysUntilStart = isNotStarted ? startDate.difference(today).inDays : 0;
+          final int daysUntilStart =
+              isNotStarted ? startDate.difference(today).inDays : 0;
 
           // Hari tersisa dihitung dinamis dari sisa hari yang belum dichecklist / dikumpulkan
           final int daysLeft = TargetCalculationUseCase.calculateRemainingDays(
@@ -431,7 +578,8 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
           final double dailyRecommendation = isFixed
               ? widget.target.fixedDailyAmount
               : (daysLeft > 0 ? remaining / daysLeft : remaining);
-          final bool showRecommendation = remaining > 0 && !isFinished && status != TargetStatus.completed;
+          final bool showRecommendation =
+              remaining > 0 && !isFinished && status != TargetStatus.completed;
 
           // Map records by normalized date for calendar markers
           final Map<DateTime, DailyIncomeRecord> recordMap = {};
@@ -439,7 +587,8 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
             recordMap[DateTime(r.date.year, r.date.month, r.date.day)] = r;
           }
 
-          final sortedRecords = List<DailyIncomeRecord>.from(records)..sort((a, b) => b.date.compareTo(a.date));
+          final sortedRecords = List<DailyIncomeRecord>.from(records)
+            ..sort((a, b) => b.date.compareTo(a.date));
 
           return SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -455,23 +604,34 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.16),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              isFixed ? AppTranslations.get(lang, 'nominal_tetap') : AppTranslations.get(lang, 'nominal_bebas'),
-                              style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Colors.white),
+                              isFixed
+                                  ? AppTranslations.get(lang, 'nominal_tetap')
+                                  : AppTranslations.get(lang, 'nominal_bebas'),
+                              style: const TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white),
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            child: Text(statusText, style: TextStyle(color: statusColor, fontWeight: FontWeight.w800, fontSize: 10.5)),
+                            child: Text(statusText,
+                                style: TextStyle(
+                                    color: statusColor,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 10.5)),
                           ),
                         ],
                       ),
@@ -483,34 +643,52 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
                             size: 112,
                             stroke: 10,
                             color: LsColors.income,
-                            child: Text('${(progress * 100).round()}%', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white)),
+                            child: Text('${(progress * 100).round()}%',
+                                style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white)),
                           ),
                           const SizedBox(width: 18),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                LsEyebrow(AppTranslations.get(lang, 'terkumpul'), color: Colors.white.withValues(alpha: 0.7)),
+                                LsEyebrow(
+                                    AppTranslations.get(lang, 'terkumpul'),
+                                    color: Colors.white.withValues(alpha: 0.7)),
                                 const SizedBox(height: 4),
                                 FittedBox(
                                   fit: BoxFit.scaleDown,
                                   alignment: Alignment.centerLeft,
                                   child: Text(
                                     'Rp ${currencyFmt.format(totalCollected.toInt())}',
-                                    style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800, height: 1.05, color: Colors.white, letterSpacing: -0.8),
+                                    style: const TextStyle(
+                                        fontSize: 30,
+                                        fontWeight: FontWeight.w800,
+                                        height: 1.05,
+                                        color: Colors.white,
+                                        letterSpacing: -0.8),
                                   ),
                                 ),
                                 const SizedBox(height: 10),
-                                LsEyebrow('Target', color: Colors.white.withValues(alpha: 0.7)),
+                                LsEyebrow('Target',
+                                    color: Colors.white.withValues(alpha: 0.7)),
                                 const SizedBox(height: 2),
                                 Text(
                                   'Rp ${currencyFmt.format(widget.target.targetAmount.toInt())}',
-                                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white),
+                                  style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
                                   'Sisa: Rp ${currencyFmt.format(remaining.toInt())}',
-                                  style: TextStyle(fontSize: 11.5, color: Colors.white.withValues(alpha: 0.75)),
+                                  style: TextStyle(
+                                      fontSize: 11.5,
+                                      color:
+                                          Colors.white.withValues(alpha: 0.75)),
                                 ),
                               ],
                             ),
@@ -521,20 +699,26 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
                         const SizedBox(height: 16),
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.14),
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                            border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.2)),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.tips_and_updates_outlined, size: 18, color: Colors.white),
+                              const Icon(Icons.tips_and_updates_outlined,
+                                  size: 18, color: Colors.white),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
                                   '${AppTranslations.get(lang, 'sisihkan_hari_ini')} Rp ${currencyFmt.format(dailyRecommendation.round())} ${AppTranslations.get(lang, 'hari_ini_unit')}',
-                                  style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: Colors.white),
+                                  style: const TextStyle(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white),
                                 ),
                               ),
                             ],
@@ -548,7 +732,9 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
                           Flexible(
                             child: Text(
                               '${DateFormat('dd MMM yyyy', 'id_ID').format(widget.target.startDate)} - ${DateFormat('dd MMM yyyy', 'id_ID').format(widget.target.endDate)}',
-                              style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.7)),
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.white.withValues(alpha: 0.7)),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -558,7 +744,10 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
                                 : isFinished
                                     ? 'Periode selesai'
                                     : '$daysLeft hari lagi',
-                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white),
+                            style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white),
                           ),
                         ],
                       ),
@@ -568,24 +757,34 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
                 const SizedBox(height: 24),
 
                 // ── Interactive Calendar ─────────────────────────────────────
-                LsSectionHeader(title: AppTranslations.get(ref.watch(localeProvider).languageCode, 'kalender_nabung')),
+                LsSectionHeader(
+                    title: AppTranslations.get(
+                        ref.watch(localeProvider).languageCode,
+                        'kalender_nabung')),
                 const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
                     color: LsColors.brand.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: LsColors.brand.withValues(alpha: 0.2)),
+                    border: Border.all(
+                        color: LsColors.brand.withValues(alpha: 0.2)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.info_outline, size: 18, color: LsColors.brand),
+                      const Icon(Icons.info_outline,
+                          size: 18, color: LsColors.brand),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           isFixed
-                              ? AppTranslations.get(ref.watch(localeProvider).languageCode, 'hint_nabung_fixed')
-                              : AppTranslations.get(ref.watch(localeProvider).languageCode, 'hint_nabung_flexible'),
+                              ? AppTranslations.get(
+                                  ref.watch(localeProvider).languageCode,
+                                  'hint_nabung_fixed')
+                              : AppTranslations.get(
+                                  ref.watch(localeProvider).languageCode,
+                                  'hint_nabung_flexible'),
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -606,31 +805,53 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
                     focusedDay: _focusedDay,
                     calendarFormat: CalendarFormat.month,
                     selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                    onDaySelected: (selectedDay, focusedDay) => _onDaySelected(selectedDay, focusedDay, records),
+                    onDaySelected: (selectedDay, focusedDay) =>
+                        _onDaySelected(selectedDay, focusedDay, records),
                     onPageChanged: (focusedDay) {
                       setState(() => _focusedDay = focusedDay);
                     },
                     daysOfWeekStyle: DaysOfWeekStyle(
-                      weekdayStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: mute),
-                      weekendStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: mute),
+                      weekdayStyle: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: mute),
+                      weekendStyle: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: mute),
                     ),
                     calendarStyle: CalendarStyle(
-                      defaultTextStyle: TextStyle(fontWeight: FontWeight.w600, color: ink),
-                      weekendTextStyle: TextStyle(fontWeight: FontWeight.w600, color: ink),
-                      outsideTextStyle: TextStyle(color: mute.withValues(alpha: 0.5)),
-                      disabledTextStyle: TextStyle(color: mute.withValues(alpha: 0.4)),
-                      todayTextStyle: const TextStyle(fontWeight: FontWeight.w800, color: LsColors.brand),
-                      selectedTextStyle: const TextStyle(fontWeight: FontWeight.w800, color: Colors.white),
-                      todayDecoration: BoxDecoration(color: LsColors.brand.withValues(alpha: 0.14), shape: BoxShape.circle),
-                      selectedDecoration: const BoxDecoration(color: LsColors.brand, shape: BoxShape.circle),
-                      markerDecoration: const BoxDecoration(color: LsColors.income, shape: BoxShape.circle),
+                      defaultTextStyle:
+                          TextStyle(fontWeight: FontWeight.w600, color: ink),
+                      weekendTextStyle:
+                          TextStyle(fontWeight: FontWeight.w600, color: ink),
+                      outsideTextStyle:
+                          TextStyle(color: mute.withValues(alpha: 0.5)),
+                      disabledTextStyle:
+                          TextStyle(color: mute.withValues(alpha: 0.4)),
+                      todayTextStyle: const TextStyle(
+                          fontWeight: FontWeight.w800, color: LsColors.brand),
+                      selectedTextStyle: const TextStyle(
+                          fontWeight: FontWeight.w800, color: Colors.white),
+                      todayDecoration: BoxDecoration(
+                          color: LsColors.brand.withValues(alpha: 0.14),
+                          shape: BoxShape.circle),
+                      selectedDecoration: const BoxDecoration(
+                          color: LsColors.brand, shape: BoxShape.circle),
+                      markerDecoration: const BoxDecoration(
+                          color: LsColors.income, shape: BoxShape.circle),
                     ),
                     headerStyle: HeaderStyle(
                       formatButtonVisible: false,
                       titleCentered: true,
-                      titleTextStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: ink),
-                      leftChevronIcon: const Icon(Icons.chevron_left_rounded, color: LsColors.brand),
-                      rightChevronIcon: const Icon(Icons.chevron_right_rounded, color: LsColors.brand),
+                      titleTextStyle: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: ink),
+                      leftChevronIcon: const Icon(Icons.chevron_left_rounded,
+                          color: LsColors.brand),
+                      rightChevronIcon: const Icon(Icons.chevron_right_rounded,
+                          color: LsColors.brand),
                     ),
                     calendarBuilders: CalendarBuilders(
                       defaultBuilder: (context, day, focused) {
@@ -645,12 +866,15 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
                               decoration: BoxDecoration(
                                 color: LsColors.income.withValues(alpha: 0.15),
                                 shape: BoxShape.circle,
-                                border: Border.all(color: LsColors.income, width: 1.5),
+                                border: Border.all(
+                                    color: LsColors.income, width: 1.5),
                               ),
                               child: Center(
                                 child: Text(
                                   '${day.day}',
-                                  style: const TextStyle(fontWeight: FontWeight.w800, color: LsColors.income),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      color: LsColors.income),
                                 ),
                               ),
                             ),
@@ -670,7 +894,8 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
                   LsCard(
                     padding: const EdgeInsets.all(24),
                     child: Center(
-                      child: Text('Belum ada riwayat tabungan tercatat.', style: TextStyle(color: mute)),
+                      child: Text('Belum ada riwayat tabungan tercatat.',
+                          style: TextStyle(color: mute)),
                     ),
                   )
                 else
@@ -690,19 +915,37 @@ class _TargetDetailPageState extends ConsumerState<TargetDetailPage> {
                               Container(
                                 width: 40,
                                 height: 40,
-                                decoration: BoxDecoration(color: LsColors.income.withValues(alpha: 0.14), shape: BoxShape.circle),
-                                child: const Icon(Icons.savings, color: LsColors.income, size: 20),
+                                decoration: BoxDecoration(
+                                    color:
+                                        LsColors.income.withValues(alpha: 0.14),
+                                    shape: BoxShape.circle),
+                                child: const Icon(Icons.savings,
+                                    color: LsColors.income, size: 20),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Rp ${currencyFmt.format(record.incomeAmount.toInt())}', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: ink)),
+                                    Text(
+                                        'Rp ${currencyFmt.format(record.incomeAmount.toInt())}',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 15,
+                                            color: ink)),
                                     const SizedBox(height: 2),
-                                    Text(DateFormat('EEEE, dd MMM yyyy', 'id_ID').format(record.date), style: TextStyle(fontSize: 12, color: mute)),
-                                    if (record.notes != null && record.notes!.isNotEmpty)
-                                      Text(record.notes!, style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: mute)),
+                                    Text(
+                                        DateFormat('EEEE, dd MMM yyyy', 'id_ID')
+                                            .format(record.date),
+                                        style: TextStyle(
+                                            fontSize: 12, color: mute)),
+                                    if (record.notes != null &&
+                                        record.notes!.isNotEmpty)
+                                      Text(record.notes!,
+                                          style: TextStyle(
+                                              fontSize: 11,
+                                              fontStyle: FontStyle.italic,
+                                              color: mute)),
                                   ],
                                 ),
                               ),

@@ -5,4 +5,6 @@
     <string name="widget_target_description">Tampilkan progress target nabung Anda di layar utama</string>
     <string name="widget_reminder_label">WhatToDo Pengingat Kegiatan</string>
     <string name="widget_reminder_description">Tampilkan pengingat mendatang Anda di layar utama</string>
+    <string name="widget_bento_label">WhatToDo Bento Hub</string>
+    <string name="widget_bento_description">Ringkasan modern pengeluaran hari ini, target, dan agenda terdekat</string>
 </resources>

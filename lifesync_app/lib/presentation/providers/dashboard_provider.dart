@@ -4,6 +4,8 @@ import 'package:lifesync_app/domain/entities/reminder.dart';
 import 'package:lifesync_app/domain/usecases/target_calculation_usecase.dart';
 import 'package:lifesync_app/presentation/providers/repository_providers.dart';
 import 'package:lifesync_app/core/services/home_widget_service.dart';
+import 'package:lifesync_app/presentation/providers/financial_note_providers.dart';
+import 'package:intl/intl.dart';
 
 class TargetDashboardInfo {
   final IncomeTarget target;
@@ -41,7 +43,8 @@ class DashboardData {
   });
 }
 
-final dashboardDataProvider = StreamProvider.autoDispose<DashboardData>((ref) async* {
+final dashboardDataProvider =
+    StreamProvider.autoDispose<DashboardData>((ref) async* {
   final targetRepo = ref.watch(targetRepositoryProvider);
   final reminderRepo = ref.watch(reminderRepositoryProvider);
 
@@ -50,7 +53,8 @@ final dashboardDataProvider = StreamProvider.autoDispose<DashboardData>((ref) as
   final remindersAsync = ref.watch(remindersStreamProvider);
 
   final targets = targetsAsync.value ?? await targetRepo.getAllTargets();
-  final reminders = remindersAsync.value ?? await reminderRepo.getAllReminders();
+  final reminders =
+      remindersAsync.value ?? await reminderRepo.getAllReminders();
 
   final now = DateTime.now();
   final todayMidnight = DateTime(now.year, now.month, now.day);
@@ -72,7 +76,8 @@ final dashboardDataProvider = StreamProvider.autoDispose<DashboardData>((ref) as
   // ── Determine which targets to show on dashboard ───────────────────────────
   // Active targets sorted by deadline
   final activeTargets = targets
-      .where((t) => t.status != TargetStatus.completed && t.status != TargetStatus.failed)
+      .where((t) =>
+          t.status != TargetStatus.completed && t.status != TargetStatus.failed)
       .toList()
     ..sort((a, b) => a.endDate.compareTo(b.endDate));
 
@@ -96,7 +101,9 @@ final dashboardDataProvider = StreamProvider.autoDispose<DashboardData>((ref) as
 
     double savedToday = 0;
     for (var r in records) {
-      if (r.date.year == now.year && r.date.month == now.month && r.date.day == now.day) {
+      if (r.date.year == now.year &&
+          r.date.month == now.month &&
+          r.date.day == now.day) {
         savedToday += r.incomeAmount;
       }
     }
@@ -127,8 +134,10 @@ final dashboardDataProvider = StreamProvider.autoDispose<DashboardData>((ref) as
     ..sort((a, b) {
       final statusA = a.realtimeStatus;
       final statusB = b.realtimeStatus;
-      if (statusA == 'Sedang Berjalan' && statusB != 'Sedang Berjalan') return -1;
-      if (statusA != 'Sedang Berjalan' && statusB == 'Sedang Berjalan') return 1;
+      if (statusA == 'Sedang Berjalan' && statusB != 'Sedang Berjalan')
+        return -1;
+      if (statusA != 'Sedang Berjalan' && statusB == 'Sedang Berjalan')
+        return 1;
       return a.targetDateTime.compareTo(b.targetDateTime);
     });
   final upcomingReminders = activeReminders.take(10).toList();
@@ -143,11 +152,14 @@ final dashboardDataProvider = StreamProvider.autoDispose<DashboardData>((ref) as
 
   // ── Sync pinned data to home widget ───────────────────────────────────────
   final pinnedTargetInfos = pinnedTargetIds
-      .map((id) => topTargetsInfo.where((info) => info.target.id == id).firstOrNull)
+      .map((id) =>
+          topTargetsInfo.where((info) => info.target.id == id).firstOrNull)
       .whereType<TargetDashboardInfo>()
       .toList();
 
-  final pinnedRemindersList = reminders.where((r) => pinnedReminderIds.contains(r.id)).toList()
+  final pinnedRemindersList = reminders
+      .where((r) => pinnedReminderIds.contains(r.id))
+      .toList()
     ..sort((a, b) {
       final priorityComparison = b.priority.index.compareTo(a.priority.index);
       if (priorityComparison != 0) return priorityComparison;
@@ -156,6 +168,52 @@ final dashboardDataProvider = StreamProvider.autoDispose<DashboardData>((ref) as
 
   HomeWidgetService.updateMultiTargetWidgetData(pinnedTargetInfos);
   HomeWidgetService.updateMultiReminderWidgetData(pinnedRemindersList);
+
+  // ── Sync Bento Hub Widget ──────────────────────────────────────────────────
+  final notesAsync = ref.watch(financialNotesNotifierProvider);
+  double todayExpense = 0.0;
+  double todayIncome = 0.0;
+  final notesList = notesAsync.valueOrNull ?? [];
+  for (final n in notesList) {
+    if (n.note.date.year == now.year &&
+        n.note.date.month == now.month &&
+        n.note.date.day == now.day) {
+      todayExpense += n.totalExpense;
+      todayIncome += n.totalIncome;
+    }
+  }
+
+  final topTargetInfo = pinnedTargetInfos.isNotEmpty
+      ? pinnedTargetInfos.first
+      : (topTargetsInfo.isNotEmpty ? topTargetsInfo.first : null);
+  final target = topTargetInfo?.target;
+  final targetSavings = topTargetInfo?.savings ?? 0.0;
+  double progress = (target != null && target.targetAmount > 0)
+      ? (targetSavings / target.targetAmount)
+      : 0.0;
+  final daysLeft =
+      target != null ? target.endDate.difference(now).inDays.clamp(0, 9999) : 0;
+
+  final nextReminder = pinnedRemindersList.isNotEmpty
+      ? pinnedRemindersList.first
+      : (upcomingReminders.isNotEmpty ? upcomingReminders.first : null);
+  final dateFmt = DateFormat('dd MMM, HH:mm', 'id_ID');
+
+  HomeWidgetService.updateBentoWidgetData(
+    todayExpense: todayExpense,
+    todayIncome: todayIncome,
+    targetTitle: target?.name,
+    targetPct: '${(progress * 100).round()}%',
+    targetProgress: (progress * 100).round(),
+    targetDays: target != null ? '$daysLeft hari lagi' : null,
+    reminderTitle: nextReminder?.title,
+    reminderTime: nextReminder != null
+        ? DateFormat('HH:mm', 'id_ID').format(nextReminder.targetDateTime)
+        : null,
+    reminderDate: nextReminder != null
+        ? dateFmt.format(nextReminder.targetDateTime)
+        : null,
+  );
 
   yield DashboardData(
     totalSavings: totalSavings,

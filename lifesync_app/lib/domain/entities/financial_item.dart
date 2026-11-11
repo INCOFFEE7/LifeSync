@@ -7,7 +7,7 @@ class FinancialItem {
   Id id = Isar.autoIncrement;
 
   @Index()
-  late int noteId;
+  int noteId = 0;
 
   late String description;
   late double amount;

@@ -16,6 +16,7 @@ import 'package:lifesync_app/presentation/pages/create_shopping_page.dart';
 import 'package:lifesync_app/presentation/widgets/ls_design.dart';
 import 'package:lifesync_app/presentation/widgets/ls_date_time_picker_sheet.dart';
 import 'package:lifesync_app/presentation/widgets/calculator_input_dialog.dart';
+import 'package:lifesync_app/core/services/home_widget_service.dart';
 import 'package:intl/intl.dart';
 import 'dart:math' as math;
 
@@ -39,10 +40,12 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
   String _agendaSearchQuery = '';
   String _shoppingSearchQuery = '';
   bool _purchasedExpanded = false;
+  Set<int> _pinnedReminderIds = {};
 
   @override
   void initState() {
     super.initState();
+    _loadPinnedReminders();
     _tabController = TabController(
       length: 4,
       vsync: this,
@@ -52,6 +55,32 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
       if (mounted) setState(() {});
     });
     WidgetsBinding.instance.addObserver(this);
+  }
+
+  Future<void> _loadPinnedReminders() async {
+    final ids = await HomeWidgetService.getPinnedReminderIds();
+    if (mounted) {
+      setState(() => _pinnedReminderIds = ids.toSet());
+    }
+  }
+
+  Future<void> _togglePinReminder(int id) async {
+    final result = await HomeWidgetService.togglePinReminder(id);
+    if (result == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppTranslations.get(lang, 'maksimal_3_pin_widget')),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        setState(() => _pinnedReminderIds = result.toSet());
+        ref.invalidate(dashboardDataProvider);
+      }
+    }
   }
 
   void resetToDashboard() {
@@ -393,324 +422,357 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
-        final isDark = Theme.of(ctx).brightness == Brightness.dark;
-        final timeDisplay = _formatReminderTime(r);
-        final agendaColor = _getAgendaColor(r);
-        final isCompleted = r.realtimeStatus == 'Selesai';
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            final isDark = Theme.of(ctx).brightness == Brightness.dark;
+            final timeDisplay = _formatReminderTime(r);
+            final agendaColor = _getAgendaColor(r);
+            final isCompleted = r.realtimeStatus == 'Selesai';
 
-        return Container(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-            top: 24,
-            left: 24,
-            right: 24,
-          ),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            return Container(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+                top: 24,
+                left: 24,
+                right: 24,
+              ),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: agendaColor.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(Icons.event_note_outlined,
-                              color: agendaColor, size: 24),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: agendaColor.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(Icons.event_note_outlined,
+                                  color: agendaColor, size: 24),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(AppTranslations.get(lang, 'detail_agenda'),
+                                style: const TextStyle(
+                                    fontSize: 18, fontWeight: FontWeight.bold)),
+                          ],
                         ),
-                        const SizedBox(width: 12),
-                        Text(AppTranslations.get(lang, 'detail_agenda'),
-                            style: const TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold)),
+                        IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => Navigator.pop(ctx)),
                       ],
                     ),
-                    IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(ctx)),
-                  ],
-                ),
-                const SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
-                Text(r.title,
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-
-                Row(
-                  children: [
-                    Icon(Icons.access_time, size: 16, color: agendaColor),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        timeDisplay,
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: agendaColor),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // Badges: Kategori, Prioritas, Full Day / Rentang, Status
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2563EB).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'Kategori: ${r.category == ReminderCategory.other && (r.customCategory?.isNotEmpty ?? false) ? r.customCategory! : r.category.name.toUpperCase()}',
+                    Text(r.title,
                         style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF2563EB)),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: (r.priority == PriorityLevel.high
-                                ? Colors.red
-                                : (r.priority == PriorityLevel.medium
-                                    ? Colors.orange
-                                    : Colors.green))
-                            .withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'Prioritas: ${r.priority.name.toUpperCase()}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: r.priority == PriorityLevel.high
-                              ? Colors.red
-                              : (r.priority == PriorityLevel.medium
-                                  ? Colors.orange
-                                  : Colors.green),
+                            fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+
+                    Row(
+                      children: [
+                        Icon(Icons.access_time, size: 16, color: agendaColor),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            timeDisplay,
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: agendaColor),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                    if (r.isAllDay)
+                    const SizedBox(height: 12),
+
+                    // Badges: Kategori, Prioritas, Full Day / Rentang, Status
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color:
+                                const Color(0xFF2563EB).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'Kategori: ${r.category == ReminderCategory.other && (r.customCategory?.isNotEmpty ?? false) ? r.customCategory! : r.category.name.toUpperCase()}',
+                            style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2563EB)),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: (r.priority == PriorityLevel.high
+                                    ? Colors.red
+                                    : (r.priority == PriorityLevel.medium
+                                        ? Colors.orange
+                                        : Colors.green))
+                                .withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'Prioritas: ${r.priority.name.toUpperCase()}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: r.priority == PriorityLevel.high
+                                  ? Colors.red
+                                  : (r.priority == PriorityLevel.medium
+                                      ? Colors.orange
+                                      : Colors.green),
+                            ),
+                          ),
+                        ),
+                        if (r.isAllDay)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color:
+                                  Colors.amber.shade700.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'Full Day',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.amber.shade700),
+                            ),
+                          ),
+                        if (r.isRange)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF8B5CF6)
+                                  .withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              'Rentang Waktu',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF8B5CF6)),
+                            ),
+                          ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: (isCompleted
+                                    ? Colors.green
+                                    : (r.realtimeStatus == 'Sedang Berjalan'
+                                        ? Colors.blue
+                                        : Colors.grey))
+                                .withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'Status: ${r.realtimeStatus}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: isCompleted
+                                  ? Colors.green
+                                  : (r.realtimeStatus == 'Sedang Berjalan'
+                                      ? Colors.blue
+                                      : Colors.grey.shade700),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    if (r.description != null &&
+                        r.description!.trim().isNotEmpty) ...[
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.amber.shade700.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
+                          color: isDark
+                              ? const Color(0xFF0F172A)
+                              : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade300),
                         ),
                         child: Text(
-                          'Full Day',
+                          r.description!.trim(),
                           style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.amber.shade700),
+                              fontSize: 13,
+                              color: isDark
+                                  ? Colors.white70
+                                  : const Color(0xFF334155)),
                         ),
                       ),
-                    if (r.isRange)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF8B5CF6).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          'Rentang Waktu',
-                          style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF8B5CF6)),
-                        ),
-                      ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: (isCompleted
-                                ? Colors.green
-                                : (r.realtimeStatus == 'Sedang Berjalan'
-                                    ? Colors.blue
-                                    : Colors.grey))
-                            .withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'Status: ${r.realtimeStatus}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: isCompleted
-                              ? Colors.green
-                              : (r.realtimeStatus == 'Sedang Berjalan'
-                                  ? Colors.blue
-                                  : Colors.grey.shade700),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-
-                if (r.description != null &&
-                    r.description!.trim().isNotEmpty) ...[
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? const Color(0xFF0F172A)
-                          : const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: Text(
-                      r.description!.trim(),
-                      style: TextStyle(
-                          fontSize: 13,
-                          color: isDark
-                              ? Colors.white70
-                              : const Color(0xFF334155)),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
-                Row(
-                  children: [
-                    if (!isCompleted && r.isRange) ...[
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF10B981),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
-                            elevation: 0,
-                          ),
-                          onPressed: () async {
-                            r.status = ReminderStatus.completed;
-                            r.completedAt = DateTime.now();
-                            r.updatedAt = DateTime.now();
-                            await ref
-                                .read(reminderRepositoryProvider)
-                                .saveReminder(r);
-                            ref.invalidate(dashboardDataProvider);
-                            if (ctx.mounted) Navigator.pop(ctx);
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Row(
-                                    children: [
-                                      const Icon(Icons.check_circle_rounded,
-                                          color: Colors.white, size: 20),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                          child: Text(
-                                              'Agenda "${r.title}" berhasil diselesaikan!')),
-                                    ],
-                                  ),
-                                  backgroundColor: const Color(0xFF10B981),
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14)),
-                                ),
-                              );
-                            }
-                          },
-                          icon:
-                              const Icon(Icons.check_circle_outline, size: 18),
-                          label: Text(
-                              AppTranslations.get(lang, 'agenda_selesai'),
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.bold)),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                    ] else if (isCompleted) ...[
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
-                            side: const BorderSide(color: LsColors.amber),
-                          ),
-                          onPressed: () async {
-                            r.status = ReminderStatus.pending;
-                            r.completedAt = null;
-                            r.updatedAt = DateTime.now();
-                            await ref
-                                .read(reminderRepositoryProvider)
-                                .saveReminder(r);
-                            ref.invalidate(dashboardDataProvider);
-                            if (ctx.mounted) Navigator.pop(ctx);
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(lang == 'en'
-                                      ? 'Schedule "${r.title}" status reverted to pending.'
-                                      : 'Status agenda "${r.title}" dikembalikan menjadi Belum Selesai.'),
-                                  backgroundColor: LsColors.amber,
-                                ),
-                              );
-                            }
-                          },
-                          icon: const Icon(Icons.undo_rounded,
-                              size: 18, color: LsColors.amber),
-                          label: Text(
-                              AppTranslations.get(lang, 'kembalikan_berjalan'),
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: LsColors.amber)),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
+                      const SizedBox(height: 16),
                     ],
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                          side: BorderSide(color: Colors.grey.shade400),
+
+                    Row(
+                      children: [
+                        if (!isCompleted && r.isRange) ...[
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF10B981),
+                                foregroundColor: Colors.white,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)),
+                                elevation: 0,
+                              ),
+                              onPressed: () async {
+                                r.status = ReminderStatus.completed;
+                                r.completedAt = DateTime.now();
+                                r.updatedAt = DateTime.now();
+                                await ref
+                                    .read(reminderRepositoryProvider)
+                                    .saveReminder(r);
+                                ref.invalidate(dashboardDataProvider);
+                                if (ctx.mounted) Navigator.pop(ctx);
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Row(
+                                        children: [
+                                          const Icon(Icons.check_circle_rounded,
+                                              color: Colors.white, size: 20),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                              child: Text(
+                                                  'Agenda "${r.title}" berhasil diselesaikan!')),
+                                        ],
+                                      ),
+                                      backgroundColor: const Color(0xFF10B981),
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(14)),
+                                    ),
+                                  );
+                                }
+                              },
+                              icon: const Icon(Icons.check_circle_outline,
+                                  size: 18),
+                              label: Text(
+                                  AppTranslations.get(lang, 'agenda_selesai'),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                        ] else if (isCompleted) ...[
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)),
+                                side: const BorderSide(color: LsColors.amber),
+                              ),
+                              onPressed: () async {
+                                r.status = ReminderStatus.pending;
+                                r.completedAt = null;
+                                r.updatedAt = DateTime.now();
+                                await ref
+                                    .read(reminderRepositoryProvider)
+                                    .saveReminder(r);
+                                ref.invalidate(dashboardDataProvider);
+                                if (ctx.mounted) Navigator.pop(ctx);
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(lang == 'en'
+                                          ? 'Schedule "${r.title}" status reverted to pending.'
+                                          : 'Status agenda "${r.title}" dikembalikan menjadi Belum Selesai.'),
+                                      backgroundColor: LsColors.amber,
+                                    ),
+                                  );
+                                }
+                              },
+                              icon: const Icon(Icons.undo_rounded,
+                                  size: 18, color: LsColors.amber),
+                              label: Text(
+                                  AppTranslations.get(
+                                      lang, 'kembalikan_berjalan'),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: LsColors.amber)),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                        ],
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                              side: BorderSide(color: Colors.grey.shade400),
+                            ),
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => CreateReminderPage(
+                                          existingReminder: r)));
+                            },
+                            icon: const Icon(Icons.edit_outlined, size: 18),
+                            label: Text(
+                                AppTranslations.get(lang, 'edit_agenda'),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold)),
+                          ),
                         ),
-                        onPressed: () {
-                          Navigator.pop(ctx);
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) =>
-                                      CreateReminderPage(existingReminder: r)));
-                        },
-                        icon: const Icon(Icons.edit_outlined, size: 18),
-                        label: Text(AppTranslations.get(lang, 'edit_agenda'),
-                            style:
-                                const TextStyle(fontWeight: FontWeight.bold)),
-                      ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: Icon(
+                            _pinnedReminderIds.contains(r.id)
+                                ? Icons.push_pin
+                                : Icons.push_pin_outlined,
+                            color: _pinnedReminderIds.contains(r.id)
+                                ? LsColors.brand
+                                : LsColors.mute(context),
+                          ),
+                          tooltip: _pinnedReminderIds.contains(r.id)
+                              ? 'Lepas Pin Widget'
+                              : 'Pin ke Widget',
+                          onPressed: () async {
+                            await _togglePinReminder(r.id);
+                            if (ctx.mounted) {
+                              setModalState(() {});
+                            }
+                          },
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -3226,6 +3288,21 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                     ],
                   ),
                 ),
+              ),
+              IconButton(
+                icon: Icon(
+                  _pinnedReminderIds.contains(r.id)
+                      ? Icons.push_pin
+                      : Icons.push_pin_outlined,
+                  color: _pinnedReminderIds.contains(r.id)
+                      ? LsColors.brand
+                      : LsColors.mute(context),
+                  size: 18,
+                ),
+                tooltip: _pinnedReminderIds.contains(r.id)
+                    ? 'Lepas Pin Widget'
+                    : 'Pin ke Widget',
+                onPressed: () => _togglePinReminder(r.id),
               ),
               if (showDelete)
                 IconButton(
