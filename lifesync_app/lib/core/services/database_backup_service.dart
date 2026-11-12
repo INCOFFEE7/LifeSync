@@ -484,9 +484,10 @@ class DatabaseBackupService {
 
       final meta = snapshot['meta'] as Map<String, dynamic>?;
       final totalRecords = meta?['totalRecords'] ?? 0;
-      final exportDate = meta?['exportedAt'] != null
-          ? DateFormat('d MMMM yyyy, HH:mm', 'id_ID')
-              .format(DateTime.parse(meta!['exportedAt'] as String))
+      final parsedExportDate =
+          DateTime.tryParse(meta?['exportedAt'] as String? ?? '');
+      final exportDate = parsedExportDate != null
+          ? DateFormat('d MMMM yyyy, HH:mm', 'id_ID').format(parsedExportDate)
           : 'Tidak diketahui';
 
       if (!context.mounted) return;

@@ -276,22 +276,22 @@ class SyncUseCase {
   }
 
   DateTime _parseDate(String dateStr) {
+    if (dateStr.trim().isEmpty) return DateTime.now();
+    final direct = DateTime.tryParse(dateStr.trim());
+    if (direct != null) return direct;
     try {
-      return DateTime.parse(dateStr);
-    } catch (_) {
-      try {
-        var parts = dateStr.trim().split(' ');
-        if (parts.length == 2) {
-          var timeParts = parts[1].split(':');
-          if (timeParts.isNotEmpty && timeParts[0].length == 1) {
-            timeParts[0] = '0${timeParts[0]}';
-          }
-          return DateTime.parse('${parts[0]} ${timeParts.join(':')}');
+      var parts = dateStr.trim().split(' ');
+      if (parts.length == 2) {
+        var timeParts = parts[1].split(':');
+        if (timeParts.isNotEmpty && timeParts[0].length == 1) {
+          timeParts[0] = '0${timeParts[0]}';
         }
-        return DateTime.now();
-      } catch (_) {
-        return DateTime.now();
+        return DateTime.tryParse('${parts[0]} ${timeParts.join(':')}') ??
+            DateTime.now();
       }
+      return DateTime.now();
+    } catch (_) {
+      return DateTime.now();
     }
   }
 

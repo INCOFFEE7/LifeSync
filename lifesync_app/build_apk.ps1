@@ -66,7 +66,7 @@ if ($Universal) {
         $candidates = @(
             (Join-Path $flutterApkDir "app-$abi-lifesync-release.apk"),
             (Join-Path $flutterApkDir "app-$abi-release.apk"),
-            (Join-Path $gradleApkDir "WhatToDo_v2026.11.06.01.03-$abi.apk")
+            (Join-Path $gradleApkDir "WhatToDo_v2026.11.06.01.04-$abi.apk")
         )
         $found = $null
         foreach ($cand in $candidates) {

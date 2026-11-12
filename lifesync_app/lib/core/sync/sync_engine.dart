@@ -45,14 +45,15 @@ class SyncEngine {
     final sheetsApi = sheets.SheetsApi(client);
 
     // Auto-provision any missing sheets/tabs in older spreadsheets
-    await _ensureRequiredSheetsExist(sheetsApi, spreadsheetId);
+    final existingTitles =
+        await _ensureRequiredSheetsExist(sheetsApi, spreadsheetId);
 
     // Sync ALL LifeHaven modules
     await _syncReminders(sheetsApi, spreadsheetId);
     await _syncFinancialNotes(sheetsApi, spreadsheetId);
     await _syncFinancialItems(sheetsApi, spreadsheetId);
     await _syncBills(sheetsApi, spreadsheetId);
-    await _syncTargets(sheetsApi, spreadsheetId);
+    await _syncTargets(sheetsApi, spreadsheetId, existingTitles);
     await _syncShoppingItems(sheetsApi, spreadsheetId);
 
     // Sync BeeNest modules if in beebee flavor
@@ -63,7 +64,7 @@ class SyncEngine {
     }
   }
 
-  Future<void> _ensureRequiredSheetsExist(
+  Future<Set<String>> _ensureRequiredSheetsExist(
       sheets.SheetsApi sheetsApi, String spreadsheetId) async {
     try {
       final spreadsheet = await sheetsApi.spreadsheets.get(spreadsheetId);
@@ -99,33 +100,44 @@ class SyncEngine {
         ],
         'Bills': [
           'ID',
-          'Title',
+          'Name',
           'Amount',
-          'DueDate',
           'IsPaid',
-          'Category',
-          'Notes',
-          'UpdatedAt'
+          'DueDate',
+          'RealizationAmount',
+          'BillType',
+          'PaidBy',
+          'ReceivedBy',
+          'Month',
+          'UpdatedAt',
+          'Deleted'
         ],
         'Targets': [
-          'ID',
+          'SyncID',
           'Name',
           'TargetAmount',
-          'CurrentAmount',
-          'Deadline',
+          'Mode',
+          'FixedDailyAmount',
+          'StartDate',
+          'EndDate',
           'Category',
-          'IsCompleted',
-          'Notes',
-          'UpdatedAt'
+          'Status',
+          'UpdatedAt',
+          'Deleted'
         ],
         'ShoppingItems': [
-          'ID',
+          'SyncID',
           'Name',
-          'EstimatedPrice',
           'IsChecked',
+          'PurchaseDate',
+          'Price',
+          'RealizationPrice',
           'Category',
+          'Location',
+          'PurchasedBy',
           'Notes',
-          'UpdatedAt'
+          'UpdatedAt',
+          'Deleted'
         ],
         'DailyIncomeRecords': ['ID', 'Date', 'Amount', 'Notes', 'UpdatedAt'],
         'AppSettings': ['Key', 'Value', 'UpdatedAt'],
@@ -156,6 +168,12 @@ class SyncEngine {
 
       final List<sheets.Request> requests = [];
       for (final title in requiredHeaders.keys) {
+        // If Targets or IncomeTargets already exists, don't re-create
+        if (title == 'Targets' &&
+            (existingTitles.contains('Targets') ||
+                existingTitles.contains('IncomeTargets'))) {
+          continue;
+        }
         if (!existingTitles.contains(title)) {
           requests.add(sheets.Request(
             addSheet: sheets.AddSheetRequest(
@@ -178,6 +196,7 @@ class SyncEngine {
               range: '$title!A1',
               values: [requiredHeaders[title]!],
             ));
+            existingTitles.add(title);
           }
         }
         if (headerRanges.isNotEmpty) {
@@ -190,8 +209,10 @@ class SyncEngine {
           );
         }
       }
+      return existingTitles;
     } catch (e) {
       debugPrint('[SyncEngine] Error auto-provisioning missing sheets: $e');
+      return <String>{};
     }
   }
 
@@ -377,6 +398,7 @@ class SyncEngine {
         local.description,
         local.amount.toString(),
         local.type,
+        local.createdAt.toIso8601String(),
         local.updatedAt.toIso8601String()
       ];
       if (cloudMap.containsKey(local.id.toString())) {
@@ -477,9 +499,12 @@ class SyncEngine {
   }
 
   // ── 5. Savings Targets Sync ───────────────────────────────────────────────
-  Future<void> _syncTargets(
-      sheets.SheetsApi sheetsApi, String spreadsheetId) async {
-    final range = 'IncomeTargets!A2:Z';
+  Future<void> _syncTargets(sheets.SheetsApi sheetsApi, String spreadsheetId,
+      Set<String> existingTitles) async {
+    final targetSheet = existingTitles.contains('IncomeTargets')
+        ? 'IncomeTargets'
+        : 'Targets';
+    final range = '$targetSheet!A2:Z';
     sheets.ValueRange? cloudData;
     try {
       cloudData = await sheetsApi.spreadsheets.values.get(spreadsheetId, range);
@@ -506,14 +531,19 @@ class SyncEngine {
         local.targetAmount.toString(),
         local.mode,
         local.fixedDailyAmount.toString(),
-        local.updatedAt.toIso8601String()
+        local.startDate.toIso8601String(),
+        local.endDate.toIso8601String(),
+        local.category.name,
+        local.status.name,
+        local.updatedAt.toIso8601String(),
+        local.deleted.toString(),
       ];
       if (cloudMap.containsKey(local.syncId)) {
         final cloudEntry = cloudMap[local.syncId]!;
         if (_isRowModified(localRow, cloudEntry.row)) {
           rowsToUpdate.add(sheets.ValueRange()
             ..range =
-                'IncomeTargets!A${cloudEntry.sheetRow}:Z${cloudEntry.sheetRow}'
+                '$targetSheet!A${cloudEntry.sheetRow}:Z${cloudEntry.sheetRow}'
             ..values = [localRow]);
         }
       } else {

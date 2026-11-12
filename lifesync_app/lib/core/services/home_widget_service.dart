@@ -203,6 +203,7 @@ class HomeWidgetService {
       await HomeWidget.requestPinWidget(
         name: 'TargetWidgetProvider',
         androidName: 'TargetWidgetProvider',
+        qualifiedAndroidName: 'com.example.lifesync_app.TargetWidgetProvider',
       );
     } catch (e) {
       debugPrint('Error pinning target widget: $e');
@@ -215,6 +216,7 @@ class HomeWidgetService {
       await HomeWidget.requestPinWidget(
         name: 'ReminderWidgetProvider',
         androidName: 'ReminderWidgetProvider',
+        qualifiedAndroidName: 'com.example.lifesync_app.ReminderWidgetProvider',
       );
     } catch (e) {
       debugPrint('Error pinning reminder widget: $e');
@@ -284,6 +286,7 @@ class HomeWidgetService {
       await HomeWidget.requestPinWidget(
         name: 'BentoWidgetProvider',
         androidName: 'BentoWidgetProvider',
+        qualifiedAndroidName: 'com.example.lifesync_app.BentoWidgetProvider',
       );
     } catch (e) {
       debugPrint('Error pinning bento widget: $e');
