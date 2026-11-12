@@ -78,7 +78,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     if (currentSound.contains('/')) {
       await _audioPlayer.play(DeviceFileSource(currentSound));
     } else {
-      await _audioPlayer.play(AssetSource('audios/notif.mp3'));
+      final safeSound = (currentSound == 'notif.mp3' || currentSound.isEmpty)
+          ? 'ringtone_1.mp3'
+          : currentSound;
+      await _audioPlayer.play(AssetSource('audios/$safeSound'));
     }
   }
 
@@ -362,9 +365,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               icon: Icons.music_note,
               color: LsColors.amber,
               title: AppTranslations.get(lang, 'nada_dering_default'),
-              subtitle: ref.watch(defaultSoundProvider).contains('/')
-                  ? AppTranslations.get(lang, 'custom_sound')
-                  : AppTranslations.get(lang, 'default_sound'),
+              subtitle: () {
+                final snd = ref.watch(defaultSoundProvider);
+                if (snd.contains('/')) {
+                  return AppTranslations.get(lang, 'custom_sound');
+                }
+                if (snd == 'ringtone_2.mp3') return 'Nada Dering 2 (Sweet Bells)';
+                if (snd == 'ringtone_3.mp3') {
+                  return 'Nada Dering 3 (Peaceful Acoustic)';
+                }
+                return 'Nada Dering 1 (Chime Melody - Default)';
+              }(),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -383,29 +394,54 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   context: context,
                   title: AppTranslations.get(lang, 'pilih_nada_dering'),
                   headerIcon: Icons.music_note_rounded,
-                  selectedValue:
-                      currentSound.contains('/') ? 'custom' : 'notif.mp3',
+                  selectedValue: currentSound.contains('/')
+                      ? 'custom'
+                      : (currentSound == 'notif.mp3'
+                          ? 'ringtone_1.mp3'
+                          : currentSound),
                   options: [
-                    LsOptionItem(
-                      value: 'notif.mp3',
-                      title: AppTranslations.get(lang, 'default_sound'),
-                      subtitle: AppTranslations.get(lang, 'default_sound_sub'),
+                    const LsOptionItem(
+                      value: 'ringtone_1.mp3',
+                      title: 'Nada Dering 1',
+                      subtitle: 'Chime Melody (Bawaan)',
                       icon: Icons.music_note_rounded,
                       iconColor: LsColors.brand,
+                    ),
+                    const LsOptionItem(
+                      value: 'ringtone_2.mp3',
+                      title: 'Nada Dering 2',
+                      subtitle: 'Sweet Bells',
+                      icon: Icons.music_note_rounded,
+                      iconColor: LsColors.income,
+                    ),
+                    const LsOptionItem(
+                      value: 'ringtone_3.mp3',
+                      title: 'Nada Dering 3',
+                      subtitle: 'Peaceful Acoustic',
+                      icon: Icons.music_note_rounded,
+                      iconColor: Colors.deepPurple,
                     ),
                     LsOptionItem(
                       value: 'pick_file',
                       title: AppTranslations.get(lang, 'pilih_dari_file'),
                       subtitle: AppTranslations.get(lang, 'file_audio_kustom'),
                       icon: Icons.folder_open_rounded,
-                      iconColor: Colors.deepPurple,
+                      iconColor: Colors.amber,
                     ),
                   ],
                 );
-                if (selected == 'notif.mp3') {
+                if (selected != null &&
+                    (selected == 'ringtone_1.mp3' ||
+                        selected == 'ringtone_2.mp3' ||
+                        selected == 'ringtone_3.mp3')) {
                   await ref
                       .read(defaultSoundProvider.notifier)
-                      .setSound('notif.mp3');
+                      .setSound(selected);
+                  try {
+                    await _audioPlayer.stop();
+                    await _audioPlayer.play(AssetSource('audios/$selected'));
+                    if (mounted) setState(() => _isPlaying = true);
+                  } catch (_) {}
                 } else if (selected == 'pick_file') {
                   FilePickerResult? result =
                       await FilePicker.platform.pickFiles(

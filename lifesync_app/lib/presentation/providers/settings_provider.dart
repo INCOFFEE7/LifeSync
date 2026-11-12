@@ -46,14 +46,19 @@ final themeModeProvider =
 class DefaultSoundNotifier extends StateNotifier<String> {
   static const _prefKey = 'default_reminder_sound';
 
-  DefaultSoundNotifier() : super('notif.mp3') {
+  DefaultSoundNotifier() : super('ringtone_1.mp3') {
     _loadFromPrefs();
   }
 
   Future<void> _loadFromPrefs() async {
     final prefs = await SharedPreferences.getInstance();
-    final sound = prefs.getString(_prefKey) ?? 'notif.mp3';
-    state = sound;
+    final sound = prefs.getString(_prefKey) ?? 'ringtone_1.mp3';
+    if (sound == 'notif.mp3') {
+      state = 'ringtone_1.mp3';
+      await prefs.setString(_prefKey, 'ringtone_1.mp3');
+    } else {
+      state = sound;
+    }
   }
 
   Future<void> setSound(String sound) async {

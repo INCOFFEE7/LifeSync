@@ -293,6 +293,15 @@ class IsarBillRepository {
     }
   }
 
+  Future<List<Bill>> getAllBills() async {
+    if (kIsWeb) return [];
+    return await _dbService.db.bills
+        .filter()
+        .deletedEqualTo(false)
+        .sortByDueDate()
+        .findAll();
+  }
+
   Future<List<Bill>> getBillsByMonth(String month) async {
     if (kIsWeb) return [];
     await ensureRecurringBillsForMonth(month);

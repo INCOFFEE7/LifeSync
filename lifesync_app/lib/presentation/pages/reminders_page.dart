@@ -41,6 +41,8 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
   String _shoppingSearchQuery = '';
   bool _purchasedExpanded = false;
   Set<int> _pinnedReminderIds = {};
+  Set<int> _pinnedBillIds = {};
+  Set<int> _pinnedShoppingIds = {};
 
   @override
   void initState() {
@@ -59,8 +61,14 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
 
   Future<void> _loadPinnedReminders() async {
     final ids = await HomeWidgetService.getPinnedReminderIds();
+    final billIds = await HomeWidgetService.getPinnedBillIds();
+    final shoppingIds = await HomeWidgetService.getPinnedShoppingIds();
     if (mounted) {
-      setState(() => _pinnedReminderIds = ids.toSet());
+      setState(() {
+        _pinnedReminderIds = ids.toSet();
+        _pinnedBillIds = billIds.toSet();
+        _pinnedShoppingIds = shoppingIds.toSet();
+      });
     }
   }
 
@@ -78,6 +86,44 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
     } else {
       if (mounted) {
         setState(() => _pinnedReminderIds = result.toSet());
+        ref.invalidate(dashboardDataProvider);
+      }
+    }
+  }
+
+  Future<void> _togglePinBill(int id) async {
+    final result = await HomeWidgetService.togglePinBill(id);
+    if (result == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppTranslations.get(lang, 'maksimal_3_pin_widget')),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        setState(() => _pinnedBillIds = result.toSet());
+        ref.invalidate(dashboardDataProvider);
+      }
+    }
+  }
+
+  Future<void> _togglePinShopping(int id) async {
+    final result = await HomeWidgetService.togglePinShopping(id);
+    if (result == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppTranslations.get(lang, 'maksimal_3_pin_widget')),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        setState(() => _pinnedShoppingIds = result.toSet());
         ref.invalidate(dashboardDataProvider);
       }
     }
@@ -2299,7 +2345,22 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                   fontSize: 13.5,
                   color: LsColors.brand),
             ),
-            const SizedBox(width: 8),
+            IconButton(
+              icon: Icon(
+                _pinnedBillIds.contains(bill.id)
+                    ? Icons.push_pin
+                    : Icons.push_pin_outlined,
+                color: _pinnedBillIds.contains(bill.id)
+                    ? LsColors.amber
+                    : LsColors.mute(context),
+                size: 20,
+              ),
+              tooltip: _pinnedBillIds.contains(bill.id)
+                  ? 'Lepas Pin Widget'
+                  : 'Pin ke Widget',
+              onPressed: () => _togglePinBill(bill.id),
+            ),
+            const SizedBox(width: 4),
             LsPopupMenuButton<String>(
               tooltip: 'Menu Tagihan',
               options: const [
@@ -2671,6 +2732,23 @@ class _RemindersPageState extends ConsumerState<RemindersPage>
                   ],
                 ),
               ),
+            ),
+            IconButton(
+              icon: Icon(
+                _pinnedShoppingIds.contains(item.id)
+                    ? Icons.push_pin
+                    : Icons.push_pin_outlined,
+                size: 18,
+                color: _pinnedShoppingIds.contains(item.id)
+                    ? LsColors.amber
+                    : mute,
+              ),
+              padding: const EdgeInsets.all(6),
+              constraints: const BoxConstraints(),
+              tooltip: _pinnedShoppingIds.contains(item.id)
+                  ? 'Lepas Pin Widget'
+                  : 'Pin ke Widget',
+              onPressed: () => _togglePinShopping(item.id),
             ),
             IconButton(
               icon: Icon(Icons.edit_outlined, size: 18, color: mute),

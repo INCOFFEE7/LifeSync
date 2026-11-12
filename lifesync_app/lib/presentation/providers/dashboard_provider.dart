@@ -1,6 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lifesync_app/domain/entities/income_target.dart';
 import 'package:lifesync_app/domain/entities/reminder.dart';
+import 'package:lifesync_app/domain/entities/bill.dart';
+import 'package:lifesync_app/domain/entities/shopping_item.dart';
+import 'package:lifesync_app/presentation/providers/shopping_providers.dart';
 import 'package:lifesync_app/domain/usecases/target_calculation_usecase.dart';
 import 'package:lifesync_app/presentation/providers/repository_providers.dart';
 import 'package:lifesync_app/core/services/home_widget_service.dart';
@@ -151,6 +154,9 @@ final dashboardDataProvider =
       .length;
 
   // ── Sync pinned data to home widget ───────────────────────────────────────
+  final pinnedBillIds = await HomeWidgetService.getPinnedBillIds();
+  final pinnedShoppingIds = await HomeWidgetService.getPinnedShoppingIds();
+
   final pinnedTargetInfos = pinnedTargetIds
       .map((id) =>
           topTargetsInfo.where((info) => info.target.id == id).firstOrNull)
@@ -166,8 +172,27 @@ final dashboardDataProvider =
       return a.targetDateTime.compareTo(b.targetDateTime);
     });
 
+  final billRepo = ref.watch(billRepositoryProvider);
+  final allBills = await billRepo.getAllBills();
+  final pinnedBillsList =
+      allBills.where((b) => pinnedBillIds.contains(b.id)).toList();
+
+  final shoppingAsync = ref.watch(shoppingItemsProvider);
+  final allShopping = shoppingAsync.valueOrNull ?? [];
+  final pinnedShoppingList =
+      allShopping.where((s) => pinnedShoppingIds.contains(s.id)).toList();
+
+  final List<dynamic> unifiedPinnedList = [
+    ...pinnedRemindersList,
+    ...pinnedBillsList,
+    ...pinnedShoppingList,
+  ];
+
+  final displayPinnedItems =
+      unifiedPinnedList.isNotEmpty ? unifiedPinnedList : upcomingReminders;
+
   HomeWidgetService.updateMultiTargetWidgetData(pinnedTargetInfos);
-  HomeWidgetService.updateMultiReminderWidgetData(pinnedRemindersList);
+  HomeWidgetService.updateMultiReminderWidgetData(displayPinnedItems);
 
   // ── Sync Bento Hub Widget ──────────────────────────────────────────────────
   final notesAsync = ref.watch(financialNotesNotifierProvider);
@@ -194,10 +219,31 @@ final dashboardDataProvider =
   final daysLeft =
       target != null ? target.endDate.difference(now).inDays.clamp(0, 9999) : 0;
 
-  final nextReminder = pinnedRemindersList.isNotEmpty
-      ? pinnedRemindersList.first
+  final nextPinnedItem = unifiedPinnedList.isNotEmpty
+      ? unifiedPinnedList.first
       : (upcomingReminders.isNotEmpty ? upcomingReminders.first : null);
   final dateFmt = DateFormat('dd MMM, HH:mm', 'id_ID');
+
+  String? bentoReminderTitle;
+  String? bentoReminderTime;
+  String? bentoReminderDate;
+
+  if (nextPinnedItem is Reminder) {
+    bentoReminderTitle = nextPinnedItem.title;
+    bentoReminderTime =
+        DateFormat('HH:mm', 'id_ID').format(nextPinnedItem.targetDateTime);
+    bentoReminderDate = dateFmt.format(nextPinnedItem.targetDateTime);
+  } else if (nextPinnedItem is Bill) {
+    bentoReminderTitle = '[Tagihan] ${nextPinnedItem.name}';
+    bentoReminderTime = nextPinnedItem.isPaid ? 'Lunas' : 'Belum Lunas';
+    bentoReminderDate =
+        DateFormat('dd MMM yyyy', 'id_ID').format(nextPinnedItem.dueDate);
+  } else if (nextPinnedItem is ShoppingItem) {
+    bentoReminderTitle = '[Belanja] ${nextPinnedItem.name}';
+    bentoReminderTime =
+        nextPinnedItem.isChecked ? 'Sudah Dibeli' : 'Perlu Dibeli';
+    bentoReminderDate = nextPinnedItem.category ?? 'Belanja';
+  }
 
   HomeWidgetService.updateBentoWidgetData(
     todayExpense: todayExpense,
@@ -206,13 +252,9 @@ final dashboardDataProvider =
     targetPct: '${(progress * 100).round()}%',
     targetProgress: (progress * 100).round(),
     targetDays: target != null ? '$daysLeft hari lagi' : null,
-    reminderTitle: nextReminder?.title,
-    reminderTime: nextReminder != null
-        ? DateFormat('HH:mm', 'id_ID').format(nextReminder.targetDateTime)
-        : null,
-    reminderDate: nextReminder != null
-        ? dateFmt.format(nextReminder.targetDateTime)
-        : null,
+    reminderTitle: bentoReminderTitle,
+    reminderTime: bentoReminderTime,
+    reminderDate: bentoReminderDate,
   );
 
   yield DashboardData(

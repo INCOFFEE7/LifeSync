@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:lifesync_app/domain/entities/financial_note.dart';
 import 'package:lifesync_app/domain/entities/financial_item.dart';
 import 'package:lifesync_app/presentation/providers/financial_note_providers.dart';
+import 'package:lifesync_app/presentation/providers/repository_providers.dart';
 import 'package:lifesync_app/presentation/pages/add_edit_financial_note_page.dart';
 import 'package:lifesync_app/presentation/widgets/custom_numeric_keypad.dart';
 import 'package:lifesync_app/presentation/widgets/ls_design.dart';
@@ -110,14 +111,18 @@ class _FinancialNoteDetailPageState
     return 'Rp ${fmt.format(val.toInt())}';
   }
 
-  void _showQuickAddItemDialog(int noteId, DateTime noteDate) {
-    final descController = TextEditingController();
-    String calcExpr = '0';
-    String type = 'expense';
-    DateTime itemTimestamp = DateTime.now();
+  void _showQuickAddItemDialog(int noteId, DateTime noteDate,
+      {FinancialItem? itemToEdit}) {
+    final descController =
+        TextEditingController(text: itemToEdit?.description ?? '');
+    String calcExpr =
+        itemToEdit != null ? itemToEdit.amount.toInt().toString() : '0';
+    String type = itemToEdit?.type ?? 'expense';
+    DateTime itemTimestamp = itemToEdit?.createdAt ?? DateTime.now();
     bool showKeypad = false;
     String? descError;
     String? nominalError;
+    String? bannerError;
 
     showModalBottomSheet(
       context: context,
@@ -134,6 +139,7 @@ class _FinancialNoteDetailPageState
             void onKeyPress(String k) {
               setModalState(() {
                 if (nominalError != null) nominalError = null;
+                if (bannerError != null) bannerError = null;
                 if (k == 'C') {
                   calcExpr = '0';
                   return;
@@ -191,11 +197,44 @@ class _FinancialNoteDetailPageState
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text('Tambah Item Transaksi',
+                    Text(
+                        itemToEdit == null
+                            ? 'Tambah Item Transaksi'
+                            : 'Edit Item Transaksi',
                         style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
                             color: LsColors.ink(context))),
+                    if (bannerError != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEF4444).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                              color: const Color(0xFFEF4444), width: 1.2),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline,
+                                color: Color(0xFFEF4444), size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                bannerError!,
+                                style: const TextStyle(
+                                  color: Color(0xFFEF4444),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.all(4),
@@ -381,6 +420,9 @@ class _FinancialNoteDetailPageState
                             borderRadius: BorderRadius.circular(14)),
                       ),
                       onPressed: () async {
+                        FocusScope.of(context).unfocus();
+                        FocusManager.instance.primaryFocus?.unfocus();
+
                         final desc = descController.text.trim();
                         final finalVal = _evaluateExpr(calcExpr);
                         bool hasError = false;
@@ -394,17 +436,25 @@ class _FinancialNoteDetailPageState
                           hasError = true;
                         }
                         if (hasError) {
+                          bannerError = descError ?? nominalError;
                           setModalState(() {});
                           return;
                         }
 
-                        final confirm = await showLsConfirmDialog(
-                          context: context,
-                          title: 'Tambah Item Transaksi',
-                          message:
-                              'Apakah Anda yakin ingin menambahkan transaksi "$desc"?',
-                        );
-                        if (!confirm) return;
+                        if (itemToEdit != null) {
+                          itemToEdit.description = desc;
+                          itemToEdit.amount = finalVal;
+                          itemToEdit.type = type;
+                          itemToEdit.createdAt = itemTimestamp;
+                          itemToEdit.updatedAt = DateTime.now();
+                          final repo = ref.read(financialNoteRepositoryProvider);
+                          await repo.saveItem(itemToEdit);
+                          await ref
+                              .read(financialNotesNotifierProvider.notifier)
+                              .loadNotes();
+                          if (mounted) Navigator.pop(ctx);
+                          return;
+                        }
 
                         final item = FinancialItem()
                           ..noteId = noteId
@@ -419,8 +469,11 @@ class _FinancialNoteDetailPageState
                             .addItemToNote(item);
                         if (mounted) Navigator.pop(ctx);
                       },
-                      child: const Text('+ Tambah ke Catatan Ini',
-                          style: TextStyle(
+                      child: Text(
+                          itemToEdit == null
+                              ? '+ Tambah ke Catatan Ini'
+                              : 'Simpan Perubahan',
+                          style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                               color: Colors.white)),
@@ -856,6 +909,14 @@ class _FinancialNoteDetailPageState
                                           fontWeight: FontWeight.w800,
                                           fontSize: 14,
                                           color: c),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.edit_outlined,
+                                          size: 18),
+                                      tooltip: 'Edit Item',
+                                      onPressed: () => _showQuickAddItemDialog(
+                                          noteItem.note.id, noteItem.note.date,
+                                          itemToEdit: item),
                                     ),
                                     IconButton(
                                       icon: Icon(Icons.delete_outline,

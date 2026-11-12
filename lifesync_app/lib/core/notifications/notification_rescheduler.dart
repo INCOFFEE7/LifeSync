@@ -42,7 +42,7 @@ class NotificationRescheduler {
   }
 
   /// Re-schedule semua pengingat yang masih aktif dan belum lewat waktunya
-  Future<void> rescheduleAll({String defaultSound = 'notif'}) async {
+  Future<void> rescheduleAll({String defaultSound = 'ringtone_1'}) async {
     try {
       final now = DateTime.now();
       final List<Reminder> allReminders =

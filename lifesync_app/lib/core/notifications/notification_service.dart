@@ -248,10 +248,11 @@ class NotificationService {
       } else {
         playSound = true;
         String activeSound = sound ?? '';
-        if (activeSound.isEmpty) {
+        if (activeSound.isEmpty || activeSound == 'notif.mp3') {
           final prefs = await SharedPreferences.getInstance();
           activeSound =
-              prefs.getString('default_reminder_sound') ?? 'notif.mp3';
+              prefs.getString('default_reminder_sound') ?? 'ringtone_1.mp3';
+          if (activeSound == 'notif.mp3') activeSound = 'ringtone_1.mp3';
         }
 
         if (activeSound.contains('/')) {
@@ -259,7 +260,7 @@ class NotificationService {
           channelId = '${channelId}_custom_${activeSound.hashCode}';
         } else {
           final soundName = activeSound.split('.').first;
-          final validName = soundName.isEmpty ? 'notif' : soundName;
+          final validName = (soundName.isEmpty || soundName == 'notif') ? 'ringtone_1' : soundName;
           notifSound = RawResourceAndroidNotificationSound(validName);
           channelId = '${channelId}_$validName';
         }
@@ -426,9 +427,10 @@ class NotificationService {
     );
 
     String activeSound = sound ?? '';
-    if (activeSound.isEmpty) {
+    if (activeSound.isEmpty || activeSound == 'notif.mp3') {
       final prefs = await SharedPreferences.getInstance();
-      activeSound = prefs.getString('default_reminder_sound') ?? 'notif.mp3';
+      activeSound = prefs.getString('default_reminder_sound') ?? 'ringtone_1.mp3';
+      if (activeSound == 'notif.mp3') activeSound = 'ringtone_1.mp3';
     }
 
     AndroidNotificationSound? notifSound;
@@ -438,7 +440,7 @@ class NotificationService {
       channelId = '${channelId}_custom_${activeSound.hashCode}';
     } else {
       final soundName = activeSound.split('.').first;
-      final validName = soundName.isEmpty ? 'notif' : soundName;
+      final validName = (soundName.isEmpty || soundName == 'notif') ? 'ringtone_1' : soundName;
       notifSound = RawResourceAndroidNotificationSound(validName);
       channelId = '${channelId}_$validName';
     }

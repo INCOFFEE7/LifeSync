@@ -167,6 +167,7 @@ class SyncEngine {
       }
 
       final List<sheets.Request> requests = [];
+      final Set<String> newlyCreated = {};
       for (final title in requiredHeaders.keys) {
         // If Targets or IncomeTargets already exists, don't re-create
         if (title == 'Targets' &&
@@ -180,6 +181,7 @@ class SyncEngine {
               properties: sheets.SheetProperties(title: title),
             ),
           ));
+          newlyCreated.add(title);
         }
       }
 
@@ -188,16 +190,14 @@ class SyncEngine {
             sheets.BatchUpdateSpreadsheetRequest(requests: requests);
         await sheetsApi.spreadsheets.batchUpdate(batchUpdateReq, spreadsheetId);
 
-        // Add header rows to the newly created sheets
+        // Add header rows ONLY to the newly created sheets
         final List<sheets.ValueRange> headerRanges = [];
-        for (final title in requiredHeaders.keys) {
-          if (!existingTitles.contains(title)) {
-            headerRanges.add(sheets.ValueRange(
-              range: '$title!A1',
-              values: [requiredHeaders[title]!],
-            ));
-            existingTitles.add(title);
-          }
+        for (final title in newlyCreated) {
+          headerRanges.add(sheets.ValueRange(
+            range: '$title!A1',
+            values: [requiredHeaders[title]!],
+          ));
+          existingTitles.add(title);
         }
         if (headerRanges.isNotEmpty) {
           await sheetsApi.spreadsheets.values.batchUpdate(

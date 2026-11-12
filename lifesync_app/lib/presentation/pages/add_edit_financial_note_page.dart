@@ -190,6 +190,7 @@ class _AddEditFinancialNotePageState
     bool isFirstEditPress = itemToEdit != null;
     String? descError;
     String? nominalError;
+    String? bannerError;
 
     showModalBottomSheet(
       context: context,
@@ -206,6 +207,7 @@ class _AddEditFinancialNotePageState
             void onKeyPress(String k) {
               setModalState(() {
                 if (nominalError != null) nominalError = null;
+                if (bannerError != null) bannerError = null;
                 if (k == 'C') {
                   calcExpr = '0';
                   isFirstEditPress = false;
@@ -244,6 +246,7 @@ class _AddEditFinancialNotePageState
             void onDelete() {
               setModalState(() {
                 if (nominalError != null) nominalError = null;
+                if (bannerError != null) bannerError = null;
                 isFirstEditPress = false;
                 if (calcExpr.length > 1) {
                   calcExpr = calcExpr.substring(0, calcExpr.length - 1);
@@ -285,6 +288,36 @@ class _AddEditFinancialNotePageState
                           fontWeight: FontWeight.w800,
                           color: LsColors.ink(context)),
                     ),
+                    if (bannerError != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEF4444).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                              color: const Color(0xFFEF4444), width: 1.2),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline,
+                                color: Color(0xFFEF4444), size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                bannerError!,
+                                style: const TextStyle(
+                                  color: Color(0xFFEF4444),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.all(4),
@@ -495,6 +528,9 @@ class _AddEditFinancialNotePageState
                             borderRadius: BorderRadius.circular(14)),
                       ),
                       onPressed: () {
+                        FocusScope.of(context).unfocus();
+                        FocusManager.instance.primaryFocus?.unfocus();
+
                         final desc = descController.text.trim();
                         final evaluatedVal = _evaluateExpr(calcExpr);
                         bool hasError = false;
@@ -508,6 +544,7 @@ class _AddEditFinancialNotePageState
                           hasError = true;
                         }
                         if (hasError) {
+                          bannerError = descError ?? nominalError;
                           setModalState(() {});
                           return;
                         }
@@ -717,6 +754,9 @@ class _AddEditFinancialNotePageState
   }
 
   Future<void> _saveNote() async {
+    FocusScope.of(context).unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
+
     final title = _titleController.text.trim();
     if (title.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1048,6 +1088,7 @@ class _AddEditFinancialNotePageState
                       )
                     else
                       ListView.separated(
+                        key: ValueKey('draft_items_${_draftItems.length}_${_draftItems.fold(0.0, (s, i) => s + i.amount + i.updatedAt.millisecondsSinceEpoch)}'),
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: _draftItems.length,
@@ -1058,6 +1099,7 @@ class _AddEditFinancialNotePageState
                           final c =
                               isIncome ? LsColors.income : LsColors.expense;
                           return LsCard(
+                            key: ValueKey('item_${idx}_${item.description}_${item.amount}_${item.type}_${item.updatedAt.millisecondsSinceEpoch}'),
                             padding: const EdgeInsets.fromLTRB(12, 8, 0, 8),
                             child: Row(
                               children: [

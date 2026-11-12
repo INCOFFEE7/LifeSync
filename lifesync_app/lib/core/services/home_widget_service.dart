@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:lifesync_app/domain/entities/income_target.dart';
 import 'package:lifesync_app/domain/entities/reminder.dart';
+import 'package:lifesync_app/domain/entities/bill.dart';
+import 'package:lifesync_app/domain/entities/shopping_item.dart';
 import 'package:lifesync_app/domain/usecases/countdown_usecase.dart';
 import 'package:intl/intl.dart';
 
@@ -94,6 +96,67 @@ class HomeWidgetService {
     return ids;
   }
 
+  static Future<List<int>> getPinnedBillIds() async {
+    if (kIsWeb) return [];
+    final raw = await HomeWidget.getWidgetData<String>('pinned_bill_ids',
+        defaultValue: '');
+    if (raw == null || raw.isEmpty) return [];
+    return raw
+        .split(',')
+        .map((s) => int.tryParse(s.trim()))
+        .whereType<int>()
+        .toList();
+  }
+
+  static Future<List<int>?> togglePinBill(int id) async {
+    if (kIsWeb) return null;
+    final ids = await getPinnedBillIds();
+    bool added = false;
+    if (ids.contains(id)) {
+      ids.remove(id);
+    } else {
+      if (ids.length >= maxPinned) return null;
+      ids.add(id);
+      added = true;
+    }
+    await HomeWidget.saveWidgetData<String>('pinned_bill_ids', ids.join(','));
+    if (added) {
+      await requestPinReminderWidget();
+    }
+    return ids;
+  }
+
+  static Future<List<int>> getPinnedShoppingIds() async {
+    if (kIsWeb) return [];
+    final raw = await HomeWidget.getWidgetData<String>('pinned_shopping_ids',
+        defaultValue: '');
+    if (raw == null || raw.isEmpty) return [];
+    return raw
+        .split(',')
+        .map((s) => int.tryParse(s.trim()))
+        .whereType<int>()
+        .toList();
+  }
+
+  static Future<List<int>?> togglePinShopping(int id) async {
+    if (kIsWeb) return null;
+    final ids = await getPinnedShoppingIds();
+    bool added = false;
+    if (ids.contains(id)) {
+      ids.remove(id);
+    } else {
+      if (ids.length >= maxPinned) return null;
+      ids.add(id);
+      added = true;
+    }
+    await HomeWidget.saveWidgetData<String>(
+        'pinned_shopping_ids', ids.join(','));
+    if (added) {
+      await requestPinReminderWidget();
+    }
+    return ids;
+  }
+
   static Future<void> removePinnedTarget(int id) async {
     if (kIsWeb) return;
     final ids = await getPinnedTargetIds();
@@ -163,23 +226,51 @@ class HomeWidgetService {
   }
 
   static Future<void> updateMultiReminderWidgetData(
-      List<Reminder> reminders) async {
+      List<dynamic> items) async {
     if (kIsWeb) return;
     try {
       final dateFmt = DateFormat('dd MMM, HH.mm', 'id_ID');
+      final dayFmt = DateFormat('dd MMM yyyy', 'id_ID');
       for (int i = 0; i < 3; i++) {
-        final hasData = i < reminders.length;
+        final hasData = i < items.length;
         if (hasData) {
-          final r = reminders[i];
-          final countdown = CountdownUseCase.calculateCountdown(
-              DateTime.now(), r.targetDateTime);
-          final dateStr = dateFmt.format(r.targetDateTime);
-          await HomeWidget.saveWidgetData<String>('r${i}_title', r.title);
+          final item = items[i];
+          String title = '';
+          String dateStr = '';
+          String timeStr = '';
+          int targetEpoch = -1;
+
+          if (item is Reminder) {
+            title = item.title;
+            dateStr = dateFmt.format(item.targetDateTime);
+            timeStr = CountdownUseCase.calculateCountdown(
+                DateTime.now(), item.targetDateTime);
+            targetEpoch = item.targetDateTime.millisecondsSinceEpoch;
+          } else if (item is Bill) {
+            title = '[Tagihan] ${item.name}';
+            dateStr = 'Jatuh tempo: ${dayFmt.format(item.dueDate)}';
+            timeStr = item.isPaid
+                ? 'Lunas'
+                : 'Rp ${_fmt.format(item.amount.toInt())}';
+            targetEpoch = item.dueDate.millisecondsSinceEpoch;
+          } else if (item is ShoppingItem) {
+            title = '[Belanja] ${item.name}';
+            dateStr = item.category ?? 'Daftar Belanja';
+            timeStr = item.isChecked
+                ? 'Sudah Dibeli'
+                : (item.price > 0
+                    ? 'Rp ${_fmt.format(item.price.toInt())}'
+                    : 'Perlu Dibeli');
+            targetEpoch = item.purchaseDate?.millisecondsSinceEpoch ?? 0;
+          } else {
+            title = item.toString();
+          }
+
+          await HomeWidget.saveWidgetData<String>('r${i}_title', title);
           await HomeWidget.saveWidgetData<String>('r${i}_date', dateStr);
-          await HomeWidget.saveWidgetData<String>('r${i}_time', countdown);
-          // Save epoch so widget can compute countdown natively without Flutter
+          await HomeWidget.saveWidgetData<String>('r${i}_time', timeStr);
           await HomeWidget.saveWidgetData<int>(
-              'r${i}_target_epoch', r.targetDateTime.millisecondsSinceEpoch);
+              'r${i}_target_epoch', targetEpoch);
           await HomeWidget.saveWidgetData<bool>('r${i}_visible', true);
         } else {
           await HomeWidget.saveWidgetData<bool>('r${i}_visible', false);
